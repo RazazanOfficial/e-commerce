@@ -1,0 +1,37 @@
+@import "tailwindcss";
+
+:root {
+  --primary: #ff6b6b;
+  --secondary: #f9c74f;
+  --dark: #2b2d42;
+  --light: #edf2f4;
+  --white: #ffffff;
+  --black: #000000;
+  --gray: #8d99ae;
+  --gray-light: #e9ecef;
+  --gray-dark: #343a40;
+  --success: #28a745;
+  --danger: #dc3545;
+  --warning: #ffc107;
+  --info: #17a2b8;
+  --border-radius: 0.25rem;
+  --transition: all 0.3s linear;
+}
+
+@font-face {
+  font-family: "Yekan";
+  src: url("../assets/font/Yekan.eot");
+  src: url("../assets/font/Yekan.eot?#iefix") format("embedded-opentype"),
+    url("../assets/font/Yekan.woff") format("woff"),
+    url("../assets/font/Yekan.ttf") format("truetype");
+  font-weight: normal;
+  font-style: normal;
+}
+
+body {
+  font-family: "Yekan";
+  direction: rtl;
+  overflow-x: hidden;
+
+}
+
