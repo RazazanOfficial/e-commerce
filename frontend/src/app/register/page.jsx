@@ -1,6 +1,8 @@
 "use client";
 
+import backApis from "@/common/inedx";
 import imgToBase64 from "@/helpers/imgToBase64";
+import axios from "axios";
 import { Eye, EyeOff, User } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
@@ -60,25 +62,31 @@ const page = () => {
     });
   };
   // Form submission handler
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
+    if (!data.email || !data.password || !data.name || !data.confirmPassword) {
+      toast.error("لطفا تمامی فیلد ها را پر کنید");
+      console.log("Please fill all fields");
+      return;
+    }
     if (data.password !== data.confirmPassword) {
       toast.error("پسورد و تایید پسورد یکسان نیستند");
-      console.log("password and confirm password are not the same");
+      console.log("Password and confirm password are not the same");
       return;
     }
-    if (
-      data.email === "" ||
-      data.password === "" ||
-      data.name === "" ||
-      data.confirmPassword === ""
-    ) {
-      toast.error("لطفا تمامی فیلد ها را پر کنید");
-      console.log("please fill all fields");
-      return;
+
+    try {
+      const response = await axios.post(backApis.register.url, data, {
+        headers: { "Content-Type": "application/json" },
+      });
+      toast.success("ثبت نام با موفقیت انجام شد");
+    } catch (error) {
+      const errorMsg =
+        error.response?.data?.message || "مشکلی در ثبت‌ نام به وجود آمد";
+      console.error("Register Error", error);
+      toast.error(errorMsg);
     }
-    toast.success("ثبت نام با موفقیت انجام شد");
-    console.log("data login", data);
+    // console.log("data login", data);
   };
 
   return (
