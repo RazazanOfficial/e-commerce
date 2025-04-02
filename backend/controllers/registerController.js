@@ -6,32 +6,70 @@ const bcrypt = require("bcryptjs");
 const registerController = async (req, res) => {
   try {
     //* 🟢Validate Request Body
-    const { name, email, password } = req.body;
+    const { name, phone, email, password, confirmPassword } = req.body;
 
-    if (!name || !email || !password) {
+    if (!name || !phone || !email || !password || !confirmPassword) {
       return res.status(400).json({
         data: null,
         success: false,
         error: true,
-        message: `Please fill the ${
-          !name ? "name" : !email ? "email" : "password"
-        } field`,
+        message: `لطفا تمامی فیلدها را پر کنید`,
       });
     }
 
-    //* 🟢Check for Existing User
-    const existingUser = await UserModel.findOne({ email });
+    //* 🟢Validation Patterns
+    const namePattern = /^[\u0600-\u06FF\s]+$/; 
+    const phonePattern = /^09[0-9]{9}$/; 
+    const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+    if (!namePattern.test(name)) {
+      return res
+        .status(400)
+        .json({ message: "نام و نام خانوادگی نامعتبر است" });
+    }
+    if (!phonePattern.test(phone)) {
+      return res.status(400).json({ message: "شماره موبایل نامعتبر است" });
+    }
+    if (!emailPattern.test(email)) {
+      return res.status(400).json({ message: "ایمیل نامعتبر است" });
+    }
+
+    // * 🟢🟢Validation the password
+    if (password.length < 6) {
+      return res.status(400).json({
+        message: "پسورد باید حداقل ۶ کاراکتر باشد.",
+      });
+    }
+
+    //* 🟢Check Password Confirmation
+    if (password !== confirmPassword) {
+      return res.status(400).json({
+        data: null,
+        success: false,
+        error: true,
+        message: "پسورد و تایید پسورد یکسان نیستند",
+      });
+    }
+
+    //* 🟢Check for Existing User (Phone or Email)
+    const existingUser = await UserModel.findOne({
+      $or: [{ email }, { phone }],
+    });
+
     if (existingUser) {
       return res.status(400).json({
         data: null,
         success: false,
         error: true,
-        message: "Email is already registered",
+        message:
+          existingUser.phone === phone
+            ? "کاربر با این شماره موبایل از قبل وجود دارد"
+            : "کاربر با این ایمیل از قبل وجود دارد",
       });
     }
 
     // * 🟢Hash Password (Sensitive Operation)
-    const salt = await bcrypt.genSalt(10);
+    const salt = await bcrypt.genSalt(12);
     const hash = await bcrypt.hash(password, salt);
 
     //* 🟢Create New User Object
@@ -49,9 +87,8 @@ const registerController = async (req, res) => {
       data: saveUser,
       success: true,
       error: false,
-      message: "User registered successfully",
+      message: "ثبت نام با موفقیت انجام شد",
     });
-
   } catch (error) {
     //! 🔴Handle Errors
     res.status(500).json({

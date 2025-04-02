@@ -2,6 +2,12 @@ const mongoose = require("mongoose");
 
 const userSchema = mongoose.Schema({
   name: String,
+  phone: {
+    type: String,
+    required: true,
+    unique: true,
+    set: (value) => value.replace(/\D/g, ""),
+  },
   email: {
     type: String,
     required: true,
@@ -10,7 +16,6 @@ const userSchema = mongoose.Schema({
     set: (value) => value.toLowerCase(),
   },
   password: String,
-  profilePic: String,
 });
 
 const UserModel = mongoose.model("User", userSchema);

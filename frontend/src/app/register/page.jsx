@@ -4,17 +4,17 @@
 import axios from "axios";
 import Link from "next/link";
 import { useState } from "react";
+import { Eye, EyeOff } from "lucide-react";
 import { useRouter } from "next/navigation";
 import "react-toastify/dist/ReactToastify.css";
-import { Eye, EyeOff, User } from "lucide-react";
 import { ToastContainer, toast } from "react-toastify";
 //? -=-=- Import Files -=-=- //
 import backApis from "@/common/inedx";
-import imgToBase64 from "@/helpers/imgToBase64";
 
 const page = () => {
   const router = useRouter();
   //! -=-=- State management -=-=- !//
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [passwordStrength, setPasswordStrength] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
@@ -23,8 +23,7 @@ const page = () => {
     phone: "",
     email: "",
     password: "",
-    // confirmPassword: "",
-    profile: "",
+    confirmPassword: "",
   });
 
   //! -=-=- Regex States -=-=- !//
@@ -87,20 +86,11 @@ const page = () => {
     handleData(e);
   };
 
-  //! -=-=- Function to handle profile picture upload -=-=- !//
-  const handleUploadProfile = async (e) => {
-    const file = e.target.files[0];
-    const imgData = await imgToBase64(file);
-    setData((prev) => {
-      return {
-        ...prev,
-        profile: imgData,
-      };
-    });
-  };
   //! -=-=- Form submission handler -=-=- !//
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (isSubmitting) return;
+    setIsSubmitting(true);
     if (
       !data.email ||
       !data.password ||
@@ -112,6 +102,14 @@ const page = () => {
       console.log("Please fill all fields");
       return;
     }
+    if (
+      textRegex.name !== "نام و نام خانوادگی معتبر است" ||
+      textRegex.phone !== "شماره موبایل معتبر است" ||
+      textRegex.email !== "ایمیل معتبر است"
+    ) {
+      toast.error("لطفا اطلاعات را به‌درستی وارد کنید");
+      return;
+    }
     if (data.password !== data.confirmPassword) {
       toast.error("پسورد و تایید پسورد یکسان نیستند");
       console.log("Password and confirm password are not the same");
@@ -119,15 +117,15 @@ const page = () => {
     }
 
     try {
-      const response = await axios.post(backApis.register.url, data, {
-        headers: { "Content-Type": "application/json" },
-      });
+      const response = await axios.post(backApis.register.url, data);
       toast.success("ثبت نام با موفقیت انجام شد");
+      setIsSubmitting(false);
       console.log("Data login: ", response);
       setTimeout(() => {
         router.push("/login");
       }, 1000);
     } catch (error) {
+      setIsSubmitting(false);
       const errorMsg =
         error.response?.data?.message || "مشکلی در ثبت‌ نام به وجود آمد";
       console.error("Register Error", error);
@@ -141,29 +139,6 @@ const page = () => {
         className="flex flex-col gap-2 items-center justify-center p-6 bg-teal-50 border-2 border-cyan-200 rounded-2xl shadow-lg w-full max-w-md"
         onSubmit={handleSubmit}
       >
-        <div className="relative w-20 h-20 cursor-pointer">
-          <label className="w-full h-full flex flex-col items-center justify-center rounded-full bg-emerald-400 border-2 border-emerald-700 hover:bg-emerald-500 transition relative overflow-hidden">
-            {data.profile ? (
-              <img
-                src={data.profile}
-                alt="Profile"
-                className="w-full h-full rounded-full object-cover"
-              />
-            ) : (
-              <User className="w-10 h-10 text-green-900" />
-            )}
-            <span className="absolute bottom-0 w-full pb-[10px] pt-1 bg-slate-700 opacity-85 text-white text-sm text-center">
-              آپلود عکس
-            </span>
-            <input
-              type="file"
-              accept="image/*"
-              className="absolute inset-0 opacity-0 cursor-pointer"
-              onChange={handleUploadProfile}
-            />
-          </label>
-        </div>
-
         <div className="flex flex-col gap-5 w-full">
           <div>
             <input
@@ -188,7 +163,7 @@ const page = () => {
           <div>
             <input
               className="w-full p-2 border-2 border-emerald-400 ring-emerald-300 hover:bg-emerald-200 focus:ring-2 focus:ring-emerald-600 rounded-lg outline-none transition text-right"
-              type="phone"
+              type="tel"
               placeholder="شماره موبایل"
               name="phone"
               value={data.phone}
