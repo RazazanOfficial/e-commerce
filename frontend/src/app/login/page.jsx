@@ -1,14 +1,19 @@
 "use client";
 
-import { Eye, EyeOff, User } from "lucide-react";
-import Link from "next/link";
+import { Eye, EyeOff } from "lucide-react";
 import { useState } from "react";
+import Link from "next/link";
+import axios from "axios";
+import backApis from "@/common/inedx";
+import { toast } from "react-toastify";
+import { useRouter } from "next/navigation";
 
 const page = () => {
+  const router = useRouter();
   const [passwordStrength, setPasswordStrength] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [data, setData] = useState({
-    email: "",
+    phoneOrEmail: "",
     password: "",
   });
 
@@ -37,46 +42,61 @@ const page = () => {
     handleData(e);
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     console.log("data login", data);
-  }
-
+    console.log("submit fired2");
+    try {
+      console.log("submit fired1");
+      const response = await axios.post(
+        "http://localhost:8080/api/login",
+        data,
+        {
+          withCredentials: true,
+        }
+      );
+      console.log("response login", response);
+      toast.success("ورود با موفقیت انجام شد");
+      setTimeout(() => {
+        router.push("/");
+      }, 1000);
+    } catch (error) {
+      const errorMsg =
+        error.response?.data?.message || "مشکلی در ورود به وجود آمد";
+      toast.error(errorMsg);
+    }
+  };
   return (
-    <div className="flex justify-center items-center mt-20 w-full">
-      <form className="flex flex-col gap-5 items-center justify-center p-6 bg-teal-50 border-2 border-cyan-200 rounded-2xl shadow-lg w-full max-w-md" onSubmit={handleSubmit}>
-        <div className="w-20 h-20 flex items-center justify-center rounded-full bg-emerald-400 border-2 border-emerald-700 hover:bg-emerald-500 transition cursor-pointer">
-          <span>
-            <User className="w-10 h-10 text-green-900" />
-          </span>
-        </div>
+    <div className="flex justify-center items-center mt-20 w-full px-4 sm:px-6 lg:px-8">
+      <form
+        className="flex flex-col gap-5 items-center justify-center p-6 bg-teal-50 border-2 border-cyan-200 rounded-2xl shadow-lg w-full max-w-md"
+        onSubmit={handleSubmit}
+      >
         <div className="flex flex-col gap-5 w-full">
           <input
-            className="w-full p-2 border-2 border-emerald-400 ring-emerald-300 hover:bg-emerald-200 focus:border-none rounded-lg outline-none focus:outline-none focus:ring-2 focus:ring-emerald-600 transition text-right focus:bg-emerald-200 cursor-pointer"
-            type="email"
-            placeholder="ایمیل"
-            name="email"
-            value={data.email}
+            className="w-full p-3 border-2 border-emerald-400 ring-emerald-300 hover:bg-emerald-200 focus:border-none rounded-lg outline-none focus:outline-none focus:ring-2 focus:ring-emerald-600 transition text-right focus:bg-emerald-200 cursor-pointer text-sm sm:text-base"
+            type="text"
+            placeholder="شماره موبایل یا ایمیل خود را وارد کنید"
+            name="phoneOrEmail"
             onChange={handleData}
           />
           <div className="relative w-full">
             <input
-              className="w-full p-2 border-2 border-emerald-400 ring-emerald-300 hover:bg-emerald-200 focus:border-none rounded-lg outline-none focus:outline-none focus:ring-2 focus:ring-emerald-600 transition text-right focus:bg-emerald-200 cursor-pointer"
+              className="w-full p-3 border-2 border-emerald-400 ring-emerald-300 hover:bg-emerald-200 focus:border-none rounded-lg outline-none focus:outline-none focus:ring-2 focus:ring-emerald-600 transition text-right focus:bg-emerald-200 cursor-pointer text-sm sm:text-base"
               type={showPassword ? "text" : "password"}
               placeholder="پسورد"
               name="password"
-              value={data.password}
               onChange={handlePasswordInput}
             />
             <span
               onClick={() => setShowPassword(!showPassword)}
-              className="absolute top-1/5 left-5 cursor-pointer"
+              className="absolute top-1/2 -translate-y-1/2 left-4 cursor-pointer text-gray-600"
             >
               {showPassword ? <Eye /> : <EyeOff />}
             </span>
           </div>
         </div>
-        <div className="flex gap-1 mb-3">
+        <div className="flex gap-1 mb-3 w-full justify-center">
           {[...Array(5)].map((_, i) => (
             <div
               key={i}
@@ -87,16 +107,17 @@ const page = () => {
           ))}
         </div>
         <button
-          className={`w-full p-2 text-white rounded-lg transition ${
+          className={`w-full p-3 text-white rounded-lg transition text-sm sm:text-base ${
             handlePasswordStrength() > 2
               ? "bg-emerald-500 hover:bg-emerald-600 cursor-pointer"
               : "bg-gray-400 cursor-not-allowed"
           }`}
           disabled={handlePasswordStrength() <= 2}
+          type="submit"
         >
           ورود
         </button>
-        <div className="flex justify-between w-full mt-10 text-sm">
+        <div className="flex flex-col sm:flex-row justify-between items-center gap-2 sm:gap-0 w-full mt-10 text-sm">
           <Link
             href="/forgot-password"
             className="text-blue-500 hover:text-blue-600 transition"

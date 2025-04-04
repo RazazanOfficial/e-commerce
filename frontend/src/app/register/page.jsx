@@ -7,7 +7,7 @@ import { useState } from "react";
 import { Eye, EyeOff } from "lucide-react";
 import { useRouter } from "next/navigation";
 import "react-toastify/dist/ReactToastify.css";
-import { ToastContainer, toast } from "react-toastify";
+import { toast } from "react-toastify";
 //? -=-=- Import Files -=-=- //
 import backApis from "@/common/inedx";
 
@@ -120,7 +120,7 @@ const page = () => {
       const response = await axios.post(backApis.register.url, data);
       toast.success("ثبت نام با موفقیت انجام شد");
       setIsSubmitting(false);
-      console.log("Data login: ", response);
+      console.log("Data Register: ", response);
       setTimeout(() => {
         router.push("/login");
       }, 1000);
@@ -257,6 +257,7 @@ const page = () => {
               : "bg-gray-400 cursor-not-allowed"
           }`}
           disabled={handlePasswordStrength() <= 2}
+          type="submit"
         >
           ورود
         </button>
@@ -276,7 +277,6 @@ const page = () => {
           </Link>
         </div>
       </form>
-      <ToastContainer />
     </div>
   );
 };

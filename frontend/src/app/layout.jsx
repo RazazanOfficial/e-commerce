@@ -1,5 +1,6 @@
 import Header from "@/components/Header";
 import "@/styles/globals.css";
+import { ToastContainer } from "react-toastify";
 
 export const metadata = {
   title: "فروشگاه عصر دیجیتال",
@@ -13,6 +14,7 @@ export default function RootLayout({ children }) {
       <body className={`antialiased bg-slate-100 h-[100vh]`}>
         <Header/>
         {children}
+      <ToastContainer />
       </body>
     </html>
   );
