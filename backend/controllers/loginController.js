@@ -6,7 +6,6 @@ const jwt = require("jsonwebtoken");
 //* 🟢User Logination Controller
 const loginController = async (req, res) => {
   try {
-
     //* 🟢Validate Request Body
     const { phoneOrEmail, password } = req.body;
 

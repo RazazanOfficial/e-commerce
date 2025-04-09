@@ -1,12 +1,13 @@
 "use client";
 
 import { Eye, EyeOff } from "lucide-react";
-import { useState } from "react";
+import { useContext, useState } from "react";
 import Link from "next/link";
 import axios from "axios";
 import backApis from "@/common/inedx";
 import { toast } from "react-toastify";
 import { useRouter } from "next/navigation";
+import { UserContext } from "@/context/UserContext";
 
 const page = () => {
   const router = useRouter();
@@ -16,6 +17,8 @@ const page = () => {
     phoneOrEmail: "",
     password: "",
   });
+
+  const {fetchUserDetails} = useContext(UserContext);
 
   const handlePasswordStrength = () => {
     let strength = 0;
@@ -49,7 +52,7 @@ const page = () => {
     try {
       console.log("submit fired1");
       const response = await axios.post(
-        "http://localhost:8080/api/login",
+        backApis.login.url,
         data,
         {
           withCredentials: true,
@@ -60,6 +63,7 @@ const page = () => {
       setTimeout(() => {
         router.push("/");
       }, 1000);
+      fetchUserDetails()
     } catch (error) {
       const errorMsg =
         error.response?.data?.message || "مشکلی در ورود به وجود آمد";
