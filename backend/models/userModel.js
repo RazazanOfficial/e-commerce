@@ -16,6 +16,7 @@ const userSchema = mongoose.Schema({
     set: (value) => value.toLowerCase(),
   },
   password: String,
+  role: String,
 });
 
 const UserModel = mongoose.model("User", userSchema);

@@ -12,14 +12,14 @@ const authTokenMid = async (req, res, next) => {
   }
 
   jwt.verify(token, process.env.JWT_SECRET, function (err, decoded) {
-    console.log({ token: token, decoded: decoded });
+    // console.log({ token: token, decoded: decoded });
     if (err) {
       console.log("auth error : ", err);
       return res.status(401).json({
         data: null,
         success: false,
         error: true,
-        message: "توکن معتبر نیست",
+        message: "حساب کاربری معتبر نیست",
       });
     }
 

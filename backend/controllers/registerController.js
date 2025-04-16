@@ -18,8 +18,8 @@ const registerController = async (req, res) => {
     }
 
     //* 🟢Validation Patterns
-    const namePattern = /^[\u0600-\u06FF\s]+$/; 
-    const phonePattern = /^09[0-9]{9}$/; 
+    const namePattern = /^[\u0600-\u06FF\s]+$/;
+    const phonePattern = /^09[0-9]{9}$/;
     const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
     if (!namePattern.test(name)) {
@@ -76,6 +76,7 @@ const registerController = async (req, res) => {
     const payload = {
       ...req.body,
       password: hash,
+      role: "user",
     };
 
     //* 🟢Save User to Database

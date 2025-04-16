@@ -2,11 +2,14 @@
 import { createContext, useState, useEffect } from "react";
 import axios from "axios";
 import backApis from "@/common/inedx";
+import { useDispatch } from "react-redux";
+import { setUserDetails } from "@/redux/userSlice";
 
 export const UserContext = createContext(null);
 
 export const UserProvider = ({ children }) => {
   const [user, setUser] = useState(null);
+  const dispatch = useDispatch()
 
   const fetchUserDetails = async () => {
     try {
@@ -15,6 +18,7 @@ export const UserProvider = ({ children }) => {
       });
       if (response.data.success) {
         setUser(response.data.data);
+        dispatch(setUserDetails(response.data.data))
       } else {
         console.log("Error fetching user details:", response.data.message);
       }

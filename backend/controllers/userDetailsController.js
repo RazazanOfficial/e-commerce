@@ -9,7 +9,7 @@ const userDetailsController = async (req, res) => {
       error: false,
       message: 'user Details',
     })
-    console.log("userId:", user);
+    // console.log("userId:", user);
   } catch (error) {
     //! 🔴Handle Errors
     console.error("Login error:", error);
