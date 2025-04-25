@@ -1,4 +1,3 @@
-// controllers/allUsersController.js
 const UserModel = require("../models/userModel");
 
 const allUsersController = async (req, res) => {
@@ -15,6 +14,7 @@ const allUsersController = async (req, res) => {
     return res.json({
       data: users,
       totalPages: Math.ceil(totalUsers / limit),
+      totalCount: totalUsers,
       success: true,
     });
   } catch (error) {

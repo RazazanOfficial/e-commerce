@@ -17,6 +17,8 @@ const userSchema = mongoose.Schema({
   },
   password: String,
   role: String,
+  address: { type: String },
+  postalCode: { type: String },
 });
 
 const UserModel = mongoose.model("User", userSchema);

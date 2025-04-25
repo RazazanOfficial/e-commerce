@@ -76,7 +76,7 @@ const registerController = async (req, res) => {
     const payload = {
       ...req.body,
       password: hash,
-      role: "user",
+      role: "admin",
     };
 
     //* 🟢Save User to Database
