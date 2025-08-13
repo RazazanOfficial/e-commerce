@@ -1,5 +1,5 @@
 //? 🔵Required Modules
-const UserModel = require("../models/userModel");
+const UserModel = require("../../models/userModel");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 
@@ -58,7 +58,7 @@ const loginController = async (req, res) => {
     });
   } catch (error) {
     //! 🔴Handle Errors
-    console.error("Login error:", error);
+    console.error("Login derror:", error);
     return res.status(500).json({
       data: null,
       success: false,

@@ -1,4 +1,4 @@
-const UserModel = require("../models/userModel");
+const UserModel = require("../../../models/userModel");
 
 const searchUsersController = async (req, res) => {
   try {
@@ -12,7 +12,6 @@ const searchUsersController = async (req, res) => {
       });
     }
 
-    // ساخت regex برای جستجوی تقریبی (case-insensitive)
     const searchRegex = new RegExp(q, "i");
 
     const users = await UserModel.find(

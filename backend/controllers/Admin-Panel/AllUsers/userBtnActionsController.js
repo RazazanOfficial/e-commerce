@@ -1,6 +1,5 @@
-const UserModel = require("../models/userModel");
+const UserModel = require("../../../models/userModel");
 
-// [GET] گرفتن اطلاعات یک کاربر خاص
 const getSingleUserController = async (req, res) => {
   try {
     const { id } = req.params;
@@ -26,7 +25,6 @@ const getSingleUserController = async (req, res) => {
   }
 };
 
-// [PUT] ویرایش اطلاعات کاربر
 const updateUserController = async (req, res) => {
   try {
     const { id } = req.params;
@@ -61,7 +59,6 @@ const updateUserController = async (req, res) => {
   }
 };
 
-// [DELETE] حذف کاربر
 const deleteUserController = async (req, res) => {
   try {
     const { id } = req.params;

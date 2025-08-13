@@ -2,7 +2,7 @@ const UserModel = require("../models/userModel");
 
 const adminOnlyMid = async (req, res, next) => {
   try {
-    console.log("✅ adminOnlyMid -> req.user:", req.user); // 👈 لاگ اصلی
+    console.log("✅ adminOnlyMid -> req.user:", req.user);
     if (!req.user?.id) {
       return res.status(401).json({
         data: null,
@@ -13,7 +13,7 @@ const adminOnlyMid = async (req, res, next) => {
     }
 
     const user = await UserModel.findById(req.user.id);
-    console.log("✅ current user:", user); // 👈 ببینیم چی برمی‌گرده
+    console.log("✅ current user:", user);
 
     if (!user || user.role !== "admin") {
       return res.status(403).json({

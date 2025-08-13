@@ -48,12 +48,11 @@ const SearchModal = ({
 
       const updated = response.data?.data;
 
-      // به‌روزرسانی لیست لوکال سرچ
       setSearchResults((prev) =>
         prev.map((user) => (user._id === updated._id ? updated : user))
       );
 
-      onUserUpdate?.(updated); // به‌روزرسانی لیست اصلی
+      onUserUpdate?.(updated);
 
       setSelectedUser(null);
       setActionMode(null);
@@ -68,9 +67,7 @@ const SearchModal = ({
       await axios({ method, url, withCredentials: true });
 
       // حذف از لیست لوکال
-      setSearchResults((prev) =>
-        prev.filter((user) => user._id !== userId)
-      );
+      setSearchResults((prev) => prev.filter((user) => user._id !== userId));
 
       onUserDelete?.(userId); // حذف از لیست اصلی
 

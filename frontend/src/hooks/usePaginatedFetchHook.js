@@ -34,7 +34,7 @@ const usePaginatedFetch = (url) => {
     fetchData();
   }, [fetchData]);
 
-  return { data, loading, page, setPage, totalPages, totalCount, refreshData: fetchData }; // ✅ اضافه کردیم
+  return { data, loading, page, setPage, totalPages, totalCount, refreshData: fetchData };
 };
 
 export default usePaginatedFetch;

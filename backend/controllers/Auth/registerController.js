@@ -1,5 +1,5 @@
 //? 🔵Required Modules
-const UserModel = require("../models/userModel");
+const UserModel = require("../../models/userModel");
 const bcrypt = require("bcryptjs");
 
 //* 🟢User Registration Controller
@@ -16,7 +16,7 @@ const registerController = async (req, res) => {
         message: `لطفا تمامی فیلدها را پر کنید`,
       });
     }
-
+    
     //* 🟢Validation Patterns
     const namePattern = /^[\u0600-\u06FF\s]+$/;
     const phonePattern = /^09[0-9]{9}$/;
@@ -76,7 +76,7 @@ const registerController = async (req, res) => {
     const payload = {
       ...req.body,
       password: hash,
-      role: "admin",
+      role: "user",
     };
 
     //* 🟢Save User to Database

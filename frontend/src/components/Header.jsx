@@ -54,7 +54,6 @@ const Header = () => {
 
   return (
     <header className="backdrop-blur-md bg-gradient-to-r from-emerald-200/50 to-emerald-500/40 shadow-lg sticky top-0 z-50 rounded-b-2xl">
-      {/* گرادیانت پس‌زمینه برای ظاهر مدرن‌تر */}
       <div className="max-w-7xl mx-auto px-4 py-3 flex flex-wrap justify-between items-center gap-4">
         {/* Logo */}
         <Link href="/" className="flex items-center gap-2">

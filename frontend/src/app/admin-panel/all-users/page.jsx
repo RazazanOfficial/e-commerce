@@ -60,7 +60,7 @@ const handleUpdateUser = async (updatedUser) => {
     });
 
     console.log("✅ کاربر با موفقیت آپدیت شد", response.data);
-    refreshData(); // 👈 رفرش دیتای کلی
+    refreshData();
     setUserModalOpen(false);
   } catch (err) {
     console.error("❌ خطا در آپدیت کاربر:", err);
@@ -74,7 +74,7 @@ const handleDeleteUser = async (userId) => {
     const response = await axios({ method, url, withCredentials: true });
 
     console.log("✅ کاربر حذف شد", response.data);
-    refreshData(); // 👈 رفرش دیتای کلی
+    refreshData();
     setUserModalOpen(false);
   } catch (err) {
     console.error("❌ خطا در حذف کاربر:", err);
@@ -158,8 +158,8 @@ const handleDeleteUser = async (userId) => {
           users={searchResults}
           getUserAvatarColor={getUserAvatarColor}
           getRoleBadgeVariant={getRoleBadgeVariant}
-          onUserUpdate={() => refreshData()} // 👈 رفرش کن
-          onUserDelete={() => refreshData()} // 👈 رفرش کن
+          onUserUpdate={() => refreshData()}
+          onUserDelete={() => refreshData()}
         />
       )}
 

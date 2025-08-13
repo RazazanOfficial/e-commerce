@@ -1,4 +1,4 @@
-const UserModel = require("../models/userModel");
+const UserModel = require("../../../models/userModel");
 
 const allUsersController = async (req, res) => {
   try {
@@ -7,9 +7,7 @@ const allUsersController = async (req, res) => {
     const skip = (page - 1) * limit;
 
     const totalUsers = await UserModel.countDocuments();
-    const users = await UserModel.find({}, "-password")
-      .skip(skip)
-      .limit(limit);
+    const users = await UserModel.find({}, "-password").skip(skip).limit(limit);
 
     return res.json({
       data: users,
