@@ -1,5 +1,7 @@
+//? 🔵Required Modules
 const UserModel = require("../../../models/userModel");
 
+//* 🟢Get One User Info Controller
 const getSingleUserController = async (req, res) => {
   try {
     const { id } = req.params;
@@ -16,6 +18,7 @@ const getSingleUserController = async (req, res) => {
       success: true,
     });
   } catch (error) {
+    //! 🔴Handle Errors
     return res.status(500).json({
       data: null,
       success: false,
@@ -25,6 +28,7 @@ const getSingleUserController = async (req, res) => {
   }
 };
 
+//* 🟢Update User Info Controller
 const updateUserController = async (req, res) => {
   try {
     const { id } = req.params;
@@ -50,6 +54,7 @@ const updateUserController = async (req, res) => {
       message: "کاربر با موفقیت ویرایش شد",
     });
   } catch (error) {
+    //! 🔴Handle Errors
     return res.status(500).json({
       data: null,
       success: false,
@@ -59,6 +64,7 @@ const updateUserController = async (req, res) => {
   }
 };
 
+//* 🟢Delete User Controller
 const deleteUserController = async (req, res) => {
   try {
     const { id } = req.params;
@@ -77,6 +83,7 @@ const deleteUserController = async (req, res) => {
       message: "کاربر با موفقیت حذف شد",
     });
   } catch (error) {
+    //! 🔴Handle Errors
     return res.status(500).json({
       data: null,
       success: false,
@@ -86,6 +93,7 @@ const deleteUserController = async (req, res) => {
   }
 };
 
+//? 🔵Export Controller
 module.exports = {
   getSingleUserController,
   updateUserController,

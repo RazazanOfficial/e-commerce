@@ -1,0 +1,19 @@
+meta {
+  name: Category DELETE
+  type: http
+  seq: 4
+}
+
+delete {
+  url: {{baseURL}}/api/admin/categories/:id
+  body: json
+  auth: inherit
+}
+
+params:path {
+  id: 689f1c2257efba95c6bf0513
+}
+
+settings {
+  encodeUrl: true
+}

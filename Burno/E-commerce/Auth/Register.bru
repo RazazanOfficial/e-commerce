@@ -1,0 +1,25 @@
+meta {
+  name: Register
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{baseURL}}/api/register
+  body: json
+  auth: inherit
+}
+
+body:json {
+  {
+      "name" : "ادمین",
+      "phone" : "09111111111",
+      "emaisl":"admin1@gmail.com",
+      "password": "Anitalove82@",
+      "confirmPassword": "Anitalove82@"
+  }
+}
+
+settings {
+  encodeUrl: true
+}

@@ -10,12 +10,14 @@ const categoryRouters = require("./Admin-Panel/products/categoryRouters");
 //! Auth
 router.use("", authRouters);
 
+
 //! Panel Admin Routes
-//! All-Users
+//? All-Users
 router.use("/admin/all-users", allUsers);
 router.use("/admin/user", user);
 router.use("/admin/search-users", searchUsers);
-//! Products
+//? Products
 router.use("/admin/categories", categoryRouters);
+
 
 module.exports = router;

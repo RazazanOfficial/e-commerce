@@ -1,7 +1,9 @@
+//? 🔵Required Modules
 const CategoryModel = require("../../../models/categoryModel");
 const slugify = require("slugify");
 const mongoose = require("mongoose");
 
+//* 🟢Create Category Controller
 const createCategory = async (req, res) => {
   try {
     let {
@@ -9,6 +11,7 @@ const createCategory = async (req, res) => {
       slug,
       description,
       image,
+      imageAlt,
       isActive,
       sortOrder,
       parent,
@@ -17,18 +20,50 @@ const createCategory = async (req, res) => {
       keywords,
     } = req.body;
 
-    slug = slug || slugify(name, { lower: true });
+    if (sortOrder !== undefined && typeof sortOrder !== "number") {
+      return res.status(400).json({
+        success: false,
+        error: true,
+        message: "sortOrder باید عدد باشد",
+      });
+    }
 
-    if (parent && typeof parent === "string" && !mongoose.Types.ObjectId.isValid(parent)) {
+    if (sortOrder === undefined) {
+      const maxOrder = await CategoryModel.findOne()
+        .sort("-sortOrder")
+        .select("sortOrder");
+      sortOrder = (maxOrder?.sortOrder || 0) + 1;
+    }
+
+    slug = slug || slugify(name, { lower: true });
+    metaTitle = metaTitle || name;
+    metaDescription = metaDescription || description;
+    imageAlt = imageAlt || name;
+    if (
+      parent &&
+      typeof parent === "string" &&
+      !mongoose.Types.ObjectId.isValid(parent)
+    ) {
       const parentCat = await CategoryModel.findOne({ name: parent });
       if (!parentCat) {
         return res.status(400).json({
           success: false,
           error: true,
-          message: `دسته‌بندی با نام "${parent}" پیدا نشد`,
+          message: `دسته‌بندی مورد نظر پیدا نشد`,
         });
       }
       parent = parentCat._id;
+    }
+
+    if (parent) {
+      let currentParent = await CategoryModel.findById(parent).select("parent");
+      while (currentParent) {
+        if (currentParent._id.toString() === parent?.toString()) break;
+        if (!currentParent.parent) break;
+        currentParent = await CategoryModel.findById(
+          currentParent.parent
+        ).select("parent");
+      }
     }
 
     const category = new CategoryModel({
@@ -36,6 +71,7 @@ const createCategory = async (req, res) => {
       slug,
       description,
       image,
+      imageAlt,
       isActive,
       sortOrder,
       parent,
@@ -50,10 +86,11 @@ const createCategory = async (req, res) => {
       data: category,
       success: true,
       error: false,
-      message: "✅ دسته‌بندی با موفقیت ایجاد شد",
+      message: ".دسته‌بندی با موفقیت ایجاد شد",
     });
   } catch (err) {
-    console.log("❌ createCategory error:", err);
+    //! 🔴Handle errors
+    // console.log("createCategory error:", err);
     res.status(500).json({
       success: false,
       error: true,
@@ -62,20 +99,23 @@ const createCategory = async (req, res) => {
   }
 };
 
+//* 🟢Get All Categories Controller
 const getAllCategories = async (req, res) => {
   try {
     const categories = await CategoryModel.find()
-      .populate("parent")
-      .sort({ sortOrder: 1 });
+      .populate("parent", "name slug")
+      .sort({ sortOrder: 1 })
+      .lean();
 
     res.json({
       data: categories,
       success: true,
       error: false,
-      message: "✅ لیست دسته‌بندی‌ها با موفقیت دریافت شد",
+      message: ".لیست دسته‌بندی‌ها با موفقیت دریافت شد",
     });
   } catch (err) {
-    console.log("❌ getAllCategories error:", err);
+    //! 🔴Handle errors
+    // console.log("getAllCategories error:", err);
     res.status(500).json({
       success: false,
       error: true,
@@ -84,6 +124,7 @@ const getAllCategories = async (req, res) => {
   }
 };
 
+//* 🟢Update Category Controller
 const updateCategory = async (req, res) => {
   try {
     let {
@@ -91,6 +132,7 @@ const updateCategory = async (req, res) => {
       slug,
       description,
       image,
+      imageAlt,
       isActive,
       sortOrder,
       parent,
@@ -98,6 +140,21 @@ const updateCategory = async (req, res) => {
       metaDescription,
       keywords,
     } = req.body;
+
+    if (sortOrder !== undefined && typeof sortOrder !== "number") {
+      return res.status(400).json({
+        success: false,
+        error: true,
+        message: "sortOrder باید عدد باشد",
+      });
+    }
+
+    if (sortOrder === undefined) {
+      const maxOrder = await CategoryModel.findOne()
+        .sort("-sortOrder")
+        .select("sortOrder");
+      sortOrder = (maxOrder?.sortOrder || 0) + 1;
+    }
 
     const { id } = req.params;
 
@@ -109,7 +166,11 @@ const updateCategory = async (req, res) => {
       });
     }
 
-    if (parent && typeof parent === "string" && !mongoose.Types.ObjectId.isValid(parent)) {
+    if (
+      parent &&
+      typeof parent === "string" &&
+      !mongoose.Types.ObjectId.isValid(parent)
+    ) {
       const parentCat = await CategoryModel.findOne({ name: parent });
       if (!parentCat) {
         return res.status(400).json({
@@ -121,20 +182,51 @@ const updateCategory = async (req, res) => {
       parent = parentCat._id;
     }
 
+    if (parent) {
+      const parentDoc = await CategoryModel.findById(parent).select("parent");
+      if (!parentDoc) {
+        return res.status(400).json({
+          success: false,
+          error: true,
+          message: "دسته‌بندی والد پیدا نشد",
+        });
+      }
+
+      let currentParent = parentDoc;
+      while (currentParent) {
+        if (currentParent._id.toString() === id.toString()) {
+          return res.status(400).json({
+            success: false,
+            error: true,
+            message: "حلقه والد–فرزند مجاز نیست",
+          });
+        }
+        if (!currentParent.parent) break;
+        currentParent = await CategoryModel.findById(
+          currentParent.parent
+        ).select("parent");
+      }
+    }
+    const updateData = {};
+
+    if (name !== undefined) updateData.name = name;
+    if (slug !== undefined)
+      updateData.slug =
+        slug || slugify(name || updateData.name, { lower: true });
+    if (description !== undefined) updateData.description = description;
+    if (image !== undefined) updateData.image = image;
+    if (imageAlt !== undefined) updateData.imageAlt = imageAlt;
+    if (isActive !== undefined) updateData.isActive = isActive;
+    if (sortOrder !== undefined) updateData.sortOrder = sortOrder;
+    if (parent !== undefined) updateData.parent = parent;
+    if (metaTitle !== undefined) updateData.metaTitle = metaTitle;
+    if (metaDescription !== undefined)
+      updateData.metaDescription = metaDescription;
+    if (keywords !== undefined) updateData.keywords = keywords;
+
     const updatedCategory = await CategoryModel.findByIdAndUpdate(
       id,
-      {
-        name,
-        slug: slug || slugify(name, { lower: true }),
-        description,
-        image,
-        isActive,
-        sortOrder,
-        parent,
-        metaTitle,
-        metaDescription,
-        keywords,
-      },
+      updateData,
       { new: true }
     );
 
@@ -150,10 +242,11 @@ const updateCategory = async (req, res) => {
       data: updatedCategory,
       success: true,
       error: false,
-      message: "✅ دسته‌بندی با موفقیت ویرایش شد",
+      message: ".دسته‌بندی با موفقیت ویرایش شد",
     });
   } catch (err) {
-    console.log("❌ updateCategory error:", err);
+    //! 🔴Handle errors
+    // console.log("updateCategory error:", err);
     res.status(500).json({
       success: false,
       error: true,
@@ -162,6 +255,7 @@ const updateCategory = async (req, res) => {
   }
 };
 
+//* 🟢Delete Category Controller
 const deleteCategory = async (req, res) => {
   try {
     const { id } = req.params;
@@ -189,10 +283,11 @@ const deleteCategory = async (req, res) => {
       data: deletedCategory,
       success: true,
       error: false,
-      message: "✅ دسته‌بندی با موفقیت حذف شد",
+      message: ".دسته‌بندی با موفقیت حذف شد",
     });
   } catch (err) {
-    console.log("❌ deleteCategory error:", err);
+    //! 🔴Handle errors
+    // console.log("deleteCategory error:", err);
     res.status(500).json({
       success: false,
       error: true,
@@ -201,6 +296,7 @@ const deleteCategory = async (req, res) => {
   }
 };
 
+//? 🔵Export Controllers
 module.exports = {
   createCategory,
   getAllCategories,

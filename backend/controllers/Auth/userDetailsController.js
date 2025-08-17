@@ -1,5 +1,7 @@
+//? 🔵Required Modules
 const UserModel = require("../../models/userModel");
 
+//* 🟢UserDetails Controller
 const userDetailsController = async (req, res) => {
   try {
     const user = await UserModel.findById(req.user.id);
@@ -7,7 +9,7 @@ const userDetailsController = async (req, res) => {
       data: user,
       success: true,
       error: false,
-      message: "user Details",
+      message: "مشخصات کاربر",
     });
     // console.log("userId:", user);
   } catch (error) {
@@ -21,4 +23,6 @@ const userDetailsController = async (req, res) => {
     });
   }
 };
+
+//? 🔵Export Controller
 module.exports = userDetailsController;

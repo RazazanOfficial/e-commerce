@@ -1,5 +1,7 @@
+//? 🔵Required Modules
 const UserModel = require("../../../models/userModel");
 
+//* 🟢Search Users Controller
 const searchUsersController = async (req, res) => {
   try {
     const { q } = req.query;
@@ -31,7 +33,7 @@ const searchUsersController = async (req, res) => {
       success: true,
     });
   } catch (error) {
-    console.error("خطا در جستجوی کاربران:", error);
+    //! 🔴Handle Errors
     return res.status(500).json({
       data: null,
       success: false,
@@ -41,4 +43,5 @@ const searchUsersController = async (req, res) => {
   }
 };
 
+//? 🔵Export Controller
 module.exports = searchUsersController;

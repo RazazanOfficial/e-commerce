@@ -2,13 +2,15 @@
 const UserModel = require("../../models/userModel");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
+const coockieOptions = require("../../config/coockieOptions");
 
 //* 🟢User Logination Controller
 const loginController = async (req, res) => {
   try {
+
     //* 🟢Validate Request Body
     const { phoneOrEmail, password } = req.body;
-
+    
     //* 🟢Validation User Exist
     const user = await UserModel.findOne({
       $or: [{ email: phoneOrEmail }, { phone: phoneOrEmail }],
@@ -35,19 +37,14 @@ const loginController = async (req, res) => {
 
     //* 🟢Generate JWT Token
     if (!process.env.JWT_SECRET) {
-      throw new Error("JWT_SECRET is not defined in environment variables");
+      throw new Error("Server Error");
     }
     const token = jwt.sign(
       { id: user._id, identifier: user.phone || user.email },
       process.env.JWT_SECRET,
       { expiresIn: "7d" }
     );
-    res.cookie("token", token, {
-      httpOnly: true,
-      secure: "false",
-      sameSite: "lax",
-      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
-    });
+    res.cookie("token", token , coockieOptions);
 
     //* 🟢Send Success Response
     return res.status(200).json({

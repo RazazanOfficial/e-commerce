@@ -1,0 +1,26 @@
+meta {
+  name: Category PUT
+  type: http
+  seq: 3
+}
+
+put {
+  url: {{baseURL}}/api/admin/categories/:id
+  body: json
+  auth: inherit
+}
+
+params:path {
+  id: 689f1db557efba95c6bf0530
+}
+
+body:json {
+  {
+    "parent": "گوشی سامسونگ"
+  }
+  
+}
+
+settings {
+  encodeUrl: true
+}

@@ -1,6 +1,10 @@
+//? 🔵Required Modules
+const { cookieOptions } = require("../../config/coockieOptions");
+
+//* 🟢User Logout Controller
 const logoutController = async (req, res) => {
   try {
-    res.clearCookie("token");
+    res.clearCookie("token",cookieOptions);
     res.status(200).json({
       message: "با موفقیت از حساب کاربری خارج شدید",
       success: true,
@@ -17,4 +21,5 @@ const logoutController = async (req, res) => {
   }
 };
 
+//? 🔵Export Controller
 module.exports = logoutController;

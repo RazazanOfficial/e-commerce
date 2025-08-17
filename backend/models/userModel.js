@@ -1,5 +1,7 @@
+//? 🔵Required Modules
 const mongoose = require("mongoose");
 
+//* 🟢Users Model
 const userSchema = mongoose.Schema({
   name: String,
   phone: {
@@ -15,12 +17,18 @@ const userSchema = mongoose.Schema({
     lowercase: true,
     set: (value) => value.toLowerCase(),
   },
-  password: String,
-  role: String,
+  password: { type: String, required: true },
+  role: {
+    type: String,
+    enum: ["user", "admin"],
+    default: "user",
+  },
+
   address: { type: String },
   postalCode: { type: String },
 });
 
 const UserModel = mongoose.model("User", userSchema);
 
+//? 🔵Export Controller
 module.exports = UserModel;

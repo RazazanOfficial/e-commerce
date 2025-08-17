@@ -1,0 +1,15 @@
+meta {
+  name: All Categories
+  type: http
+  seq: 4
+}
+
+get {
+  url: {{baseURL}}/api/admin/categories
+  body: json
+  auth: inherit
+}
+
+settings {
+  encodeUrl: true
+}

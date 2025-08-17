@@ -1,5 +1,7 @@
+//? 🔵Required Modules
 const UserModel = require("../../../models/userModel");
 
+//* 🟢All Users List Controller
 const allUsersController = async (req, res) => {
   try {
     const page = parseInt(req.query.page) || 1;
@@ -16,6 +18,7 @@ const allUsersController = async (req, res) => {
       success: true,
     });
   } catch (error) {
+    //! 🔴Handle Errors
     return res.status(500).json({
       data: null,
       success: false,
@@ -25,4 +28,5 @@ const allUsersController = async (req, res) => {
   }
 };
 
+//? 🔵Export Controller
 module.exports = allUsersController;

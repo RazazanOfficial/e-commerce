@@ -1,0 +1,31 @@
+meta {
+  name: Category POST
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{baseURL}}/api/admin/categories
+  body: json
+  auth: inherit
+}
+
+body:json {
+  {
+    "name": "لوازم جانبی موبایل",
+    "slug": "mobile-accessories",
+    "description": "جدیدترین و باکیفیت‌ترین لوازم جانبی موبایل",
+    "image": "https://example.com/images/mobile-accessories.jpg",
+    "imageAlt": "لوازم جانبی موبایل - خرید آنلاین",
+    "isActive": true,
+    "parent": "689f1c0a57efba95c6bf0509",
+    "metaTitle": "لوازم جانبی موبایل | فروشگاه آنلاین",
+    "metaDescription": "خرید لوازم جانبی موبایل با بهترین کیفیت و قیمت مناسب",
+    "keywords": ["موبایل", "لوازم جانبی", "کیف موبایل", "هندزفری"]
+  }
+  
+}
+
+settings {
+  encodeUrl: true
+}

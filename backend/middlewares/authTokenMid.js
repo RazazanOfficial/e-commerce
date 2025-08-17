@@ -1,5 +1,7 @@
+//? 🔵Required Modules
 const jwt = require("jsonwebtoken");
 
+//* 🟢Auth Token Middleware
 const authTokenMid = async (req, res, next) => {
   const token = req.cookies.token;
   if (!token) {
@@ -14,7 +16,8 @@ const authTokenMid = async (req, res, next) => {
   jwt.verify(token, process.env.JWT_SECRET, function (err, decoded) {
     // console.log({ token: token, decoded: decoded });
     if (err) {
-      console.log("auth error : ", err);
+      //! 🔴Handle Errors
+      // console.log("auth error : ", err);
       return res.status(401).json({
         data: null,
         success: false,
@@ -29,4 +32,5 @@ const authTokenMid = async (req, res, next) => {
   });
 };
 
+//? 🔵Export Controller
 module.exports = authTokenMid;
