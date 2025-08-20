@@ -1,165 +1,115 @@
 "use client";
-
-import Link from "next/link";
-import { useState, useEffect } from "react";
-import { ShoppingCartIcon, UserCircle, Search } from "lucide-react";
+import Logo from "@/assets/images/Logo.png";
+import { Heart, Search, ShoppingCart, Menu, X } from "lucide-react";
 import Image from "next/image";
-import logo from "@/assets/images/logo.png";
-import { useDispatch, useSelector } from "react-redux";
-import { toast } from "react-toastify";
-import axios from "axios";
-import backApis from "@/common/inedx";
-import { clearUser } from "@/redux/userSlice";
+import Link from "next/link";
+import { useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+
+const navItems = [
+  { href: "/", label: "صفحه اصلی" },
+  { href: "/products", label: "محصولات" },
+  { href: "/about", label: "درباره ما" },
+  { href: "/contact", label: "تماس با ما" },
+];
 
 const Header = () => {
-  const user = useSelector((state) => state?.user?.user);
-  const dispatch = useDispatch();
-  const [isSearchOpen, setIsSearchOpen] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
-  const handleLogout = async () => {
-    if (!user?.name) return;
-
-    try {
-      const response = await axios.get(backApis.logOut.url, {
-        withCredentials: true,
-      });
-
-      toast.success(response.data.message);
-      dispatch(clearUser());
-    } catch (error) {
-      toast.error("خطا در خروج از حساب کاربری");
-    }
-  };
-
-  useEffect(() => {
-    const handleKeyDown = (e) => {
-      if (e.key === "Escape") {
-        setIsSearchOpen(false);
-      }
-    };
-    document.addEventListener("keydown", handleKeyDown);
-    return () => document.removeEventListener("keydown", handleKeyDown);
-  }, []);
-
-  useEffect(() => {
-    const handleResize = () => {
-      if (window.innerWidth >= 768) {
-        setIsSearchOpen(false);
-      }
-    };
-
-    window.addEventListener("resize", handleResize);
-    return () => window.removeEventListener("resize", handleResize);
-  }, []);
+  const NavLink = ({ href, label, onClick, className }) => (
+    <Link
+      href={href}
+      onClick={onClick}
+      className={`relative group w-fit ${className}`}
+    >
+      <span className="transition-colors duration-300 group-hover:text-blue-600">
+        {label}
+      </span>
+      <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-blue-600 transition-all duration-300 group-hover:w-full"></span>
+    </Link>
+  );
 
   return (
-    <header className="backdrop-blur-md bg-gradient-to-r from-emerald-200/50 to-emerald-500/40 shadow-lg sticky top-0 z-50 rounded-b-2xl">
-      <div className="max-w-7xl mx-auto px-4 py-3 flex flex-wrap justify-between items-center gap-4">
-        {/* Logo */}
-        <Link href="/" className="flex items-center gap-2">
-          <Image
-            src={logo}
-            width={50}
-            height={50}
-            alt="Logo"
-            priority
-            className="rounded-full shadow-md md:w-[45px] md:h-[45px] w-[40px] h-[40px]"
+    <header className="border-b-2 border-gray-200 h-16 flex items-center justify-between px-6 bg-white shadow-sm relative">
+      <div className="flex items-center gap-4">
+        <ShoppingCart size={22} className="text-gray-800 cursor-pointer" />
+        <Heart size={22} className="text-gray-800 cursor-pointer" />
+        <div className="hidden lg:flex items-center bg-gray-200 rounded-md px-3 py-2">
+          <input
+            type="text"
+            placeholder="دنبال چی میگردی؟"
+            className="bg-gray-200 outline-none text-sm w-40"
           />
-        </Link>
-
-        {/* Desktop Search */}
-        <div className="hidden md:flex flex-1 max-w-xl w-full">
-          <div className="relative w-full">
-            <input
-              type="text"
-              placeholder="جستجو کنید..."
-              className="w-full py-2 px-4 rounded-full border-[2px] border-slate-500 focus:border-none focus:outline-none focus:ring-2 focus:ring-emerald-700 transition-all shadow-md bg-slate-300/50"
-            />
-            <button className="absolute left-2 top-1/2 -translate-y-1/2 text-emerald-600 hover:text-emerald-800 transition">
-              <Search size={26} />
-            </button>
-          </div>
+          <Search size={18} className="text-gray-600 cursor-pointer" />
         </div>
-
-        {/* User + Search Icon + Cart + Login */}
-        <div className="flex items-center gap-4">
-          <button
-            className="block md:hidden text-emerald-600 hover:text-emerald-800 transition"
-            onClick={() => setIsSearchOpen(true)}
-          >
-            <Search size={24} />
-          </button>
-
-          <Link
-            href={
-              user?.role === "admin"
-                ? "/admin-panel"
-                : user?.role === "user"
-                ? "/user-account"
-                : "#"
-            }
-            className="relative group"
-          >
-            <UserCircle
-              size={26}
-              className="text-emerald-600 hover:text-emerald-800 transition-all"
-            />
-            {!user?.name && (
-              <div className="absolute text-[10px] bg-red-500 text-white px-1 py-1 rounded-md top-9 opacity-0 group-hover:opacity-100 transition-all">
-                ابتدا وارد شوید
-              </div>
-            )}
-          </Link>
-
-          <div className="relative cursor-pointer">
-            <ShoppingCartIcon
-              size={26}
-              className="text-emerald-600 hover:text-emerald-800 transition-all"
-            />
-            <span className="absolute -top-2 -right-2 bg-rose-500 text-white text-[10px] h-5 w-5 flex items-center justify-center rounded-full font-bold">
-              0
-            </span>
-          </div>
-
-          <button
-            onClick={user?.name ? handleLogout : null}
-            className="bg-emerald-500 hover:bg-emerald-700 text-white px-2 py-1 rounded-xl text-[10px] md:text-sm transition shadow-sm"
-          >
-            {
-              <Link href="/login">
-                {" "}
-                {user?.name ? "خروج" : "ورود / ثبت‌ نام"}
-              </Link>
-            }
-          </button>
-        </div>
+        <button className="lg:hidden" onClick={() => setMobileMenuOpen(true)}>
+          <Menu size={26} />
+        </button>
       </div>
 
-      {/* Search Modal for Mobile/Tablet */}
-      {isSearchOpen && (
-        <div
-          className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-start justify-center pt-[10vh] z-[1000] animate-fadeIn"
-          onClick={() => setIsSearchOpen(false)}
-        >
-          <div
-            className="bg-white rounded-2xl p-6 shadow-2xl w-[90%] max-w-md animate-slideDown"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <input
-              autoFocus
-              type="text"
-              placeholder="عبارت مورد نظر را وارد کنید..."
-              className="w-full py-2 px-4 rounded-xl border border-gray-300 focus:outline-none focus:ring-2 focus:ring-emerald-400 transition-all"
+      <nav className="hidden lg:flex gap-6 text-base text-gray-700">
+        {navItems.map((item) => (
+          <NavLink key={item.href} href={item.href} label={item.label} />
+        ))}
+      </nav>
+
+      <div className="flex items-center gap-2">
+        <p className="font-extrabold text-xl text-gray-900">سرزمین دیتا</p>
+        <Image
+          src={Logo}
+          alt="لوگو سرزمین دیتا"
+          width={50}
+          height={50}
+          priority
+          className="rounded-lg"
+        />
+      </div>
+
+      <AnimatePresence>
+        {mobileMenuOpen && (
+          <>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.3 }}
+              onClick={() => setMobileMenuOpen(false)}
+              className="fixed inset-0 bg-black/30 backdrop-blur-sm z-40"
             />
-            <button
-              onClick={() => setIsSearchOpen(false)}
-              className="mt-4 w-full bg-emerald-500 text-white py-2 rounded-xl hover:bg-emerald-700 transition"
+            <motion.div
+              initial={{ x: "100%" }}
+              animate={{ x: 0 }}
+              exit={{ x: "100%" }}
+              transition={{ type: "tween", duration: 0.3 }}
+              className="fixed top-0 right-0 h-full w-2/3 bg-white shadow-lg p-6 flex flex-col gap-6 z-50"
             >
-              جستجو
-            </button>
-          </div>
-        </div>
-      )}
+              <button
+                className="self-end mb-4"
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                <X size={28} />
+              </button>
+              <div className="flex items-center bg-gray-200 rounded-md px-3 py-2">
+                <input
+                  type="text"
+                  placeholder="دنبال چی میگردی؟"
+                  className="bg-gray-200 outline-none text-sm w-full"
+                />
+                <Search size={18} className="text-gray-600 cursor-pointer" />
+              </div>
+              {navItems.map((item) => (
+                <NavLink
+                  className={`w-full h-12 items-center`}
+                  key={item.href}
+                  href={item.href}
+                  label={item.label}
+                  onClick={() => setMobileMenuOpen(false)}
+                />
+              ))}
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
     </header>
   );
 };

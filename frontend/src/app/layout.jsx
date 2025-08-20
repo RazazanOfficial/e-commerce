@@ -3,6 +3,7 @@ import "@/styles/globals.css";
 import { ToastContainer } from "react-toastify";
 import { UserProvider } from "@/context/UserContext";
 import ReduxProvider from "@/redux/ReduxProvider";
+import OfferHeader from "@/components/OfferHeader";
 
 export const metadata = {
   title: "فروشگاه عصر دیجیتال",
@@ -16,6 +17,7 @@ export default function RootLayout({ children }) {
       <body className={`antialiased bg-slate-100 h-[100vh]`}>
         <ReduxProvider>
           <UserProvider>
+            <OfferHeader/>
             <Header />
             {children}
             <ToastContainer />
