@@ -24,7 +24,7 @@ app.use(sanitizeMid);
 app.use(cookieParser());
 app.use("/api", apiLimiter, router);
 app.use(errorHandler);
-const PORT = process.env.PORT || 8080;
+const PORT = process.env.PORT || 9999;
 
 const startServer = async () => {
   const dbStatus = await connectDB();

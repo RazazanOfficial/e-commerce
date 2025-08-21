@@ -1,6 +1,6 @@
 "use client";
 import Logo from "@/assets/images/Logo.png";
-import { Heart, Search, ShoppingCart, Menu, X } from "lucide-react";
+import { Heart, Search, ShoppingCart, Menu, X, User } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { useState } from "react";
@@ -20,7 +20,7 @@ const Header = () => {
     <Link
       href={href}
       onClick={onClick}
-      className={`relative group w-fit ${className}`}
+      className={`relative group w-fit ${className || ""}`}
     >
       <span className="transition-colors duration-300 group-hover:text-blue-600">
         {label}
@@ -53,8 +53,15 @@ const Header = () => {
         ))}
       </nav>
 
-      <div className="flex items-center gap-2">
-        <p className="font-extrabold text-xl text-gray-900">سرزمین دیتا</p>
+      <div className="flex items-center gap-4">
+        <Link
+          href="/auth"
+          className="px-3 py-1.5 bg-white text-gray-900 border-2 border-black hover:border-blue-800 hover:text-white rounded-lg text-sm hover:bg-blue-700 transition-colors flex items-center justify-center gap-2"
+        >
+          <span>ورود / ثبت‌نام</span>
+          <User width={20} height={20} />
+        </Link>
+        <p className="font-extrabold text-xl text-gray-900 hidden lg:block">سرزمین دیتا</p>
         <Image
           src={Logo}
           alt="لوگو سرزمین دیتا"
@@ -99,13 +106,21 @@ const Header = () => {
               </div>
               {navItems.map((item) => (
                 <NavLink
-                  className={`w-full h-12 items-center`}
                   key={item.href}
                   href={item.href}
                   label={item.label}
+                  className={`w-full h-12`}
                   onClick={() => setMobileMenuOpen(false)}
                 />
               ))}
+              <Link
+                href="/auth"
+                onClick={() => setMobileMenuOpen(false)}
+                className="flex px-3 py-2 bg-white text-gray-900 border-2 border-black hover:border-blue-800 hover:text-white rounded-lg text-sm hover:bg-blue-700 transition-colors items-center justify-center gap-2"
+              >
+                <span>ورود / ثبت‌نام</span>
+                <User width={20} height={20} />
+              </Link>
             </motion.div>
           </>
         )}
