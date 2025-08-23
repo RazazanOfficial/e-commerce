@@ -3,8 +3,10 @@ import Logo from "@/assets/images/Logo.png";
 import { Heart, Search, ShoppingCart, Menu, X, User } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import Cookies from "js-cookie";
+import { useSelector } from "react-redux";
 
 const navItems = [
   { href: "/", label: "صفحه اصلی" },
@@ -14,7 +16,14 @@ const navItems = [
 ];
 
 const Header = () => {
+  const { user } = useSelector((state) => state.user);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [token, setToken] = useState(null);
+
+  useEffect(() => {
+    const t = Cookies.get("token");
+    setToken(t);
+  }, []);
 
   const NavLink = ({ href, label, onClick, className }) => (
     <Link
@@ -54,14 +63,37 @@ const Header = () => {
       </nav>
 
       <div className="flex items-center gap-4">
-        <Link
-          href="/auth"
-          className="px-3 py-1.5 bg-white text-gray-900 border-2 border-black hover:border-blue-800 hover:text-white rounded-lg text-sm hover:bg-blue-700 transition-colors flex items-center justify-center gap-2"
-        >
-          <span>ورود / ثبت‌نام</span>
-          <User width={20} height={20} />
-        </Link>
-        <p className="font-extrabold text-xl text-gray-900 hidden lg:block">سرزمین دیتا</p>
+        {token ? (
+          user?.role === "admin" || "developer" ? (
+            <Link
+              href="/admin-panel"
+              className="px-3 py-1.5 bg-white text-gray-900 border-2 border-black hover:border-blue-800 hover:text-white rounded-lg text-sm hover:bg-blue-700 transition-colors flex items-center justify-center gap-2"
+            >
+              <span>پنل ادمین</span>
+              <User width={20} height={20} />
+            </Link>
+          ) : (
+            <Link
+              href="/user-account"
+              className="px-3 py-1.5 bg-white text-gray-900 border-2 border-black hover:border-blue-800 hover:text-white rounded-lg text-sm hover:bg-blue-700 transition-colors flex items-center justify-center gap-2"
+            >
+              <span>پنل کاربری</span>
+              <User width={20} height={20} />
+            </Link>
+          )
+        ) : (
+          <Link
+            href="/auth"
+            className="px-3 py-1.5 bg-white text-gray-900 border-2 border-black hover:border-blue-800 hover:text-white rounded-lg text-sm hover:bg-blue-700 transition-colors flex items-center justify-center gap-2"
+          >
+            <span>ورود / ثبت‌نام</span>
+            <User width={20} height={20} />
+          </Link>
+        )}
+
+        <p className="font-extrabold text-xl text-gray-900 hidden lg:block">
+          سرزمین دیتا
+        </p>
         <Image
           src={Logo}
           alt="لوگو سرزمین دیتا"

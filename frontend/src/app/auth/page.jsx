@@ -105,6 +105,7 @@ const AuthPage = () => {
       toast.success("ورود با موفقیت انجام شد");
       setTimeout(() => {
         router.push("/");
+        window.location.reload(); 
       }, 1000);
       setIsSubmitting(false);
     } catch (error) {

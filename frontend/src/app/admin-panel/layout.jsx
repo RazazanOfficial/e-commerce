@@ -135,7 +135,7 @@ export default function AdminPanelLayout({ children }) {
             </div>
 
             <div className="mt-auto p-5">
-                  <p>settings</p>
+              <p>settings</p>
             </div>
           </aside>
 
