@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react";
 import { X } from "lucide-react";
+import { toast } from "react-toastify";
+import { Btn1 } from "../ui/Buttons";
 
 const UserModal = ({ isOpen, onClose, mode, user, onUpdate, onDelete }) => {
   const [formData, setFormData] = useState(user || {});
@@ -35,11 +37,13 @@ const UserModal = ({ isOpen, onClose, mode, user, onUpdate, onDelete }) => {
 
   const handleUpdate = () => {
     onUpdate(formData);
+    toast.success("تغییرات با موفقیت ذخیره شد ✅", { position: "top-center" });
     onClose();
   };
 
   const handleDelete = () => {
     onDelete(user._id || user.id);
+    toast.error("کاربر با موفقیت حذف شد ❌", { position: "top-center" });
     onClose();
   };
 
@@ -47,21 +51,23 @@ const UserModal = ({ isOpen, onClose, mode, user, onUpdate, onDelete }) => {
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 backdrop-blur-sm"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-md"
       onClick={onClose}
     >
       <div
-        className="relative w-full max-w-md mx-auto bg-white rounded-xl shadow-xl p-6"
+        className="relative w-full max-w-md mx-auto bg-gray-800/90 border border-gray-700 rounded-2xl shadow-xl p-6 text-gray-100"
         onClick={(e) => e.stopPropagation()}
       >
+        {/* دکمه بستن */}
         <button
           onClick={onClose}
-          className="absolute top-4 left-4 text-gray-600 hover:text-red-500"
+          className="absolute top-4 left-4 text-gray-400 hover:text-red-500 transition"
         >
           <X className="w-5 h-5" />
         </button>
 
-        <h2 className="text-lg font-bold text-emerald-700 mb-4">
+        {/* تیتر */}
+        <h2 className="text-xl font-bold text-white mb-6 text-center">
           {mode === "view"
             ? "نمایش اطلاعات کاربر"
             : mode === "edit"
@@ -69,92 +75,60 @@ const UserModal = ({ isOpen, onClose, mode, user, onUpdate, onDelete }) => {
             : "حذف کاربر"}
         </h2>
 
+        {/* نمایش / ویرایش */}
         {(mode === "view" || mode === "edit") && (
           <form className="space-y-4">
-            <div>
-              <label className="block text-sm mb-1">نام</label>
-              <input
-                type="text"
-                name="name"
-                value={formData.name || ""}
-                disabled={mode === "view"}
-                onChange={handleChange}
-                className="w-full border rounded-md px-3 py-2"
-              />
-            </div>
-            <div>
-              <label className="block text-sm mb-1">ایمیل</label>
-              <input
-                type="email"
-                name="email"
-                value={formData.email || ""}
-                disabled={mode === "view"}
-                onChange={handleChange}
-                className="w-full border rounded-md px-3 py-2"
-              />
-            </div>
-            <div>
-              <label className="block text-sm mb-1">شماره موبایل</label>
-              <input
-                type="tel"
-                name="phone"
-                value={formData.phone || ""}
-                disabled={mode === "view"}
-                onChange={handleChange}
-                className="w-full border rounded-md px-3 py-2"
-              />
-            </div>
-            <div>
-              <label className="block text-sm mb-1">آدرس</label>
-              <input
-                type="text"
-                name="address"
-                value={formData.address || ""}
-                disabled={mode === "view"}
-                onChange={handleChange}
-                className="w-full border rounded-md px-3 py-2"
-              />
-            </div>
-            <div>
-              <label className="block text-sm mb-1">کد پستی</label>
-              <input
-                type="text"
-                name="postalCode"
-                value={formData.postalCode || ""}
-                disabled={mode === "view"}
-                onChange={handleChange}
-                className="w-full border rounded-md px-3 py-2"
-              />
-            </div>
+            {[
+              { label: "نام", name: "name", type: "text" },
+              { label: "ایمیل", name: "email", type: "email" },
+              { label: "شماره موبایل", name: "phone", type: "tel" },
+              { label: "آدرس", name: "address", type: "text" },
+              { label: "کد پستی", name: "postalCode", type: "text" },
+            ].map((field) => (
+              <div key={field.name}>
+                <label className="block text-sm text-gray-300 mb-1">
+                  {field.label}
+                </label>
+                <input
+                  type={field.type}
+                  name={field.name}
+                  value={formData[field.name] || ""}
+                  disabled={mode === "view"}
+                  onChange={handleChange}
+                  className="w-full bg-gray-900/60 border border-gray-700 rounded-lg px-3 py-2 text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:opacity-50"
+                />
+              </div>
+            ))}
 
             {mode === "edit" && (
-              <button
-                type="button"
+              <Btn1
+                text="ذخیره تغییرات"
                 onClick={handleUpdate}
-                className="w-full mt-4 bg-blue-600 text-white py-2 rounded-md hover:bg-blue-700"
-              >
-                ذخیره تغییرات
-              </button>
+                variant="blue"
+                btnClassName="w-full mt-6"
+              />
             )}
           </form>
         )}
 
+        {/* حذف */}
         {mode === "delete" && (
-          <div className="text-center">
-            <p className="text-red-600 font-medium mb-4">
-              آیا مطمئن هستید که می‌خواهید کاربر <strong>{user.name}</strong> را حذف کنید؟
+          <div className="text-center space-y-4">
+            <p className="text-red-500 font-medium">
+              آیا مطمئن هستید که می‌خواهید کاربر{" "}
+              <strong className="text-white">{user.name}</strong> را حذف کنید؟
             </p>
-            <button
-              disabled={countdown > 0}
-              onClick={handleDelete}
-              className={`w-full py-2 rounded-md ${
+            <Btn1
+              text={
                 countdown > 0
-                  ? "bg-gray-300 text-gray-600 cursor-not-allowed"
-                  : "bg-red-600 text-white hover:bg-red-700"
-              }`}
-            >
-              {countdown > 0 ? `در حال آماده‌سازی... (${countdown})` : "تایید حذف"}
-            </button>
+                  ? `در حال آماده‌سازی... (${countdown})`
+                  : "تایید حذف"
+              }
+              onClick={handleDelete}
+              disabled={countdown > 0}
+              variant={countdown > 0 ? "gray" : "red"}
+              btnClassName="w-full"
+            />
           </div>
         )}
       </div>

@@ -66,10 +66,8 @@ const SearchModal = ({
       const { url, method } = backApis.deleteUser(userId);
       await axios({ method, url, withCredentials: true });
 
-      // حذف از لیست لوکال
       setSearchResults((prev) => prev.filter((user) => user._id !== userId));
-
-      onUserDelete?.(userId); // حذف از لیست اصلی
+      onUserDelete?.(userId);
 
       setSelectedUser(null);
       setActionMode(null);
@@ -82,79 +80,98 @@ const SearchModal = ({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 backdrop-blur-sm"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm"
       onClick={onClose}
     >
       <div
-        className="relative w-full max-w-4xl mx-auto bg-white rounded-xl shadow-xl p-4 sm:p-6"
+        className="relative w-full max-w-4xl mx-auto bg-gray-900 border border-gray-700 rounded-xl shadow-2xl p-6"
         onClick={(e) => e.stopPropagation()}
       >
+        {/* دکمه بستن */}
         <button
           onClick={onClose}
-          className="absolute top-4 left-4 text-gray-600 hover:text-red-500"
+          className="absolute top-4 left-4 text-gray-400 hover:text-red-500 transition-colors"
         >
           <X className="w-6 h-6" />
         </button>
-        <h2 className="text-xl font-bold text-emerald-700 mb-4">نتایج جستجو</h2>
 
+        {/* عنوان */}
+        <h2 className="text-xl font-bold text-white mb-6 border-b border-gray-700 pb-2">
+          نتایج جستجو
+        </h2>
+
+        {/* محتوای جدول */}
         {searchResults.length === 0 ? (
-          <p className="text-gray-500 text-center">کاربری یافت نشد</p>
+          <p className="text-gray-400 text-center">کاربری یافت نشد</p>
         ) : (
-          <div className="overflow-x-auto max-h-[400px]">
-            <table className="w-full text-right">
-              <thead>
-                <tr className="bg-emerald-800 text-white">
-                  <th className="py-3 px-4">نام</th>
-                  <th className="py-3 px-4">ایمیل</th>
-                  <th className="py-3 px-4">شماره موبایل</th>
-                  <th className="py-3 px-4">نقش</th>
-                  <th className="py-3 px-4">عملیات</th>
+          <div className="overflow-x-auto max-h-[450px] rounded-lg border border-gray-700">
+            <table className="w-full text-right text-sm">
+              <thead className="bg-gray-800 text-gray-300">
+                <tr>
+                  <th className="py-3 px-4 font-medium">نام</th>
+                  <th className="py-3 px-4 font-medium">ایمیل</th>
+                  <th className="py-3 px-4 font-medium">شماره موبایل</th>
+                  <th className="py-3 px-4 font-medium">نقش</th>
+                  <th className="py-3 px-4 font-medium">عملیات</th>
                 </tr>
               </thead>
               <tbody>
-                {searchResults.map((user) => (
+                {searchResults.map((user, idx) => (
                   <tr
                     key={user._id || user.id}
-                    className="border-b border-gray-100 bg-emerald-100/50 hover:bg-emerald-200/60 transition-colors duration-75"
+                    className={`${
+                      idx % 2 === 0 ? "bg-gray-900" : "bg-gray-800/60"
+                    } hover:bg-gray-700 transition-colors`}
                   >
+                    {/* نام + آواتار */}
                     <td className="py-3 px-4 flex items-center">
                       <div
                         className={`w-8 h-8 rounded-full ${getUserAvatarColor(
                           user.name
-                        )} flex items-center justify-center font-bold text-sm ml-2`}
+                        )} flex items-center justify-center font-bold text-sm ml-2 text-white`}
                       >
                         {user.name?.charAt(0)}
                       </div>
-                      {user.name}
+                      <span className="text-gray-200">{user.name}</span>
                     </td>
-                    <td className="py-3 px-4">{user.email}</td>
-                    <td className="py-3 px-4">{user.phone || "-"}</td>
+
+                    {/* ایمیل */}
+                    <td className="py-3 px-4 text-gray-300">{user.email}</td>
+
+                    {/* موبایل */}
+                    <td className="py-3 px-4 text-gray-300">
+                      {user.phone || "-"}
+                    </td>
+
+                    {/* نقش */}
                     <td className="py-3 px-4">
                       <span
                         className={`${getRoleBadgeVariant(
                           user.role
-                        )} px-2 py-1 rounded-full text-xs font-medium`}
+                        )} px-3 py-1 rounded-full text-xs font-medium`}
                       >
                         {user.role === "admin" ? "مدیر" : "کاربر"}
                       </span>
                     </td>
+
+                    {/* اکشن‌ها */}
                     <td className="py-3 px-4">
-                      <div className="flex space-x-2 space-x-reverse">
+                      <div className="flex gap-2">
                         <button
                           onClick={() => handleAction(user, "view")}
-                          className="p-1.5 rounded-lg text-gray-700 hover:text-emerald-600 hover:bg-emerald-50 transition-colors"
+                          className="p-2 rounded-md text-gray-400 hover:text-emerald-400 hover:bg-gray-700 transition-colors"
                         >
                           <Eye className="h-5 w-5" />
                         </button>
                         <button
                           onClick={() => handleAction(user, "edit")}
-                          className="p-1.5 rounded-lg text-gray-700 hover:text-blue-600 hover:bg-blue-50 transition-colors"
+                          className="p-2 rounded-md text-gray-400 hover:text-blue-400 hover:bg-gray-700 transition-colors"
                         >
                           <Edit className="h-5 w-5" />
                         </button>
                         <button
                           onClick={() => handleAction(user, "delete")}
-                          className="p-1.5 rounded-lg text-gray-700 hover:text-red-600 hover:bg-red-50 transition-colors"
+                          className="p-2 rounded-md text-gray-400 hover:text-red-400 hover:bg-gray-700 transition-colors"
                         >
                           <Trash2 className="h-5 w-5" />
                         </button>
@@ -168,6 +185,7 @@ const SearchModal = ({
         )}
       </div>
 
+      {/* مودال عملیات (ویرایش، مشاهده، حذف) */}
       <UserModal
         isOpen={!!selectedUser}
         user={selectedUser}

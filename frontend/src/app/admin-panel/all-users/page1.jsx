@@ -25,8 +25,9 @@ const AllUsersPage = () => {
 
   const [selectedUser, setSelectedUser] = useState(null);
   const [userModalOpen, setUserModalOpen] = useState(false);
-  const [modalMode, setModalMode] = useState("view");
+  const [modalMode, setModalMode] = useState("view"); // "view" | "edit" | "delete"
 
+  // Handle search input change
   const handleSearch = async () => {
     try {
       const { data } = await axios.get(
@@ -40,82 +41,91 @@ const AllUsersPage = () => {
     }
   };
 
+  // Handle read user modal
   const handleOpenModal = (user, mode) => {
     setSelectedUser(user);
     setModalMode(mode);
     setUserModalOpen(true);
   };
 
-  const handleUpdateUser = async (updatedUser) => {
-    try {
-      const { url, method } = backApis.updateUser(updatedUser._id);
-      await axios({
-        method,
-        url,
-        data: updatedUser,
-        withCredentials: true,
-      });
+// Handle user modal update
+const handleUpdateUser = async (updatedUser) => {
+  try {
+    const { url, method } = backApis.updateUser(updatedUser._id);
+    const response = await axios({
+      method,
+      url,
+      data: updatedUser,
+      withCredentials: true,
+    });
 
-      refreshData();
-      setUserModalOpen(false);
-    } catch (err) {
-      console.error("❌ خطا در آپدیت کاربر:", err);
-    }
-  };
+    console.log("✅ کاربر با موفقیت آپدیت شد", response.data);
+    refreshData();
+    setUserModalOpen(false);
+  } catch (err) {
+    console.error("❌ خطا در آپدیت کاربر:", err);
+  }
+};
 
-  const handleDeleteUser = async (userId) => {
-    try {
-      const { url, method } = backApis.deleteUser(userId);
-      await axios({ method, url, withCredentials: true });
+// Handle user modal delete
+const handleDeleteUser = async (userId) => {
+  try {
+    const { url, method } = backApis.deleteUser(userId);
+    const response = await axios({ method, url, withCredentials: true });
 
-      refreshData();
-      setUserModalOpen(false);
-    } catch (err) {
-      console.error("❌ خطا در حذف کاربر:", err);
-    }
-  };
+    console.log("✅ کاربر حذف شد", response.data);
+    refreshData();
+    setUserModalOpen(false);
+  } catch (err) {
+    console.error("❌ خطا در حذف کاربر:", err);
+  }
+};
 
+  // Generate colors for user avatars based on their names
   const getUserAvatarColor = (name) => {
     const colors = [
-      "bg-indigo-800 text-indigo-200",
-      "bg-purple-800 text-purple-200",
-      "bg-blue-800 text-blue-200",
-      "bg-pink-800 text-pink-200",
-      "bg-yellow-800 text-yellow-200",
-      "bg-red-800 text-red-200",
-      "bg-slate-700 text-slate-200",
-      "bg-green-800 text-green-200",
+      "bg-primary-100 text-primary-700",
+      "bg-purple-100 text-purple-700",
+      "bg-blue-100 text-blue-700",
+      "bg-pink-100 text-pink-700",
+      "bg-yellow-100 text-yellow-700",
+      "bg-red-100 text-red-700",
+      "bg-indigo-100 text-indigo-700",
+      "bg-green-100 text-green-700",
     ];
+
+    // Simple hash function to get deterministic color
     const hash = name
       .split("")
       .reduce((acc, char) => acc + char.charCodeAt(0), 0);
     return colors[hash % colors.length];
   };
 
+  // Get role badge variant
   const getRoleBadgeVariant = (role) => {
     switch (role?.toLowerCase()) {
       case "admin":
-        return "bg-red-900 text-red-200";
+        return "bg-red-100 text-red-700";
       case "seller":
-        return "bg-purple-900 text-purple-200";
+        return "bg-purple-100 text-purple-700";
       default:
-        return "bg-indigo-900 text-indigo-200";
+        return "bg-blue-100 text-blue-700";
     }
   };
 
   return (
-    <div className="max-w-[100vw] py-12">
+    <div>
       {/* Page header */}
-      <div className="mb-8 flex sm:flex-row flex-col items-center justify-between responsive-table mx-auto">
-        <div className="flex flex-col justify-center gap-1 sm:items-stretch items-center">
-          <h1 className="text-2xl md:text-3xl font-bold text-white sm:text-start text-center">
+      <div className="mb-8 flex flex-col md:flex-row md:items-center md:justify-between">
+        <div>
+          <h1 className="text-2xl md:text-3xl font-bold text-emerald-800">
             لیست کاربران
           </h1>
-          <p className="mt-2 text-gray-400 text-center">
+          <p className="mt-2 text-gray-600">
             مدیریت و مشاهده تمامی کاربران سیستم
           </p>
         </div>
-        <div className="sm:mr-0 mt-4 flex flex-col sm:flex-row gap-3 sm:items-stretch items-center">
+        <div className="mt-4 md:mt-0 flex flex-col sm:flex-row gap-3">
           <form
             onSubmit={(e) => {
               e.preventDefault();
@@ -126,15 +136,15 @@ const AllUsersPage = () => {
             <input
               type="text"
               placeholder="جستجوی کاربر..."
-              className="w-full pl-12 pr-4 py-2 bg-slate-800 rounded-lg border border-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 text-gray-200"
+              className="w-full pl-12 pr-4 py-2 bg-white/20 backdrop-blur-md rounded-lg border border-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 transition-all"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
             />
             <button
               type="submit"
-              className="absolute left-2 top-1/2 -translate-y-1/2 p-2 rounded-md hover:bg-indigo-500/20 transition"
+              className="absolute left-2 top-1/2 -translate-y-1/2 p-2 rounded-md hover:bg-emerald-100 transition"
             >
-              <Search className="h-5 w-5 text-gray-400" />
+              <Search className="h-5 w-5 text-gray-500" />
             </button>
           </form>
         </div>
@@ -153,40 +163,48 @@ const AllUsersPage = () => {
         />
       )}
 
-      {/* Users table */}
-      <div className="bg-slate-900 border border-slate-700 rounded-2xl shadow-lg overflow-hidden mb-6 relative responsive-table mx-auto">
+      {/* Users table container */}
+      <div className="bg-white/20 backdrop-blur-md border border-white/30 rounded-2xl shadow-xl overflow-hidden transition-all duration-300 mb-6 relative">
         {isLoading && (
-          <div className="absolute inset-0 bg-black/30 flex items-center justify-center z-10">
-            <div className="w-10 h-10 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin"></div>
+          <div className="absolute inset-0 bg-white/30 backdrop-blur-[5px] flex items-center justify-center z-10">
+            <div className="relative w-16 h-16">
+              <div className="absolute inset-0 rounded-full border-4 border-t-emerald-500 border-r-transparent border-b-transparent border-l-transparent animate-spin"></div>
+              <div
+                className="absolute inset-2 rounded-full border-4 border-t-transparent border-r-emerald-500 border-b-transparent border-l-transparent animate-spin"
+                style={{
+                  animationDirection: "reverse",
+                  animationDuration: "1s",
+                }}
+              ></div>
+              <div className="absolute inset-5 bg-emerald-500 rounded-full animate-pulse"></div>
+            </div>
           </div>
         )}
 
-        {/* Table header */}
-        <div className="bg-gradient-to-l from-slate-800 to-indigo-900 text-white p-4 sm:p-6">
+        {/* Table header with stats */}
+        <div className="bg-gradient-to-l from-emerald-600 to-emerald-700 text-white p-4 sm:p-6">
           <div className="flex flex-wrap justify-between items-center">
             <div>
               <h2 className="text-xl font-bold">اطلاعات کاربران</h2>
-              <p className="text-gray-300 mt-1">
+              <p className="text-emerald-100 mt-1">
                 لیست تمام کاربران ثبت شده در سیستم
               </p>
             </div>
 
             <div className="flex gap-4 mt-4 sm:mt-0">
-              <div className="bg-slate-800 rounded-lg p-3 text-center">
-                <div className="text-2xl font-bold text-white">
-                  {totalCount}
-                </div>
-                <div className="text-xs text-gray-300">کل کاربران</div>
+              <div className="bg-white/10 rounded-lg p-3 backdrop-blur-sm">
+                <div className="text-2xl font-bold">{totalCount}</div>
+                <div className="text-xs text-emerald-100">کل کاربران</div>
               </div>
             </div>
           </div>
         </div>
 
-        {/* Table body */}
-        <div className="overflow-x-auto custom-scrollbar sticky top-0 bg-slate-900 z-10">
+        {/* Table */}
+        <div className="overflow-x-auto custom-scrollbar">
           <table className="w-full text-right">
             <thead>
-              <tr className="bg-slate-800 text-white">
+              <tr className="bg-emerald-900 text-white">
                 <th className="py-4 px-6 font-medium">نام</th>
                 <th className="py-4 px-6 font-medium">ایمیل</th>
                 <th className="py-4 px-6 font-medium">شماره تلفن</th>
@@ -201,27 +219,20 @@ const AllUsersPage = () => {
 
                   return (
                     <tr
-                      key={user._id}
-                      className="border-b border-slate-700 bg-slate-800/40 hover:bg-indigo-600/30 transition-colors"
+                      key={user._id || Math.random()}
+                      className="border-b border-gray-100 bg-emerald-500/30 hover:bg-emerald-600/50 hover:cursor-pointer transition-all duration-75 transform"
                     >
-                      <td className="py-4 px-2 flex flex-col lg:flex-row items-center gap-2">
+                      <td className="py-4 px-6 flex items-center">
                         <div
-                          className={`w-10 h-10 rounded-full ${avatarColor} flex items-center justify-center font-bold text-sm`}
+                          className={`w-10 h-10 rounded-full ${avatarColor} flex items-center justify-center font-bold text-sm ml-3`}
                         >
                           {user.name?.charAt(0) || "U"}
                         </div>
-                        <span
-                          className="text-gray-200 whitespace-nowrap truncate max-w-[150px] sm:max-w-[200px] md:max-w-[250px] lg:max-w-none"
-                          title={user.name}
-                        >
-                          {user.name}
-                        </span>
+                        <span>{user.name}</span>
                       </td>
-                      <td className="py-4 px-2 text-gray-300">{user.email}</td>
-                      <td className="py-4 px-2 text-gray-300">
-                        {user.phone || "-"}
-                      </td>
-                      <td className="py-4 px-2">
+                      <td className="py-4 px-6">{user.email}</td>
+                      <td className="py-4 px-6">{user.phone || "-"}</td>
+                      <td className="py-4 px-6">
                         <span
                           className={`${getRoleBadgeVariant(
                             user.role
@@ -230,25 +241,25 @@ const AllUsersPage = () => {
                           {user.role === "admin" ? "مدیر" : "کاربر"}
                         </span>
                       </td>
-                      <td className="py-4 px-2">
-                        <div className="flex flex-wrap gap-2 justify-center sm:justify-start">
+                      <td className="py-4 px-6">
+                        <div className="flex space-x-2 space-x-reverse">
                           <button
                             onClick={() => handleOpenModal(user, "view")}
-                            className="p-2 sm:p-1.5 rounded-lg text-gray-400 hover:text-indigo-400 hover:bg-slate-700 transition-colors min-w-[36px] min-h-[36px]"
+                            className="p-1.5 rounded-lg text-gray-700 hover:text-emerald-600 hover:bg-emerald-50 transition-colors"
                           >
-                            <Eye className="w-4 h-4 sm:h-5 sm:w-5" />
+                            <Eye className="h-5 w-5" />
                           </button>
                           <button
                             onClick={() => handleOpenModal(user, "edit")}
-                            className="p-2 sm:p-1.5 rounded-lg text-gray-400 hover:text-blue-400 hover:bg-slate-700 transition-colors min-w-[36px] min-h-[36px]"
+                            className="p-1.5 rounded-lg text-gray-700 hover:text-blue-600 hover:bg-blue-50 transition-colors"
                           >
-                            <Edit className="w-4 h-4 sm:h-5 sm:w-5" />
+                            <Edit className="h-5 w-5" />
                           </button>
                           <button
                             onClick={() => handleOpenModal(user, "delete")}
-                            className="p-2 sm:p-1.5 rounded-lg text-gray-400 hover:text-red-400 hover:bg-slate-700 transition-colors min-w-[36px] min-h-[36px]"
+                            className="p-1.5 rounded-lg text-gray-700 hover:text-red-600 hover:bg-red-50 transition-colors"
                           >
-                            <Trash2 className="w-4 h-4 sm:h-5 sm:w-5" />
+                            <Trash2 className="h-5 w-5" />
                           </button>
                         </div>
                       </td>
@@ -260,13 +271,15 @@ const AllUsersPage = () => {
         </div>
       </div>
 
-      {/* Pagination */}
-      <div className="bg-slate-900 border border-slate-700 p-4 rounded-xl flex flex-col sm:flex-row items-center justify-between responsive-table mx-auto">
-        <div className="text-gray-300 mb-4 sm:mb-0">
+      {/* Pagination section */}
+      <div className="bg-white/20 backdrop-blur-md border border-white/30 p-4 rounded-xl flex flex-col sm:flex-row items-center justify-between">
+        <div className="text-gray-600 mb-4 sm:mb-0">
           نمایش{" "}
-          <span className="font-medium text-white">{users?.length || 0}</span>{" "}
+          <span className="font-medium text-emerald-700">
+            {users?.length || 0}
+          </span>{" "}
           از
-          <span className="font-medium text-white mx-1">
+          <span className="font-medium text-emerald-700 mx-1">
             {users?.length || 0}
           </span>{" "}
           کاربر
@@ -276,7 +289,7 @@ const AllUsersPage = () => {
           <button
             onClick={() => setPage((prev) => Math.max(prev - 1, 1))}
             disabled={page === 1}
-            className="flex items-center justify-center h-10 w-10 rounded-lg bg-slate-800 text-gray-300 hover:bg-indigo-600 hover:text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            className="flex items-center justify-center h-10 w-10 rounded-lg bg-emerald-700/15 backdrop-blur-xl text-emerald-900 hover:bg-emerald-600 hover:text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <ArrowRight className="h-5 w-5" />
           </button>
@@ -290,6 +303,7 @@ const AllUsersPage = () => {
                   ? (totalPages || 1) - 4 + idx
                   : page - 2 + idx;
 
+              // Ensure we don't render page numbers beyond total pages
               if (pageNum > (totalPages || 1)) return null;
 
               return (
@@ -298,8 +312,8 @@ const AllUsersPage = () => {
                   onClick={() => setPage(pageNum)}
                   className={`h-10 w-10 rounded-lg font-medium transition-colors ${
                     page === pageNum
-                      ? "bg-indigo-600 text-white"
-                      : "hover:bg-slate-700 text-gray-300"
+                      ? "bg-emerald-700/15 backdrop-blur-xl text-emerald-900"
+                      : "hover:bg-emerald-50 text-gray-600"
                   }`}
                 >
                   {pageNum}
@@ -313,13 +327,12 @@ const AllUsersPage = () => {
               setPage((prev) => Math.min(prev + 1, totalPages || 1))
             }
             disabled={page === (totalPages || 1)}
-            className="flex items-center justify-center h-10 w-10 rounded-lg bg-indigo-600 text-white hover:bg-indigo-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            className="flex items-center justify-center h-10 w-10 rounded-lg bg-emerald-600 text-white hover:bg-emerald-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <ArrowLeft className="h-5 w-5" />
           </button>
         </div>
       </div>
-
       <UserModal
         isOpen={userModalOpen}
         onClose={() => setUserModalOpen(false)}

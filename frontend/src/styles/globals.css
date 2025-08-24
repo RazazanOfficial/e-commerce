@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@custom-variant dark (&:where([data-theme=dark], [data-theme=dark] *));
 
 :root {
   --primary: #ff6b6b;
@@ -12,7 +13,7 @@
   --gray-dark: #343a40;
   --success: #28a745;
   --danger: #dc3545;
-  --warning:rgb(59, 50, 22);
+  --warning: rgb(59, 50, 22);
   --info: #17a2b8;
   --border-radius: 0.25rem;
   --transition: all 0.3s linear;
@@ -21,19 +22,32 @@
 @font-face {
   font-family: "Vazir";
   src: url("../assets/font/vazir/Vazir-FD-WOL.eot");
-  src: url("../assets/font/vazir/Vazir-FD-WOL.eot?#iefix") format("embedded-opentype"),
-    url("../assets/font/vazir/Vazir-FD-WOL.woff") format("woff"),
-    url("../assets/font/vazir/Vazir-FD-WOL.ttf") format("truetype"),
-    url('../assets/font/vazir/Vazir-FD-WOL.woff2') format('woff2');
-
+  src: url("../assets/font/vazir/Vazir-FD-WOL.eot?#iefix")
+  format("embedded-opentype"),
+  url("../assets/font/vazir/Vazir-FD-WOL.woff") format("woff"),
+  url("../assets/font/vazir/Vazir-FD-WOL.ttf") format("truetype"),
+  url("../assets/font/vazir/Vazir-FD-WOL.woff2") format("woff2");
   font-weight: normal;
   font-style: normal;
 }
-
+html,
 body {
-  font-family: "Vazir";
-  direction: rtl;
-  overflow-x: hidden;
-
 }
 
+body {
+  width: 100%;
+  max-width: 100%;
+  overflow-x: hidden;
+  font-family: "Vazir";
+  direction: rtl;
+}
+
+@media (max-width: 875px) {
+  .responsive-table {
+    width: calc(100% - 5vw) !important;
+    max-width: calc(100% - 5vw) !important;
+  }
+  .responsive-table * {
+    max-width: 100%;
+  }
+}

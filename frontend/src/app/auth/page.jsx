@@ -247,7 +247,8 @@ const AuthPage = () => {
 
                     <Btn1
                       type={"submit"}
-                      disabled={calcPasswordStrength() <= 2 || isSubmitting}
+                      
+                      disabled={false}
                       btnClassName={
                         "calcPasswordStrength() > 2 && !isSubmitting ? 'bg-gradient-to-r from-blue-600 to-blue-500 text-white hover:scale-[1.02] active:scale-95' : 'bg-gray-400 text-white cursor-not-allowed'"
                       }
