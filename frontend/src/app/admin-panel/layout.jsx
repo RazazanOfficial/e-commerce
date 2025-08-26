@@ -1,14 +1,14 @@
 "use client";
-
-import { useContext, useEffect, useMemo, useState } from "react";
-import { usePathname, useRouter } from "next/navigation";
+import { useTheme } from "next-themes";
+import axios from "axios";
 import Link from "next/link";
+import { toast } from "react-toastify";
+import Spinner from "@/components/Spinner";
 import { notFound } from "next/navigation";
 import { UserContext } from "@/context/UserContext";
 import ThemeProvider from "@/components/theme-provider";
-import Spinner from "@/components/Spinner";
-import { toast } from "react-toastify";
-import axios from "axios";
+import { usePathname, useRouter } from "next/navigation";
+import { useContext, useEffect, useMemo, useState } from "react";
 import {
   Menu,
   X,
@@ -17,13 +17,13 @@ import {
   Settings,
   LogOut,
   Home,
-  Bell,
-  Search,
   Sun,
   Monitor,
   Moon,
+  Search,
+  Bell,
+  Folder,
 } from "lucide-react";
-import { useTheme } from "next-themes";
 
 // --- Theme toggle
 function ThemeToggle() {
@@ -40,13 +40,25 @@ function ThemeToggle() {
 
   return (
     <div className="flex items-center p-[2px] sm:p-[3px] border border-zinc-400/60 dark:border-zinc-600/60 rounded-full w-max bg-white/70 dark:bg-slate-900/60 backdrop-blur">
-      <button aria-label="Light" className={btnBase} onClick={() => setTheme("light")}>
+      <button
+        aria-label="Light"
+        className={btnBase}
+        onClick={() => setTheme("light")}
+      >
         <Sun size={14} className="sm:w-4 sm:h-4 md:w-[18px] md:h-[18px]" />
       </button>
-      <button aria-label="System" className={btnBase} onClick={() => setTheme("system")}>
+      <button
+        aria-label="System"
+        className={btnBase}
+        onClick={() => setTheme("system")}
+      >
         <Monitor size={14} className="sm:w-4 sm:h-4 md:w-[18px] md:h-[18px]" />
       </button>
-      <button aria-label="Dark" className={btnBase} onClick={() => setTheme("dark")}>
+      <button
+        aria-label="Dark"
+        className={btnBase}
+        onClick={() => setTheme("dark")}
+      >
         <Moon size={14} className="sm:w-4 sm:h-4 md:w-[18px] md:h-[18px]" />
       </button>
     </div>
@@ -58,7 +70,8 @@ function NavItem({ href, icon, label, active, onClick }) {
   const base =
     "group flex items-center gap-2 sm:gap-3 px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl transition-all " +
     "text-slate-700 dark:text-slate-200 hover:bg-blue-600/10 dark:hover:bg-slate-700/60";
-  const act = "bg-blue-700 text-white shadow-inner hover:bg-blue-700 dark:shadow-black/20";
+  const act =
+    "bg-blue-700 text-white shadow-inner hover:bg-blue-700 dark:shadow-black/20";
 
   return (
     <Link
@@ -85,9 +98,27 @@ export default function AdminPanelLayout({ children }) {
   const links = useMemo(
     () => [
       { href: "/admin-panel", label: "داشبورد", icon: <Home size={16} /> },
-      { href: "/admin-panel/all-users", label: "کاربران", icon: <Users size={16} /> },
-      { href: "/admin-panel/all-products", label: "محصولات", icon: <ShoppingBag size={16} /> },
-      { href: "/admin-panel/settings", label: "تنظیمات", icon: <Settings size={16} /> },
+      {
+        href: "/admin-panel/all-users",
+        label: "کاربران",
+        icon: <Users size={16} />,
+      },
+      {
+        href: "/admin-panel/categories",
+        label: "دسته‌بندی‌ها",
+        icon: <Folder size={16} />,
+      },
+
+      {
+        href: "/admin-panel/all-products",
+        label: "محصولات",
+        icon: <ShoppingBag size={16} />,
+      },
+      {
+        href: "/admin-panel/settings",
+        label: "تنظیمات",
+        icon: <Settings size={16} />,
+      },
     ],
     []
   );
@@ -111,11 +142,12 @@ export default function AdminPanelLayout({ children }) {
   }, [timeoutReached, user]);
 
   useEffect(() => {
-    if (shouldRedirect) router.push("/login");
+    if (shouldRedirect) router.push("/auth");
   }, [shouldRedirect, router]);
 
   if (user === null && !timeoutReached) return <Spinner />;
-  if (!user || (user.role !== "admin" && user.role !== "developer")) return null;
+  if (!user || (user.role !== "admin" && user.role !== "developer"))
+    return null;
 
   return (
     <ThemeProvider>
@@ -127,7 +159,11 @@ export default function AdminPanelLayout({ children }) {
               className="xl:hidden fixed top-3 right-3 z-50 p-2 rounded-full bg-blue-700 text-white shadow-lg"
               onClick={() => setSidebarOpen((s) => !s)}
             >
-              {sidebarOpen ? <X className="h-5 w-5 sm:h-6 sm:w-6" /> : <Menu className="h-5 w-5 sm:h-6 sm:w-6" />}
+              {sidebarOpen ? (
+                <X className="h-5 w-5 sm:h-6 sm:w-6" />
+              ) : (
+                <Menu className="h-5 w-5 sm:h-6 sm:w-6" />
+              )}
             </button>
 
             {/* Sidebar */}
@@ -186,15 +222,15 @@ export default function AdminPanelLayout({ children }) {
             </aside>
 
             {/* Main content */}
-            <main className="flex-1 xl:mr-64 mr-0 transition-all duration-300">
+            <main className="flex-1 xl:mr-64 mr-0 transition-all duration-300 py-10">
               {/* Top bar */}
-              
+
               {/* <header
                 className="w-full mb-4 sm:mb-6 rounded-2xl border border-slate-200/60 dark:border-slate-700/60 
               bg-white/70 dark:bg-slate-900/60 backdrop-blur p-2 sm:p-3 
                 flex flex-wrap items-center justify-between gap-2"
               >
-                <div className="relative flex-1 min-w-[140px] max-w-xs sm:max-w-sm md:max-w-md">
+                <div className="relative flex-1 max-w-xs sm:max-w-sm md:max-w-md">
                   <input
                     type="text"
                     placeholder="جستجو..."
@@ -227,8 +263,9 @@ export default function AdminPanelLayout({ children }) {
                 </div>
               </header>  */}
 
-
-              <div className="animate-[fadeIn_0.5s_ease_forwards] lg:p-3 md:p-3 py-3">{children}</div>
+              <div className="animate-[fadeIn_0.5s_ease_forwards] md:px-8">
+                {children}
+              </div>
             </main>
           </div>
         </div>

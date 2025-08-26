@@ -57,7 +57,7 @@ const SearchModal = ({
       setSelectedUser(null);
       setActionMode(null);
     } catch (error) {
-      console.error("❌ خطا در آپدیت کاربر:", error);
+      console.error("خطا در آپدیت کاربر:", error);
     }
   };
 
@@ -72,7 +72,7 @@ const SearchModal = ({
       setSelectedUser(null);
       setActionMode(null);
     } catch (error) {
-      console.error("❌ خطا در حذف کاربر:", error);
+      console.error("خطا در حذف کاربر:", error);
     }
   };
 

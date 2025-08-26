@@ -40,7 +40,7 @@ const AuthPage = () => {
   useEffect(() => {
     const token = Cookies.get("token");
     if (token) {
-      toast.info("شما قبلا وارد حساب شده‌اید");
+      toast.info("شما وارد حساب شده‌اید");
       setTimeout(() => {
         router.push("/");
       }, 1000);

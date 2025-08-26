@@ -30,10 +30,6 @@
   font-weight: normal;
   font-style: normal;
 }
-html,
-body {
-}
-
 body {
   width: 100%;
   max-width: 100%;
@@ -42,10 +38,10 @@ body {
   direction: rtl;
 }
 
-@media (max-width: 875px) {
+@media (max-width: 768px) {
   .responsive-table {
-    width: calc(100% - 5vw) !important;
-    max-width: calc(100% - 5vw) !important;
+    width: calc(100% - 8vw) !important;
+    max-width: calc(100% - 8vw) !important;
   }
   .responsive-table * {
     max-width: 100%;

@@ -37,13 +37,13 @@ const UserModal = ({ isOpen, onClose, mode, user, onUpdate, onDelete }) => {
 
   const handleUpdate = () => {
     onUpdate(formData);
-    toast.success("تغییرات با موفقیت ذخیره شد ✅", { position: "top-center" });
+    toast.success("تغییرات با موفقیت ذخیره شد", { position: "top-center" });
     onClose();
   };
 
   const handleDelete = () => {
     onDelete(user._id || user.id);
-    toast.error("کاربر با موفقیت حذف شد ❌", { position: "top-center" });
+    toast.error("کاربر با موفقیت حذف شد", { position: "top-center" });
     onClose();
   };
 
@@ -114,9 +114,9 @@ const UserModal = ({ isOpen, onClose, mode, user, onUpdate, onDelete }) => {
         {/* حذف */}
         {mode === "delete" && (
           <div className="text-center space-y-4">
-            <p className="text-red-500 font-medium">
+            <p className="text-white font-medium">
               آیا مطمئن هستید که می‌خواهید کاربر{" "}
-              <strong className="text-white">{user.name}</strong> را حذف کنید؟
+              <strong className="text-red-500">{user.name}</strong> را حذف کنید؟
             </p>
             <Btn1
               text={

@@ -1,7 +1,7 @@
 "use client";
+import { useContext, useEffect } from "react";
 import { UserContext } from "@/context/UserContext";
 import { notFound, useRouter } from "next/navigation";
-import { useContext, useEffect } from "react";
 
 const page = () => {
   const { user } = useContext(UserContext);
@@ -11,7 +11,7 @@ const page = () => {
     if (user === null) return;
 
     if (!user) {
-      router.push("/login");
+      router.push("/auth");
     } else if (user.role !== "admin") {
       notFound();
     }

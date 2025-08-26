@@ -59,7 +59,7 @@ const AllUsersPage = () => {
       refreshData();
       setUserModalOpen(false);
     } catch (err) {
-      console.error("❌ خطا در آپدیت کاربر:", err);
+      console.error("خطا در آپدیت کاربر:", err);
     }
   };
 
@@ -71,7 +71,7 @@ const AllUsersPage = () => {
       refreshData();
       setUserModalOpen(false);
     } catch (err) {
-      console.error("❌ خطا در حذف کاربر:", err);
+      console.error("خطا در حذف کاربر:", err);
     }
   };
 
@@ -183,7 +183,7 @@ const AllUsersPage = () => {
         </div>
 
         {/* Table body */}
-        <div className="overflow-x-auto custom-scrollbar sticky top-0 bg-slate-900 z-10">
+        <div className="overflow-x-scroll top-0 bg-slate-900 z-10">
           <table className="w-full text-right">
             <thead>
               <tr className="bg-slate-800 text-white">
