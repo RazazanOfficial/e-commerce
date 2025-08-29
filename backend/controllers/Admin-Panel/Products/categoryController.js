@@ -1,9 +1,110 @@
-//? 🔵Required Modules
-const CategoryModel = require("../../../models/categoryModel");
-const slugify = require("slugify");
-const mongoose = require("mongoose");
+// controllers/Admin-Panel/Products/categoryController.js
 
-//* 🟢Create Category Controller
+// ✅ No slugify here — user must provide slug explicitly.
+const mongoose = require("mongoose");
+const CategoryModel = require("../../../models/categoryModel");
+
+// ---- Required fields config (controller-level, easy to edit later) ----
+const REQUIRED = {
+  create: {
+    name: "نام دسته‌بندی الزامی است",
+    slug: "اسلاگ (slug) الزامی است",
+  },
+  update: {},
+};
+
+const validateRequired = (schema, payload) => {
+  for (const [field, message] of Object.entries(schema)) {
+    const v = payload?.[field];
+    if (v === undefined || v === null || (typeof v === "string" && !v.trim())) {
+      return message;
+    }
+  }
+  return null;
+};
+
+// Normalizes keywords to an array of trimmed strings
+const normalizeKeywords = (keywords) => {
+  if (keywords === undefined) return undefined;
+  if (Array.isArray(keywords))
+    return keywords.map((k) => String(k).trim()).filter(Boolean);
+  if (typeof keywords === "string")
+    return keywords
+      .split(",")
+      .map((k) => k.trim())
+      .filter(Boolean);
+  return [];
+};
+
+// Resolves a parent value (ObjectId | name | slug) to an ObjectId or null
+const resolveParentId = async (parent) => {
+  if (parent === undefined || parent === null || parent === "") return null;
+  if (mongoose.Types.ObjectId.isValid(parent)) {
+    const p = await CategoryModel.findById(parent).select("_id");
+    return p ? p._id : null;
+  }
+  if (typeof parent === "string") {
+    const p = await CategoryModel.findOne({
+      $or: [{ name: parent }, { slug: parent }],
+    }).select("_id");
+    return p ? p._id : null;
+  }
+  return null;
+};
+// checks if targetParentId is inside the subtree of categoryId (to prevent cycles)
+const willCreateCycle = async (categoryId, targetParentId) => {
+  if (!targetParentId) return false;
+  let cursor = targetParentId;
+  // بالا رفتن در زنجیرهٔ والدها تا ریشه
+  while (cursor) {
+    if (String(cursor) === String(categoryId)) return true; // حلقه!
+    const p = await CategoryModel.findById(cursor).select("parent").lean();
+    if (!p) break;
+    cursor = p.parent;
+  }
+  return false;
+};
+
+const validateAndNormalizeSlug = async (slug, currentId = null) => {
+  if (typeof slug === "undefined") return null; // یعنی کاربر قصد تغییر slug ندارد
+
+  const cleaned = String(slug).trim().toLowerCase();
+
+  // اگر می‌خوای سخت‌گیر باشی روی کاراکترها:
+  const slugRegex = /^[a-z0-9-]+$/; // فقط حروف/عدد/خط تیره
+  if (!cleaned || !slugRegex.test(cleaned)) {
+    throw new Error("اسلاگ نامعتبر است (فقط حروف انگلیسی، ارقام و -)");
+  }
+
+  // یکتا بودن به‌جز خود آیتم
+  const exists = await CategoryModel.exists({
+    slug: cleaned,
+    ...(currentId ? { _id: { $ne: currentId } } : {}),
+  });
+  if (exists) {
+    const err = new Error("slug تکراری است");
+    err.code = 409; // برای مپ‌کردن به 409
+    throw err;
+  }
+
+  return cleaned;
+};
+const ALLOWED_UPDATE_FIELDS = new Set([
+  "name",
+  "slug",
+  "description",
+  "image",
+  "imageAlt",
+  "isActive",
+  "sortOrder",
+  "parent",
+  "keywords",
+  "metaTitle",
+  "metaDescription",
+]);
+// ---------------------------------------------------------------------
+// Create Category
+// ---------------------------------------------------------------------
 const createCategory = async (req, res) => {
   try {
     let {
@@ -13,120 +114,112 @@ const createCategory = async (req, res) => {
       image,
       imageAlt,
       isActive,
-      sortOrder,
-      parent,
       metaTitle,
       metaDescription,
       keywords,
-    } = req.body;
+      parent,
+      // ⚠️ sortOrder intentionally ignored on create per spec
+    } = req.body || {};
 
-    if (sortOrder !== undefined && typeof sortOrder !== "number") {
-      return res.status(400).json({
-        success: false,
-        error: true,
-        message: "sortOrder باید عدد باشد",
-      });
+    // Required fields validation from map
+    const requiredErr = validateRequired(REQUIRED.create, { name, slug });
+    if (requiredErr) {
+      return res
+        .status(400)
+        .json({ success: false, error: true, message: requiredErr });
     }
 
-    if (sortOrder === undefined) {
-      const maxOrder = await CategoryModel.findOne()
-        .sort("-sortOrder")
-        .select("sortOrder");
-      sortOrder = (maxOrder?.sortOrder || 0) + 1;
+    // Trim/normalize minimal
+    name = String(name).trim();
+    slug = String(slug).trim();
+    if (!slug) {
+      return res
+        .status(400)
+        .json({ success: false, error: true, message: REQUIRED.create.slug });
     }
 
-    slug = slug || slugify(name, { lower: true });
-    metaTitle = metaTitle || name;
-    metaDescription = metaDescription || description;
-    imageAlt = imageAlt || name;
-    if (
-      parent &&
-      typeof parent === "string" &&
-      !mongoose.Types.ObjectId.isValid(parent)
-    ) {
-      const parentCat = await CategoryModel.findOne({ name: parent });
-      if (!parentCat) {
-        return res.status(400).json({
-          success: false,
-          error: true,
-          message: `دسته‌بندی مورد نظر پیدا نشد`,
-        });
-      }
-      parent = parentCat._id;
+    // Unique slug check
+    const slugExists = await CategoryModel.exists({ slug });
+    if (slugExists) {
+      return res
+        .status(409)
+        .json({ success: false, error: true, message: "slug تکراری است" });
     }
 
-    if (parent) {
-      let currentParent = await CategoryModel.findById(parent).select("parent");
-      while (currentParent) {
-        if (currentParent._id.toString() === parent?.toString()) break;
-        if (!currentParent.parent) break;
-        currentParent = await CategoryModel.findById(
-          currentParent.parent
-        ).select("parent");
-      }
+    // Resolve parent (ObjectId | name | slug)
+    const parentId = await resolveParentId(parent);
+    if (parent !== undefined && parent !== null && parent !== "" && !parentId) {
+      return res
+        .status(400)
+        .json({ success: false, error: true, message: "والد یافت نشد" });
     }
 
-    const category = new CategoryModel({
+    // Keywords
+    keywords = normalizeKeywords(keywords) ?? [];
+
+    // Compute sortOrder: ALWAYS last among siblings, user cannot set it
+    const siblingFilter = { parent: parentId };
+    const maxSibling = await CategoryModel.findOne(siblingFilter)
+      .sort("-sortOrder")
+      .select("sortOrder");
+    const sortOrder = (maxSibling?.sortOrder || 0) + 1;
+
+    const doc = await CategoryModel.create({
       name,
       slug,
       description,
       image,
       imageAlt,
-      isActive,
+      isActive: typeof isActive === "boolean" ? isActive : true,
       sortOrder,
-      parent,
-      metaTitle,
-      metaDescription,
+      metaTitle: metaTitle || name,
+      metaDescription: metaDescription || description || "",
       keywords,
+      parent: parentId,
     });
 
-    await category.save();
-
-    res.json({
-      data: category,
-      success: true,
-      error: false,
-      message: ".دسته‌بندی با موفقیت ایجاد شد",
-    });
+    return res.status(201).json({ success: true, error: false, data: doc });
   } catch (err) {
-    //! 🔴Handle errors
-    // console.log("createCategory error:", err);
-    res.status(500).json({
+    if (err?.code === 11000) {
+      const field = Object.keys(err.keyValue || {})[0];
+      return res.status(409).json({
+        success: false,
+        error: true,
+        message: `${field} تکراری است`,
+      });
+    }
+    return res.status(500).json({
       success: false,
       error: true,
-      message: "خطا در ایجاد دسته‌بندی",
+      message: "خطای داخلی سرور",
     });
   }
 };
 
-//* 🟢Get All Categories Controller
-const getAllCategories = async (req, res) => {
+// ---------------------------------------------------------------------
+// Get All Categories
+// ---------------------------------------------------------------------
+const getAllCategories = async (_req, res) => {
   try {
-    const categories = await CategoryModel.find()
-      .populate("parent", "name slug")
-      .sort({ sortOrder: 1 })
+    const list = await CategoryModel.find({})
+      .sort({ parent: 1, sortOrder: 1, name: 1 })
       .lean();
-
-    res.json({
-      data: categories,
-      success: true,
-      error: false,
-      message: ".لیست دسته‌بندی‌ها با موفقیت دریافت شد",
-    });
+    return res.status(200).json({ success: true, error: false, data: list });
   } catch (err) {
-    //! 🔴Handle errors
-    // console.log("getAllCategories error:", err);
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       error: true,
-      message: "خطا در گرفتن دسته‌بندی‌ها",
+      message: "خطا در دریافت دسته‌بندی‌ها",
     });
   }
 };
 
-//* 🟢Update Category Controller
+// ---------------------------------------------------------------------
+// Update Category (partial)
+// ---------------------------------------------------------------------
 const updateCategory = async (req, res) => {
   try {
+    const { id } = req.params;
     let {
       name,
       slug,
@@ -141,24 +234,44 @@ const updateCategory = async (req, res) => {
       keywords,
     } = req.body;
 
-    if (sortOrder !== undefined && typeof sortOrder !== "number") {
+    const unknownKeys = Object.keys(req.body).filter(
+      (k) => !ALLOWED_UPDATE_FIELDS.has(k)
+    );
+    if (unknownKeys.length) {
       return res.status(400).json({
         success: false,
         error: true,
-        message: "sortOrder باید عدد باشد",
+        message: `فیلد(های) نامعتبر: ${unknownKeys.join(", ")}`,
       });
     }
-
-    if (sortOrder === undefined) {
-      const maxOrder = await CategoryModel.findOne()
-        .sort("-sortOrder")
-        .select("sortOrder");
-      sortOrder = (maxOrder?.sortOrder || 0) + 1;
+    // 1) پیدا کردن آیتم
+    const cat = await CategoryModel.findById(id);
+    if (!cat) {
+      return res
+        .status(404)
+        .json({ success: false, error: true, message: "دسته‌بندی پیدا نشد" });
     }
 
-    const { id } = req.params;
+    // 2) تعیین parent هدف (و تبدیل به ObjectId یا null)
+    let targetParentId = cat.parent;
+    if (typeof parent !== "undefined") {
+      // از همون resolveParentId که بالاتر داری استفاده کن
+      targetParentId = await resolveParentId(parent);
+      // اگر parent صریحاً ست شده ولی پیدا نشد، خطا بده
+      if (
+        parent !== null &&
+        parent !== "" &&
+        typeof parent !== "undefined" &&
+        !targetParentId
+      ) {
+        return res
+          .status(400)
+          .json({ success: false, error: true, message: "والد یافت نشد" });
+      }
+    }
 
-    if (parent && parent === id) {
+    // ✅ جلوگیری از self-parent
+    if (targetParentId && String(targetParentId) === String(cat._id)) {
       return res.status(400).json({
         success: false,
         error: true,
@@ -166,137 +279,169 @@ const updateCategory = async (req, res) => {
       });
     }
 
-    if (
-      parent &&
-      typeof parent === "string" &&
-      !mongoose.Types.ObjectId.isValid(parent)
-    ) {
-      const parentCat = await CategoryModel.findOne({ name: parent });
-      if (!parentCat) {
-        return res.status(400).json({
-          success: false,
-          error: true,
-          message: `دسته‌بندی با نام "${parent}" پیدا نشد`,
-        });
-      }
-      parent = parentCat._id;
-    }
-
-    if (parent) {
-      const parentDoc = await CategoryModel.findById(parent).select("parent");
-      if (!parentDoc) {
-        return res.status(400).json({
-          success: false,
-          error: true,
-          message: "دسته‌بندی والد پیدا نشد",
-        });
-      }
-
-      let currentParent = parentDoc;
-      while (currentParent) {
-        if (currentParent._id.toString() === id.toString()) {
-          return res.status(400).json({
-            success: false,
-            error: true,
-            message: "حلقه والد–فرزند مجاز نیست",
-          });
-        }
-        if (!currentParent.parent) break;
-        currentParent = await CategoryModel.findById(
-          currentParent.parent
-        ).select("parent");
-      }
-    }
-    const updateData = {};
-
-    if (name !== undefined) updateData.name = name;
-    if (slug !== undefined)
-      updateData.slug =
-        slug || slugify(name || updateData.name, { lower: true });
-    if (description !== undefined) updateData.description = description;
-    if (image !== undefined) updateData.image = image;
-    if (imageAlt !== undefined) updateData.imageAlt = imageAlt;
-    if (isActive !== undefined) updateData.isActive = isActive;
-    if (sortOrder !== undefined) updateData.sortOrder = sortOrder;
-    if (parent !== undefined) updateData.parent = parent;
-    if (metaTitle !== undefined) updateData.metaTitle = metaTitle;
-    if (metaDescription !== undefined)
-      updateData.metaDescription = metaDescription;
-    if (keywords !== undefined) updateData.keywords = keywords;
-
-    const updatedCategory = await CategoryModel.findByIdAndUpdate(
-      id,
-      updateData,
-      { new: true }
-    );
-
-    if (!updatedCategory) {
-      return res.status(404).json({
-        success: false,
-        error: true,
-        message: "دسته‌بندی مورد نظر پیدا نشد",
-      });
-    }
-
-    res.json({
-      data: updatedCategory,
-      success: true,
-      error: false,
-      message: ".دسته‌بندی با موفقیت ویرایش شد",
-    });
-  } catch (err) {
-    //! 🔴Handle errors
-    // console.log("updateCategory error:", err);
-    res.status(500).json({
-      success: false,
-      error: true,
-      message: "خطا در ویرایش دسته‌بندی",
-    });
-  }
-};
-
-//* 🟢Delete Category Controller
-const deleteCategory = async (req, res) => {
-  try {
-    const { id } = req.params;
-
-    const hasChildren = await CategoryModel.findOne({ parent: id });
-    if (hasChildren) {
+    // ✅ جلوگیری از ایجاد حلقه (قرار دادن زیرشاخه زیر خودش)
+    if (await willCreateCycle(cat._id, targetParentId)) {
       return res.status(400).json({
         success: false,
         error: true,
-        message: "نمی‌توان دسته‌ای را که زیر‌دسته دارد حذف کرد",
+        message: "انتخاب والد باعث ایجاد حلقه در ساختار دسته‌بندی می‌شود",
       });
     }
 
-    const deletedCategory = await CategoryModel.findByIdAndDelete(id);
+    // 3) همه سیبلیگ‌های والد هدف (شامل خود آیتم اگر در همون والده)
+    const siblings = await CategoryModel.find({ parent: targetParentId })
+      .sort({ sortOrder: 1, _id: 1 })
+      .lean();
 
-    if (!deletedCategory) {
-      return res.status(404).json({
-        success: false,
-        error: true,
-        message: "دسته‌بندی مورد نظر پیدا نشد",
+    // 4) آرایه بدون آیتم هدف
+    const withoutTarget = siblings.filter(
+      (s) => String(s._id) !== String(cat._id)
+    );
+
+    // 5) جایگاه جدید (۱-مبنایی)
+    const requested = Number(sortOrder);
+    const newPosOneBased =
+      requested > 0
+        ? requested
+        : cat.parent?.toString() === (targetParentId?.toString() || null) &&
+          cat.sortOrder
+        ? cat.sortOrder
+        : withoutTarget.length + 1;
+    // clamp
+    const clamped = Math.min(
+      Math.max(newPosOneBased, 1),
+      withoutTarget.length + 1
+    );
+    const newIndex = clamped - 1;
+
+    // 6) آرایه نهایی با قرار دادن آیتم هدف
+    const reordered = [...withoutTarget];
+    reordered.splice(newIndex, 0, { ...cat.toObject(), _id: cat._id });
+
+    // 7) فاز اول: بالا بردن موقت sortOrder همه سیبلیگ‌های درگیر تا برخورد یونیک پیش نیاد
+    const allIds = reordered.map((d) => d._id);
+    await CategoryModel.updateMany(
+      { _id: { $in: allIds } },
+      { $inc: { sortOrder: 100000 } }
+    );
+    // --- validate slug if provided ---
+    let normalizedSlug = null;
+    try {
+      normalizedSlug = await validateAndNormalizeSlug(slug, cat._id);
+    } catch (e) {
+      const status = e.code === 409 ? 409 : 400;
+      return res
+        .status(status)
+        .json({ success: false, error: true, message: e.message });
+    }
+
+    // 8) فاز دوم: نوشتن sortOrder نهایی (۱,۲,۳,…) + parent هدف برای همه
+    const ops = reordered.map((doc, idx) => ({
+      updateOne: {
+        filter: { _id: doc._id },
+        update: {
+          $set: { sortOrder: idx + 1, parent: targetParentId ?? null },
+        },
+      },
+    }));
+
+    // 9) ست‌کردن سایر فیلدهای اختیاری روی خود آیتم (در صورت ارسال)
+    const optionalSets = {};
+    if (typeof name !== "undefined") optionalSets.name = String(name).trim();
+    if (normalizedSlug !== null) optionalSets.slug = normalizedSlug;
+    if (typeof description !== "undefined")
+      optionalSets.description = description;
+    if (typeof image !== "undefined") optionalSets.image = image;
+    if (typeof imageAlt !== "undefined") optionalSets.imageAlt = imageAlt;
+    if (typeof isActive !== "undefined") optionalSets.isActive = isActive;
+    if (typeof metaTitle !== "undefined") optionalSets.metaTitle = metaTitle;
+    if (typeof metaDescription !== "undefined")
+      optionalSets.metaDescription = metaDescription;
+    if (Object.prototype.hasOwnProperty.call(req.body, "keywords")) {
+      optionalSets.keywords = normalizeKeywords(req.body.keywords) ?? [];
+    }
+
+    if (Object.keys(optionalSets).length) {
+      // اگر slug تغییر کرد، ممکنه DuplicateKey بخوری؛ اشکالی نداره، هندل می‌کنیم
+      ops.push({
+        updateOne: {
+          filter: { _id: cat._id },
+          update: { $set: optionalSets },
+        },
       });
     }
 
-    res.json({
-      data: deletedCategory,
+    await CategoryModel.bulkWrite(ops, { ordered: true });
+
+    return res.json({
       success: true,
       error: false,
-      message: ".دسته‌بندی با موفقیت حذف شد",
+      message: "بروزرسانی انجام شد",
     });
   } catch (err) {
-    //! 🔴Handle errors
-    // console.log("deleteCategory error:", err);
-    res.status(500).json({
+    // DuplicateKey خواناتر
+    if (err?.code === 11000) {
+      const which = Object.keys(err.keyPattern || {}).join(", ");
+      return res.status(400).json({
+        success: false,
+        error: true,
+        message: which ? `مقدار تکراری برای: ${which}` : "کلید تکراری",
+      });
+    }
+
+    return res.status(500).json({
       success: false,
       error: true,
-      message: "خطا در حذف دسته‌بندی",
+      message: "خطای غیرمنتظره در بروزرسانی",
     });
   }
 };
 
-//? 🔵Export Controllers
+// ---------------------------------------------------------------------
+// Delete Category (block if children exist)
+// ---------------------------------------------------------------------
+const deleteCategory = async (req, res) => {
+  try {
+    const { id } = req.params;
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res
+        .status(400)
+        .json({ success: false, error: true, message: "شناسه نامعتبر است" });
+    }
+
+    const doc = await CategoryModel.findById(id).select("parent sortOrder");
+    if (!doc) {
+      return res
+        .status(404)
+        .json({ success: false, error: true, message: "دسته‌بندی یافت نشد" });
+    }
+
+    // Block deletion if it has children
+    const childrenCount = await CategoryModel.countDocuments({ parent: id });
+    if (childrenCount > 0) {
+      return res.status(400).json({
+        success: false,
+        error: true,
+        message: "این دسته‌بندی به‌دلیل داشتن زیرمجموعه قابل حذف نیست",
+      });
+    }
+
+    await CategoryModel.findByIdAndDelete(id);
+
+    // Compact sibling orders after deletion
+    await CategoryModel.updateMany(
+      { parent: doc.parent, sortOrder: { $gt: doc.sortOrder } },
+      { $inc: { sortOrder: -1 } }
+    );
+
+    return res.status(200).json({ success: true, error: false , message: "دسته‌بندی با موفقیت حذف شد."});
+  } catch (err) {
+    return res
+      .status(500)
+      .json({ success: false, error: true, message: "خطا در حذف دسته‌بندی" });
+  }
+};
+
 module.exports = {
   createCategory,
   getAllCategories,
