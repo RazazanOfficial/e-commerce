@@ -1,10 +1,8 @@
-// controllers/Admin-Panel/Products/categoryController.js
-
-// ✅ No slugify here — user must provide slug explicitly.
+//? 🔵Required Modules
 const mongoose = require("mongoose");
 const CategoryModel = require("../../../models/categoryModel");
 
-// ---- Required fields config (controller-level, easy to edit later) ----
+//* 🟢REQUIRED Utils
 const REQUIRED = {
   create: {
     name: "نام دسته‌بندی الزامی است",
@@ -13,6 +11,7 @@ const REQUIRED = {
   update: {},
 };
 
+//* validateRequired Utils
 const validateRequired = (schema, payload) => {
   for (const [field, message] of Object.entries(schema)) {
     const v = payload?.[field];
@@ -23,7 +22,7 @@ const validateRequired = (schema, payload) => {
   return null;
 };
 
-// Normalizes keywords to an array of trimmed strings
+//* normalizeKeywords Utils
 const normalizeKeywords = (keywords) => {
   if (keywords === undefined) return undefined;
   if (Array.isArray(keywords))
@@ -36,7 +35,7 @@ const normalizeKeywords = (keywords) => {
   return [];
 };
 
-// Resolves a parent value (ObjectId | name | slug) to an ObjectId or null
+//* resolveParentId Utils
 const resolveParentId = async (parent) => {
   if (parent === undefined || parent === null || parent === "") return null;
   if (mongoose.Types.ObjectId.isValid(parent)) {
@@ -51,13 +50,13 @@ const resolveParentId = async (parent) => {
   }
   return null;
 };
-// checks if targetParentId is inside the subtree of categoryId (to prevent cycles)
+
+//* willCreateCycle Utils
 const willCreateCycle = async (categoryId, targetParentId) => {
   if (!targetParentId) return false;
   let cursor = targetParentId;
-  // بالا رفتن در زنجیرهٔ والدها تا ریشه
   while (cursor) {
-    if (String(cursor) === String(categoryId)) return true; // حلقه!
+    if (String(cursor) === String(categoryId)) return true;
     const p = await CategoryModel.findById(cursor).select("parent").lean();
     if (!p) break;
     cursor = p.parent;
@@ -65,30 +64,27 @@ const willCreateCycle = async (categoryId, targetParentId) => {
   return false;
 };
 
+//* validateAndNormalizeSlug Utils
 const validateAndNormalizeSlug = async (slug, currentId = null) => {
-  if (typeof slug === "undefined") return null; // یعنی کاربر قصد تغییر slug ندارد
-
+  if (typeof slug === "undefined") return null;
   const cleaned = String(slug).trim().toLowerCase();
-
-  // اگر می‌خوای سخت‌گیر باشی روی کاراکترها:
-  const slugRegex = /^[a-z0-9-]+$/; // فقط حروف/عدد/خط تیره
+  const slugRegex = /^[a-z0-9-]+$/;
   if (!cleaned || !slugRegex.test(cleaned)) {
     throw new Error("اسلاگ نامعتبر است (فقط حروف انگلیسی، ارقام و -)");
   }
-
-  // یکتا بودن به‌جز خود آیتم
   const exists = await CategoryModel.exists({
     slug: cleaned,
     ...(currentId ? { _id: { $ne: currentId } } : {}),
   });
   if (exists) {
     const err = new Error("slug تکراری است");
-    err.code = 409; // برای مپ‌کردن به 409
+    err.code = 409;
     throw err;
   }
-
   return cleaned;
 };
+
+//* ALLOWED_UPDATE_FIELDS Utils
 const ALLOWED_UPDATE_FIELDS = new Set([
   "name",
   "slug",
@@ -102,9 +98,24 @@ const ALLOWED_UPDATE_FIELDS = new Set([
   "metaTitle",
   "metaDescription",
 ]);
-// ---------------------------------------------------------------------
-// Create Category
-// ---------------------------------------------------------------------
+
+//* Get All Categories Controller
+const getAllCategories = async (_req, res) => {
+  try {
+    const list = await CategoryModel.find({})
+      .sort({ parent: 1, sortOrder: 1, name: 1 })
+      .lean();
+    return res.status(200).json({ success: true, error: false, data: list });
+  } catch (err) {
+    return res.status(500).json({
+      success: false,
+      error: true,
+      message: "خطا در دریافت دسته‌بندی‌ها",
+    });
+  }
+};
+
+//* Create Category Controller
 const createCategory = async (req, res) => {
   try {
     let {
@@ -118,10 +129,8 @@ const createCategory = async (req, res) => {
       metaDescription,
       keywords,
       parent,
-      // ⚠️ sortOrder intentionally ignored on create per spec
     } = req.body || {};
 
-    // Required fields validation from map
     const requiredErr = validateRequired(REQUIRED.create, { name, slug });
     if (requiredErr) {
       return res
@@ -129,7 +138,6 @@ const createCategory = async (req, res) => {
         .json({ success: false, error: true, message: requiredErr });
     }
 
-    // Trim/normalize minimal
     name = String(name).trim();
     slug = String(slug).trim();
     if (!slug) {
@@ -138,7 +146,6 @@ const createCategory = async (req, res) => {
         .json({ success: false, error: true, message: REQUIRED.create.slug });
     }
 
-    // Unique slug check
     const slugExists = await CategoryModel.exists({ slug });
     if (slugExists) {
       return res
@@ -146,18 +153,14 @@ const createCategory = async (req, res) => {
         .json({ success: false, error: true, message: "slug تکراری است" });
     }
 
-    // Resolve parent (ObjectId | name | slug)
     const parentId = await resolveParentId(parent);
     if (parent !== undefined && parent !== null && parent !== "" && !parentId) {
       return res
         .status(400)
         .json({ success: false, error: true, message: "والد یافت نشد" });
     }
-
-    // Keywords
     keywords = normalizeKeywords(keywords) ?? [];
 
-    // Compute sortOrder: ALWAYS last among siblings, user cannot set it
     const siblingFilter = { parent: parentId };
     const maxSibling = await CategoryModel.findOne(siblingFilter)
       .sort("-sortOrder")
@@ -196,27 +199,7 @@ const createCategory = async (req, res) => {
   }
 };
 
-// ---------------------------------------------------------------------
-// Get All Categories
-// ---------------------------------------------------------------------
-const getAllCategories = async (_req, res) => {
-  try {
-    const list = await CategoryModel.find({})
-      .sort({ parent: 1, sortOrder: 1, name: 1 })
-      .lean();
-    return res.status(200).json({ success: true, error: false, data: list });
-  } catch (err) {
-    return res.status(500).json({
-      success: false,
-      error: true,
-      message: "خطا در دریافت دسته‌بندی‌ها",
-    });
-  }
-};
-
-// ---------------------------------------------------------------------
-// Update Category (partial)
-// ---------------------------------------------------------------------
+//* Update Category Controller
 const updateCategory = async (req, res) => {
   try {
     const { id } = req.params;
@@ -244,7 +227,7 @@ const updateCategory = async (req, res) => {
         message: `فیلد(های) نامعتبر: ${unknownKeys.join(", ")}`,
       });
     }
-    // 1) پیدا کردن آیتم
+
     const cat = await CategoryModel.findById(id);
     if (!cat) {
       return res
@@ -252,79 +235,53 @@ const updateCategory = async (req, res) => {
         .json({ success: false, error: true, message: "دسته‌بندی پیدا نشد" });
     }
 
-    // 2) تعیین parent هدف (و تبدیل به ObjectId یا null)
+    const parentProvided = Object.prototype.hasOwnProperty.call(
+      req.body,
+      "parent"
+    );
+    const sortProvided = Object.prototype.hasOwnProperty.call(
+      req.body,
+      "sortOrder"
+    );
+
     let targetParentId = cat.parent;
-    if (typeof parent !== "undefined") {
-      // از همون resolveParentId که بالاتر داری استفاده کن
+    if (parentProvided) {
       targetParentId = await resolveParentId(parent);
-      // اگر parent صریحاً ست شده ولی پیدا نشد، خطا بده
       if (
         parent !== null &&
         parent !== "" &&
         typeof parent !== "undefined" &&
         !targetParentId
       ) {
-        return res
-          .status(400)
-          .json({ success: false, error: true, message: "والد یافت نشد" });
+        return res.status(400).json({
+          success: false,
+          error: true,
+          message: "والد یافت نشد",
+        });
       }
     }
 
-    // ✅ جلوگیری از self-parent
-    if (targetParentId && String(targetParentId) === String(cat._id)) {
-      return res.status(400).json({
-        success: false,
-        error: true,
-        message: "یک دسته نمی‌تواند والد خودش باشد",
-      });
+    const parentChanged =
+      parentProvided &&
+      String(targetParentId || "") !== String(cat.parent || "");
+
+    if (parentChanged) {
+      if (targetParentId && String(targetParentId) === String(cat._id)) {
+        return res.status(400).json({
+          success: false,
+          error: true,
+          message: "یک دسته نمی‌تواند والد خودش باشد",
+        });
+      }
+      if (await willCreateCycle(cat._id, targetParentId)) {
+        return res.status(400).json({
+          success: false,
+          error: true,
+          message: "انتخاب والد باعث ایجاد حلقه در ساختار دسته‌بندی می‌شود",
+        });
+      }
     }
 
-    // ✅ جلوگیری از ایجاد حلقه (قرار دادن زیرشاخه زیر خودش)
-    if (await willCreateCycle(cat._id, targetParentId)) {
-      return res.status(400).json({
-        success: false,
-        error: true,
-        message: "انتخاب والد باعث ایجاد حلقه در ساختار دسته‌بندی می‌شود",
-      });
-    }
-
-    // 3) همه سیبلیگ‌های والد هدف (شامل خود آیتم اگر در همون والده)
-    const siblings = await CategoryModel.find({ parent: targetParentId })
-      .sort({ sortOrder: 1, _id: 1 })
-      .lean();
-
-    // 4) آرایه بدون آیتم هدف
-    const withoutTarget = siblings.filter(
-      (s) => String(s._id) !== String(cat._id)
-    );
-
-    // 5) جایگاه جدید (۱-مبنایی)
-    const requested = Number(sortOrder);
-    const newPosOneBased =
-      requested > 0
-        ? requested
-        : cat.parent?.toString() === (targetParentId?.toString() || null) &&
-          cat.sortOrder
-        ? cat.sortOrder
-        : withoutTarget.length + 1;
-    // clamp
-    const clamped = Math.min(
-      Math.max(newPosOneBased, 1),
-      withoutTarget.length + 1
-    );
-    const newIndex = clamped - 1;
-
-    // 6) آرایه نهایی با قرار دادن آیتم هدف
-    const reordered = [...withoutTarget];
-    reordered.splice(newIndex, 0, { ...cat.toObject(), _id: cat._id });
-
-    // 7) فاز اول: بالا بردن موقت sortOrder همه سیبلیگ‌های درگیر تا برخورد یونیک پیش نیاد
-    const allIds = reordered.map((d) => d._id);
-    await CategoryModel.updateMany(
-      { _id: { $in: allIds } },
-      { $inc: { sortOrder: 100000 } }
-    );
-    // --- validate slug if provided ---
     let normalizedSlug = null;
     try {
       normalizedSlug = await validateAndNormalizeSlug(slug, cat._id);
@@ -335,17 +292,6 @@ const updateCategory = async (req, res) => {
         .json({ success: false, error: true, message: e.message });
     }
 
-    // 8) فاز دوم: نوشتن sortOrder نهایی (۱,۲,۳,…) + parent هدف برای همه
-    const ops = reordered.map((doc, idx) => ({
-      updateOne: {
-        filter: { _id: doc._id },
-        update: {
-          $set: { sortOrder: idx + 1, parent: targetParentId ?? null },
-        },
-      },
-    }));
-
-    // 9) ست‌کردن سایر فیلدهای اختیاری روی خود آیتم (در صورت ارسال)
     const optionalSets = {};
     if (typeof name !== "undefined") optionalSets.name = String(name).trim();
     if (normalizedSlug !== null) optionalSets.slug = normalizedSlug;
@@ -361,8 +307,63 @@ const updateCategory = async (req, res) => {
       optionalSets.keywords = normalizeKeywords(req.body.keywords) ?? [];
     }
 
+    if (!parentChanged && !sortProvided) {
+      if (Object.keys(optionalSets).length) {
+        await CategoryModel.updateOne({ _id: cat._id }, { $set: optionalSets });
+      }
+      return res.json({
+        success: true,
+        error: false,
+        message: "بروزرسانی انجام شد",
+      });
+    }
+
+    const siblings = await CategoryModel.find({
+      parent: parentChanged ? targetParentId : cat.parent,
+    })
+      .sort({ sortOrder: 1, _id: 1 })
+      .lean();
+
+    const withoutTarget = siblings.filter(
+      (s) => String(s._id) !== String(cat._id)
+    );
+
+    const requested = Number(sortOrder);
+    const newPosOneBased =
+      requested > 0
+        ? requested
+        : !parentChanged && cat.sortOrder
+        ? cat.sortOrder
+        : withoutTarget.length + 1;
+
+    const clamped = Math.min(
+      Math.max(newPosOneBased, 1),
+      withoutTarget.length + 1
+    );
+    const newIndex = clamped - 1;
+
+    const reordered = [...withoutTarget];
+    reordered.splice(newIndex, 0, { ...cat.toObject(), _id: cat._id });
+
+    const allIds = reordered.map((d) => d._id);
+    await CategoryModel.updateMany(
+      { _id: { $in: allIds } },
+      { $inc: { sortOrder: 100000 } }
+    );
+
+    const ops = reordered.map((doc, idx) => ({
+      updateOne: {
+        filter: { _id: doc._id },
+        update: {
+          $set: {
+            sortOrder: idx + 1,
+            parent: parentChanged ? targetParentId ?? null : cat.parent ?? null,
+          },
+        },
+      },
+    }));
+
     if (Object.keys(optionalSets).length) {
-      // اگر slug تغییر کرد، ممکنه DuplicateKey بخوری؛ اشکالی نداره، هندل می‌کنیم
       ops.push({
         updateOne: {
           filter: { _id: cat._id },
@@ -379,7 +380,6 @@ const updateCategory = async (req, res) => {
       message: "بروزرسانی انجام شد",
     });
   } catch (err) {
-    // DuplicateKey خواناتر
     if (err?.code === 11000) {
       const which = Object.keys(err.keyPattern || {}).join(", ");
       return res.status(400).json({
@@ -388,7 +388,6 @@ const updateCategory = async (req, res) => {
         message: which ? `مقدار تکراری برای: ${which}` : "کلید تکراری",
       });
     }
-
     return res.status(500).json({
       success: false,
       error: true,
@@ -397,9 +396,7 @@ const updateCategory = async (req, res) => {
   }
 };
 
-// ---------------------------------------------------------------------
-// Delete Category (block if children exist)
-// ---------------------------------------------------------------------
+//* Delete Category Controller
 const deleteCategory = async (req, res) => {
   try {
     const { id } = req.params;
@@ -416,7 +413,6 @@ const deleteCategory = async (req, res) => {
         .json({ success: false, error: true, message: "دسته‌بندی یافت نشد" });
     }
 
-    // Block deletion if it has children
     const childrenCount = await CategoryModel.countDocuments({ parent: id });
     if (childrenCount > 0) {
       return res.status(400).json({
@@ -428,13 +424,16 @@ const deleteCategory = async (req, res) => {
 
     await CategoryModel.findByIdAndDelete(id);
 
-    // Compact sibling orders after deletion
     await CategoryModel.updateMany(
       { parent: doc.parent, sortOrder: { $gt: doc.sortOrder } },
       { $inc: { sortOrder: -1 } }
     );
 
-    return res.status(200).json({ success: true, error: false , message: "دسته‌بندی با موفقیت حذف شد."});
+    return res.status(200).json({
+      success: true,
+      error: false,
+      message: "دسته‌بندی با موفقیت حذف شد.",
+    });
   } catch (err) {
     return res
       .status(500)
@@ -442,6 +441,7 @@ const deleteCategory = async (req, res) => {
   }
 };
 
+//? 🔵Export Controller
 module.exports = {
   createCategory,
   getAllCategories,

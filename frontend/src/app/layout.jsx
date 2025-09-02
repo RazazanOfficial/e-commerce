@@ -1,10 +1,16 @@
-import Header from "@/components/Header";
 import "@/styles/globals.css";
+import { Inter } from "next/font/google";
 import { ToastContainer } from "react-toastify";
 import { UserProvider } from "@/context/UserContext";
 import ReduxProvider from "@/redux/ReduxProvider";
-import OfferHeader from "@/components/OfferHeader";
 import LayoutWrapper from "@/components/LayoutWrapper";
+
+const inter = Inter({
+  subsets: ["latin"],
+  weight: ["400", "700"], 
+  variable: "--font-inter",
+  display: "swap",
+});
 
 export const metadata = {
   title: "فروشگاه عصر دیجیتال",
@@ -14,8 +20,8 @@ export const metadata = {
 
 export default function RootLayout({ children }) {
   return (
-    <html lang="fa">
-      <body className={`antialiased bg-slate-100 h-[100vh]`}>
+    <html lang="fa" dir="rtl" className={inter.variable}>
+      <body className="antialiased bg-slate-100 min-h-screen">
         <ReduxProvider>
           <UserProvider>
             <LayoutWrapper />

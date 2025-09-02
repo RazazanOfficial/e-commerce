@@ -20,21 +20,32 @@
 }
 
 @font-face {
-  font-family: "Vazir";
-  src: url("../assets/font/vazir/Vazir-FD-WOL.eot");
-  src: url("../assets/font/vazir/Vazir-FD-WOL.eot?#iefix")
-  format("embedded-opentype"),
-  url("../assets/font/vazir/Vazir-FD-WOL.woff") format("woff"),
-  url("../assets/font/vazir/Vazir-FD-WOL.ttf") format("truetype"),
-  url("../assets/font/vazir/Vazir-FD-WOL.woff2") format("woff2");
-  font-weight: normal;
+  font-family: "AppFont";
+  src:
+    url("../assets/font/vazir/Vazir-FD-WOL.woff2") format("woff2"),
+    url("../assets/font/vazir/Vazir-FD-WOL.woff") format("woff"),
+    url("../assets/font/vazir/Vazir-FD-WOL.ttf") format("truetype"),
+    url("../assets/font/vazir/Vazir-FD-WOL.eot");
+  font-display: swap;
+  font-weight: 400;
   font-style: normal;
+  unicode-range:
+    U+0600-06FF, /* Arabic */
+    U+0750-077F, /* Arabic Supplement */
+    U+08A0-08FF, /* Arabic Extended-A */
+    U+FB50-FDFF, /* Arabic Presentation Forms-A */
+    U+FE70-FEFF, /* Arabic Presentation Forms-B */
+    U+0660-0669; /* Arabic-Indic digits */
 }
-body {
+
+html, body {
   width: 100%;
   max-width: 100%;
   overflow-x: hidden;
-  font-family: "Vazir";
+}
+
+body {
+  font-family: "AppFont", var(--font-inter), ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
   direction: rtl;
 }
 

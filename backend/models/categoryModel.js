@@ -1,17 +1,16 @@
-// models/categoryModel.js
+//? 🔵Required Modules
 const mongoose = require("mongoose");
 
+//* Category Model
 const categorySchema = new mongoose.Schema(
   {
-    name: { type: String, required: true, unique: true }, // اگر خواستی بعداً یکتایی name برداشته بشه، بگو
+    name: { type: String, required: true, unique: true },
     slug: { type: String, required: true, unique: true, index: true },
     sortOrder: { type: Number, default: 0 },
     parent: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Category",
       default: null,
-      // 👇 طبق خواسته‌ی تو: هیچ ایندکسی نذاریم تا دردسر نداشته باشیم
-      // index: false (پیش‌فرض)
     },
     isActive: { type: Boolean, default: true, index: true },
 
@@ -26,5 +25,5 @@ const categorySchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-// 👇 هیچ ایندکس مرکبی روی parent/sortOrder تعریف نمی‌کنیم.
+//? 🔵Export Controller
 module.exports = mongoose.model("Category", categorySchema);
