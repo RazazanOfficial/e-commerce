@@ -19,12 +19,9 @@ import {
   ArrowDown,
   Search,
   Link2,
-  MoreVertical, // ⬅️ برای منوی سه‌نقطه‌ای موبایل
+  MoreVertical,
 } from "lucide-react";
 
-/* ----------------------
-   Utilities (بدون تغییر در منطق)
----------------------- */
 const slugify = (str = "") =>
   str
     .toString()
@@ -60,9 +57,6 @@ const flattenForSelect = (tree, depth = 0, arr = []) => {
   return arr;
 };
 
-/* ----------------------
-   Modal (UI only)
----------------------- */
 function Modal({ open, onClose, title, children, footer }) {
   if (!open) return null;
   return (
@@ -74,17 +68,22 @@ function Modal({ open, onClose, title, children, footer }) {
         </div>
         <div className="p-4">{children}</div>
         {footer && (
-          <div className="p-3 border-t border-slate-700 bg-slate-900">{footer}</div>
+          <div className="p-3 border-t border-slate-700 bg-slate-900">
+            {footer}
+          </div>
         )}
       </div>
     </div>
   );
 }
 
-/* ----------------------
-   Category Form Modal (منطق API دست‌نخورده)
----------------------- */
-function CategoryFormModal({ open, onClose, onSubmit, initial, allCategoriesTree }) {
+function CategoryFormModal({
+  open,
+  onClose,
+  onSubmit,
+  initial,
+  allCategoriesTree,
+}) {
   const isEdit = Boolean(initial?._id);
   const [name, setName] = useState(initial?.name || "");
   const [slug, setSlug] = useState(initial?.slug || "");
@@ -92,11 +91,17 @@ function CategoryFormModal({ open, onClose, onSubmit, initial, allCategoriesTree
   const [image, setImage] = useState(initial?.image || "");
   const [imageAlt, setImageAlt] = useState(initial?.imageAlt || "");
   const [isActive, setIsActive] = useState(initial?.isActive ?? true);
-  const [parent, setParent] = useState(initial?.parent?._id || initial?.parent || "");
+  const [parent, setParent] = useState(
+    initial?.parent?._id || initial?.parent || ""
+  );
   const [metaTitle, setMetaTitle] = useState(initial?.metaTitle || "");
-  const [metaDescription, setMetaDescription] = useState(initial?.metaDescription || "");
+  const [metaDescription, setMetaDescription] = useState(
+    initial?.metaDescription || ""
+  );
   const [keywords, setKeywords] = useState(
-    Array.isArray(initial?.keywords) ? initial.keywords.join(", ") : initial?.keywords || ""
+    Array.isArray(initial?.keywords)
+      ? initial.keywords.join(", ")
+      : initial?.keywords || ""
   );
 
   useEffect(() => {
@@ -114,7 +119,9 @@ function CategoryFormModal({ open, onClose, onSubmit, initial, allCategoriesTree
     setMetaTitle(initial?.metaTitle || "");
     setMetaDescription(initial?.metaDescription || "");
     setKeywords(
-      Array.isArray(initial?.keywords) ? initial.keywords.join(", ") : initial?.keywords || ""
+      Array.isArray(initial?.keywords)
+        ? initial.keywords.join(", ")
+        : initial?.keywords || ""
     );
   }, [initial]);
 
@@ -162,7 +169,6 @@ function CategoryFormModal({ open, onClose, onSubmit, initial, allCategoriesTree
     });
   };
 
-  // Cmd/Ctrl + Enter = Submit
   useEffect(() => {
     if (!open) return;
     const onKey = (e) => {
@@ -170,7 +176,19 @@ function CategoryFormModal({ open, onClose, onSubmit, initial, allCategoriesTree
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [open, name, slug, description, image, imageAlt, isActive, parent, metaTitle, metaDescription, keywords]);
+  }, [
+    open,
+    name,
+    slug,
+    description,
+    image,
+    imageAlt,
+    isActive,
+    parent,
+    metaTitle,
+    metaDescription,
+    keywords,
+  ]);
 
   return (
     <Modal
@@ -195,7 +213,9 @@ function CategoryFormModal({ open, onClose, onSubmit, initial, allCategoriesTree
       }
     >
       {initial?._loading && (
-        <div className="mb-3 text-sm text-indigo-300">در حال دریافت اطلاعات از سرور...</div>
+        <div className="mb-3 text-sm text-indigo-300">
+          در حال دریافت اطلاعات از سرور...
+        </div>
       )}
 
       <div className="grid md:grid-cols-2 gap-4">
@@ -220,7 +240,10 @@ function CategoryFormModal({ open, onClose, onSubmit, initial, allCategoriesTree
               placeholder="mobile-phones"
               dir="ltr"
             />
-            <span className="text-xs text-gray-400 flex items-center gap-1" dir="ltr">
+            <span
+              className="text-xs text-gray-400 flex items-center gap-1"
+              dir="ltr"
+            >
               <Link2 className="w-4 h-4" /> {slug || slugify(name || "")}
             </span>
           </div>
@@ -236,7 +259,9 @@ function CategoryFormModal({ open, onClose, onSubmit, initial, allCategoriesTree
           />
         </div>
         <div>
-          <label className="block text-sm text-gray-300 mb-1">تصویر (URL)</label>
+          <label className="block text-sm text-gray-300 mb-1">
+            تصویر (URL)
+          </label>
           <input
             disabled={Boolean(initial?._loading)}
             className="w-full rounded-lg bg-slate-800 border border-slate-700 px-3 py-2 text-gray-200 focus:ring-2 focus:ring-indigo-500 outline-none"
@@ -246,7 +271,9 @@ function CategoryFormModal({ open, onClose, onSubmit, initial, allCategoriesTree
           />
         </div>
         <div>
-          <label className="block text-sm text-gray-300 mb-1">متن جایگزین تصویر</label>
+          <label className="block text-sm text-gray-300 mb-1">
+            متن جایگزین تصویر
+          </label>
           <input
             disabled={Boolean(initial?._loading)}
             className="w-full rounded-lg bg-slate-800 border border-slate-700 px-3 py-2 text-gray-200 focus:ring-2 focus:ring-indigo-500 outline-none"
@@ -293,7 +320,9 @@ function CategoryFormModal({ open, onClose, onSubmit, initial, allCategoriesTree
           />
         </div>
         <div>
-          <label className="block text-sm text-gray-300 mb-1">Meta Description</label>
+          <label className="block text-sm text-gray-300 mb-1">
+            Meta Description
+          </label>
           <input
             disabled={Boolean(initial?._loading)}
             className="w-full rounded-lg bg-slate-800 border border-slate-700 px-3 py-2 text-gray-200 focus:ring-2 focus:ring-indigo-500 outline-none"
@@ -318,9 +347,6 @@ function CategoryFormModal({ open, onClose, onSubmit, initial, allCategoriesTree
   );
 }
 
-/* ----------------------
-   Confirm Delete Modal (بدون تغییر منطق)
----------------------- */
 function ConfirmDeleteModal({ open, onClose, onConfirm, category }) {
   return (
     <Modal
@@ -345,7 +371,8 @@ function ConfirmDeleteModal({ open, onClose, onConfirm, category }) {
       }
     >
       <p className="text-gray-300">
-        آیا از حذف <span className="text-white font-semibold">{category?.name}</span> مطمئن
+        آیا از حذف{" "}
+        <span className="text-white font-semibold">{category?.name}</span> مطمئن
         هستید؟
       </p>
       <p className="text-gray-400 mt-2 text-sm">
@@ -355,103 +382,86 @@ function ConfirmDeleteModal({ open, onClose, onConfirm, category }) {
   );
 }
 
-/* ----------------------
-   Neon depth themes (برای رنگ‌دهی نئونی به‌ازای عمق)
----------------------- */
 const DEPTH_THEMES = {
   root: {
-    bgBase: "",
-    bgOpen: "bg-indigo-500/10",
-    ring: "ring-indigo-500/20",
-    icon: "text-indigo-400",
-    indent: "bg-slate-700/40",
-    desc: "bg-indigo-500/3",
-    hover: "hover:bg-indigo-500/25",
+    bgBase: "bg-indigo-700/20",
+    bgOpen: "bg-indigo-700/28",
+    ring: "ring-indigo-400/70",
+    icon: "text-indigo-300",
+    indent: "bg-indigo-500/60",
+    desc: "bg-indigo-700/14",
+    hover: "hover:bg-indigo-700/36",
+    edge: "rtl:border-r-4 ltr:border-l-4 border-indigo-400/90",
   },
   levels: [
     {
-      icon: "text-emerald-400",
-      bgBase: "bg-emerald-400/10",
-      bgOpen: "bg-emerald-400/10",
-      ring: "ring-emerald-400/20",
-      desc: "bg-emerald-400/7",
-      indent: "bg-emerald-400/60",
-      hover: "hover:bg-emerald-400/25",
+      icon: "text-indigo-200",
+      bgBase: "bg-indigo-400/30",
+      bgOpen: "bg-indigo-400/38",
+      ring: "ring-indigo-300/70",
+      desc: "bg-indigo-400/18",
+      indent: "bg-indigo-500/70",
+      hover: "hover:bg-indigo-400/45",
+      edge: "rtl:border-r-4 ltr:border-l-4 border-indigo-400/95",
     },
     {
-      icon: "text-cyan-400",
-      bgBase: "bg-cyan-400/10",
-      bgOpen: "bg-cyan-400/10",
-      ring: "ring-cyan-400/20",
-      desc: "bg-cyan-400/7",
-      indent: "bg-cyan-400/60",
-      hover: "hover:bg-cyan-400/25",
+      icon: "text-blue-200",
+      bgBase: "bg-blue-600/35",
+      bgOpen: "bg-blue-600/42",
+      ring: "ring-blue-300/70",
+      desc: "bg-blue-600/20",
+      indent: "bg-blue-500/70",
+      hover: "hover:bg-blue-600/50",
+      edge: "rtl:border-r-4 ltr:border-l-4 border-blue-400/95",
     },
     {
-      icon: "text-fuchsia-400",
-      bgBase: "bg-fuchsia-400/10",
-      bgOpen: "bg-fuchsia-400/10",
-      ring: "ring-fuchsia-400/20",
-      desc: "bg-fuchsia-400/7",
-      indent: "bg-fuchsia-400/60",
-      hover: "hover:bg-fuchsia-400/25",
+      icon: "text-teal-200",
+      bgBase: "bg-teal-600/40",
+      bgOpen: "bg-teal-600/48",
+      ring: "ring-teal-300/70",
+      desc: "bg-teal-600/22",
+      indent: "bg-teal-500/70",
+      hover: "hover:bg-teal-600/55",
+      edge: "rtl:border-r-4 ltr:border-l-4 border-teal-400/95",
     },
     {
-      icon: "text-violet-400",
-      bgBase: "bg-violet-400/10",
-      bgOpen: "bg-violet-400/10",
-      ring: "ring-violet-400/20",
-      desc: "bg-violet-400/7",
-      indent: "bg-violet-400/60",
-      hover: "hover:bg-violet-400/25",
+      icon: "text-emerald-200",
+      bgBase: "bg-emerald-600/45",
+      bgOpen: "bg-emerald-600/52",
+      ring: "ring-emerald-300/70",
+      desc: "bg-emerald-600/24",
+      indent: "bg-emerald-500/70",
+      hover: "hover:bg-emerald-600/60",
+      edge: "rtl:border-r-4 ltr:border-l-4 border-emerald-400/95",
     },
     {
-      icon: "text-lime-400",
-      bgBase: "bg-lime-400/10",
-      bgOpen: "bg-lime-400/10",
-      ring: "ring-lime-400/20",
-      desc: "bg-lime-400/7",
-      indent: "bg-lime-400/60",
-      hover: "hover:bg-lime-400/25",
+      icon: "text-emerald-100",
+      bgBase: "bg-emerald-500/48",
+      bgOpen: "bg-emerald-500/56",
+      ring: "ring-emerald-200/70",
+      desc: "bg-emerald-500/26",
+      indent: "bg-emerald-500/75",
+      hover: "hover:bg-emerald-500/65",
+      edge: "rtl:border-r-4 ltr:border-l-4 border-emerald-300/95",
     },
     {
-      icon: "text-sky-400",
-      bgBase: "bg-sky-400/10",
-      bgOpen: "bg-sky-400/10",
-      ring: "ring-sky-400/20",
-      desc: "bg-sky-400/7",
-      indent: "bg-sky-400/60",
-      hover: "hover:bg-sky-400/25",
-    },
-    {
-      icon: "text-rose-400",
-      bgBase: "bg-rose-400/10",
-      bgOpen: "bg-rose-400/10",
-      ring: "ring-rose-400/20",
-      desc: "bg-rose-400/7",
-      indent: "bg-rose-400/60",
-      hover: "hover:bg-rose-400/25",
-    },
-    {
-      icon: "text-amber-400",
-      bgBase: "bg-amber-400/10",
-      bgOpen: "bg-amber-400/10",
-      ring: "ring-amber-400/20",
-      desc: "bg-amber-400/7",
-      indent: "bg-amber-400/60",
-      hover: "hover:bg-amber-400/25",
+      icon: "text-emerald-100",
+      bgBase: "bg-emerald-400/52",
+      bgOpen: "bg-emerald-400/60",
+      ring: "ring-emerald-200/70",
+      desc: "bg-emerald-400/28",
+      indent: "bg-emerald-400/80",
+      hover: "hover:bg-emerald-400/70",
+      edge: "rtl:border-r-4 ltr:border-l-4 border-emerald-300/95",
     },
   ],
 };
-const getThemeForDepth = (depth) =>
-  depth <= 0 ? DEPTH_THEMES.root : DEPTH_THEMES.levels[(depth - 1) % DEPTH_THEMES.levels.length];
 
-/* ----------------------
-   ActionMenu (مخصوص < lg : منوی سه‌نقطه‌ای)
-   - absolute/relative
-   - کلیک بیرون = بستن
-   - ESC = بستن
----------------------- */
+const getThemeForDepth = (depth) =>
+  depth <= 0
+    ? DEPTH_THEMES.root
+    : DEPTH_THEMES.levels[Math.min(depth - 1, DEPTH_THEMES.levels.length - 1)];
+
 function ActionMenu({ node, onAddChild, onEdit, onDelete }) {
   const [open, setOpen] = useState(false);
   const menuRef = useRef(null);
@@ -460,7 +470,11 @@ function ActionMenu({ node, onAddChild, onEdit, onDelete }) {
   useEffect(() => {
     const onDocDown = (e) => {
       if (!menuRef.current) return;
-      if (menuRef.current.contains(e.target) || btnRef.current?.contains(e.target)) return;
+      if (
+        menuRef.current.contains(e.target) ||
+        btnRef.current?.contains(e.target)
+      )
+        return;
       setOpen(false);
     };
     const onKey = (e) => {
@@ -528,9 +542,6 @@ function ActionMenu({ node, onAddChild, onEdit, onDelete }) {
   );
 }
 
-/* ----------------------
-   Row (بهبود UI/UX + منوی ریسپانسیو)
----------------------- */
 function Row({
   node,
   depth = 0,
@@ -546,16 +557,15 @@ function Row({
 }) {
   const theme = getThemeForDepth(depth);
   const hasChildren = (node.children || []).length > 0;
-  const padRight = 10 + depth * 1 ;
+  const padRight = 10 + depth * 1;
   const isOpen = expanded;
 
   return (
     <div className="relative">
-      {/* indent guide */}
       {depth > 0 && (
         <div
           className="absolute inset-y-0"
-          style={{ right: 10 + (depth - 1) * 10, width: 2 }}
+          style={{ right: 3 + (depth - 1) * 10, width: 2 }}
         >
           <div className={`h-full w-px ${theme.indent}`} />
         </div>
@@ -608,7 +618,10 @@ function Row({
             )}
           </div>
           <div className="min-w-0">
-            <div className="text-white font-medium truncate" title={node.name}>
+            <div
+              className="text-white font-medium truncate sm:text-base text-sm"
+              title={node.name}
+            >
               {node._highlightedName || node.name}
             </div>
             <div className="text-xs text-gray-400 truncate" dir="ltr">
@@ -617,7 +630,6 @@ function Row({
           </div>
         </div>
 
-        {/* sort controls */}
         <div className="flex items-center gap-1 justify-self-end">
           <button
             className="p-1.5 rounded-lg hover:bg-slate-700/60"
@@ -637,28 +649,30 @@ function Row({
           </button>
         </div>
 
-        {/* status */}
         <div className="justify-self-end">
-<button
-  onClick={() => onToggleActive(node)}
-  className={`px-2 py-1 rounded-lg text-sm flex items-center gap-0 lg:gap-1 border transition ${
-    node.isActive
-      ? "bg-transparent text-green-300 border-green-800/60 hover:bg-green-900/20"
-      : "bg-transparent text-gray-300 border-slate-700 hover:bg-slate-800/60"
-  }`}
-  title="فعال/غیرفعال"
-  aria-pressed={node.isActive}
-  aria-label={node.isActive ? "فعال" : "غیرفعال"} // برای دسترس‌پذیری در سایزهای کوچک
->
-  {node.isActive ? <CheckCircle2 className="w-4 h-4" /> : <XCircle className="w-4 h-4" />}
-  <span className="hidden lg:inline">{node.isActive ? "فعال" : "غیرفعال"}</span>
-</button>
-
+          <button
+            onClick={() => onToggleActive(node)}
+            className={`px-2 py-1 rounded-lg text-sm flex items-center gap-0 lg:gap-1 border transition ${
+              node.isActive
+                ? "bg-transparent text-green-300 border-green-800/60 hover:bg-green-900/20"
+                : "bg-transparent text-gray-300 border-slate-700 hover:bg-slate-800/60"
+            }`}
+            title="فعال/غیرفعال"
+            aria-pressed={node.isActive}
+            aria-label={node.isActive ? "فعال" : "غیرفعال"}
+          >
+            {node.isActive ? (
+              <CheckCircle2 className="w-4 h-4" />
+            ) : (
+              <XCircle className="w-4 h-4" />
+            )}
+            <span className="hidden lg:inline">
+              {node.isActive ? "فعال" : "غیرفعال"}
+            </span>
+          </button>
         </div>
 
-        {/* actions */}
         <div className="justify-self-end">
-          {/* دسکتاپ (>= lg): همان ۳ آیکن قبلی */}
           <div className="hidden lg:flex items-center gap-1">
             <button
               onClick={() => onAddChild(node)}
@@ -686,7 +700,6 @@ function Row({
             </button>
           </div>
 
-          {/* موبایل/تبلت (< lg): تبدیل به منوی سه‌نقطه */}
           <div className="lg:hidden">
             <ActionMenu
               node={node}
@@ -701,30 +714,31 @@ function Row({
   );
 }
 
-/* ----------------------
-   صفحه اصلی (منطق API دست‌نخورده؛ UI بهبود یافته)
----------------------- */
 export default function CategoriesPage() {
   const [raw, setRaw] = useState(null);
   const [loading, setLoading] = useState(true);
   const [expanded, setExpanded] = useState(new Set());
-  const [qInput, setQInput] = useState(""); // ورودی خام جستجو (برای debounce)
-  const [q, setQ] = useState(""); // جستجوی debounce شده
+  const [qInput, setQInput] = useState("");
+  const [q, setQ] = useState("");
   const [createOpen, setCreateOpen] = useState(false);
   const [editCat, setEditCat] = useState(null);
   const [editLoading, setEditLoading] = useState(false);
   const [deleteCat, setDeleteCat] = useState(null);
 
-  // ---- Persist expanded in localStorage
   useEffect(() => {
     try {
-      const saved = JSON.parse(localStorage.getItem("cat_expanded_ids") || "[]");
+      const saved = JSON.parse(
+        localStorage.getItem("cat_expanded_ids") || "[]"
+      );
       setExpanded(new Set(saved));
     } catch {}
   }, []);
   useEffect(() => {
     try {
-      localStorage.setItem("cat_expanded_ids", JSON.stringify(Array.from(expanded)));
+      localStorage.setItem(
+        "cat_expanded_ids",
+        JSON.stringify(Array.from(expanded))
+      );
     } catch {}
   }, [expanded]);
 
@@ -746,7 +760,6 @@ export default function CategoriesPage() {
     fetchAll();
   }, []);
 
-  // debounce جستجو
   useEffect(() => {
     const t = setTimeout(() => setQ(qInput.trim()), 250);
     return () => clearTimeout(t);
@@ -754,7 +767,6 @@ export default function CategoriesPage() {
 
   const tree = useMemo(() => buildTree(raw || []), [raw]);
 
-  // Map کمک‌کار برای parent lookup (برای هایلایت نیاکان گره‌های باز)
   const idToNode = useMemo(() => {
     const map = new Map();
     (raw || []).forEach((c) => map.set(c._id, c));
@@ -774,7 +786,6 @@ export default function CategoriesPage() {
     return set;
   }, [expanded, idToNode]);
 
-  // هایلایت کلمه در اسم/اسلاگ هنگام جستجو
   const highlight = (text, q) => {
     if (!q) return text;
     const i = text?.toLowerCase?.().indexOf(q.toLowerCase());
@@ -835,7 +846,6 @@ export default function CategoriesPage() {
 
   const closeAll = () => setExpanded(new Set());
 
-  // ----- API handlers (بدون تغییر منطقی)
   const handleCreate = async (payload) => {
     try {
       await axios.post(backApis.createCategory.url, payload, {
@@ -955,9 +965,8 @@ export default function CategoriesPage() {
     }
   };
 
-  // رندر بازگشتی؛ ولی با بهینه‌سازی‌های UI
   const renderNode = (n, depth = 0) => {
-    const open = expanded.has(n._id) || q.length > 0; // در حالت جستجو شاخه‌ها باز بمانند
+    const open = expanded.has(n._id) || q.length > 0;
     return (
       <div key={n._id}>
         <Row
@@ -967,8 +976,6 @@ export default function CategoriesPage() {
           onToggleExpand={toggleExpand}
           onAddChild={(node) => setCreateOpen({ parent: node })}
           onEdit={(node) => setEditCat(node)}
-          // اگر خواستی دیتای تازهٔ یک دسته را از بک‌اند بخوانی:
-          // onEdit={(node) => openEdit(node)}
           onDelete={(node) => setDeleteCat(node)}
           onToggleActive={handleToggleActive}
           onMoveUp={(node) => move(node, "up")}
@@ -986,7 +993,9 @@ export default function CategoriesPage() {
         <div className="w-full">
           <div className="rounded-2xl overflow-hidden border border-slate-700 bg-slate-900">
             <div className="bg-gradient-to-l from-slate-800 to-indigo-900 p-5">
-              <h1 className="text-white text-2xl font-bold">مدیریت دسته‌بندی‌ها</h1>
+              <h1 className="text-white text-2xl font-bold">
+                مدیریت دسته‌بندی‌ها
+              </h1>
               <p className="text-gray-300 mt-1">
                 ایجاد، ویرایش و سازمان‌دهی دسته‌ها به‌صورت درختی
               </p>
@@ -1005,26 +1014,27 @@ export default function CategoriesPage() {
               <div className="flex items-center gap-2">
                 <button
                   onClick={openAll}
-                  className="px-3 py-2 rounded-lg bg-slate-800 text-gray-200 hover:bg-slate-700"
+                  className="px-2 py-1 sm:px-3 sm:py-2 rounded-lg bg-slate-800 text-xs sm:text-sm text-gray-200 hover:bg-slate-700"
                 >
                   باز کردن همه
                 </button>
+
                 <button
                   onClick={closeAll}
-                  className="px-3 py-2 rounded-lg bg-slate-800 text-gray-200 hover:bg-slate-700"
+                  className="px-2 py-1 sm:px-3 sm:py-2 rounded-lg bg-slate-800 text-xs sm:text-sm text-gray-200 hover:bg-slate-700"
                 >
                   بستن همه
                 </button>
+
                 <button
                   onClick={() => setCreateOpen(true)}
-                  className="px-3 py-2 rounded-lg bg-indigo-600 text-white hover:bg-indigo-700 flex items-center gap-2"
+                  className="px-2 py-1 sm:px-3 sm:py-2 rounded-lg bg-indigo-600 text-white hover:bg-indigo-700 flex items-center gap-1 text-xs sm:text-sm"
                 >
-                  <Plus className="w-4 h-4" />
+                  <Plus className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                   دسته جدید
                 </button>
               </div>
             </div>
-
             <div className="border-t border-slate-700">
               {loading ? (
                 <div className="p-8 flex items-center justify-center">
@@ -1032,13 +1042,15 @@ export default function CategoriesPage() {
                 </div>
               ) : (
                 <div className="divide-y divide-slate-700/60">
-                  <div className="grid grid-cols-[1fr_auto_auto_auto] gap-3 px-4 py-3 bg-slate-800/60 text-gray-300 sticky top-0 z-10 backdrop-blur supports-[backdrop-filter]:bg-slate-800/50">
+                  <div className="grid grid-cols-[1fr_auto_auto_auto] gap-2 ps-4 py-3 bg-slate-800/60 text-gray-300 sticky top-0 z-10 backdrop-blur supports-[backdrop-filter]:bg-slate-800/50">
                     <div>نام / اسلاگ</div>
-                    <div className="justify-self-end">ترتیب</div>
-                    <div className="justify-self-end">وضعیت</div>
-                    <div className="justify-self-end">
-                      <span className="hidden lg:inline">عملیات</span>
-                      <MoreVertical className="inline lg:hidden w-4 h-4 align-[-2px]" />
+                    <div className="flex lg:gap-10 gap-2">
+                      <div className="justify-self-end">ترتیب</div>
+                      <div className="justify-self-end">وضعیت</div>
+                      <div className="justify-self-end">
+                        <span className="hidden lg:inline">عملیات</span>
+                        <MoreVertical className="inline lg:hidden w-4 h-4 align-[-2px]" />
+                      </div>
                     </div>
                   </div>
 
@@ -1062,10 +1074,11 @@ export default function CategoriesPage() {
         open={Boolean(createOpen)}
         onClose={() => setCreateOpen(false)}
         onSubmit={(payload) => {
-          if (createOpen?.parent) payload.parent = createOpen.parent._id; // منطق شما حفظ شد
+          if (createOpen?.parent) payload.parent = createOpen.parent._id;
           handleCreate(payload);
         }}
         allCategoriesTree={tree}
+        jojoijji
       />
 
       <CategoryFormModal
