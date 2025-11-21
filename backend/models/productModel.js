@@ -1,6 +1,7 @@
 const mongoose = require("mongoose");
-const { Schema, Types } = mongoose;
-const { ObjectId } = Types;
+const { Schema } = mongoose;
+const { ObjectId } = Schema.Types;
+
 
 /* ========== Option Catalog (برای مدیریت آپشن‌های عمومی توسط ادمین) ========== */
 const OptionCatalogSchema = new Schema(
