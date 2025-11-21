@@ -1,0 +1,15 @@
+meta {
+  name: Product POST
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{baseURL}}/api/admin/products
+  body: none
+  auth: inherit
+}
+
+settings {
+  encodeUrl: true
+}
