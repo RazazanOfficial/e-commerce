@@ -11,6 +11,7 @@ const {
   archiveProduct,
   deleteProductPermanently,
   searchProducts,
+  restoreProduct,
 } = require("../../../controllers/Admin-Panel/Products/productController");
 
 // ایجاد محصول
@@ -33,5 +34,9 @@ router.delete("/:id", authTokenMid, adminOnlyMid, archiveProduct);
 
 // حذف دائمی از دیتابیس
 router.delete("/:id/hard", authTokenMid, adminOnlyMid, deleteProductPermanently);
+
+// خارج کردن محصول از آرشیو
+router.patch("/:id/restore", authTokenMid, adminOnlyMid, restoreProduct);
+
 
 module.exports = router;

@@ -5,13 +5,13 @@ meta {
 }
 
 get {
-  url: {{baseURL}}/api/admin/products/search?q=test
+  url: {{baseURL}}/api/admin/products/search?q=thiskeywordshouldnotexist
   body: none
   auth: inherit
 }
 
 params:query {
-  q: test
+  q: thiskeywordshouldnotexist
   ~visible: true
 }
 

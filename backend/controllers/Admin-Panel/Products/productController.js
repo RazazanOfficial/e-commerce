@@ -1502,6 +1502,56 @@ const searchProducts = async (req, res) => {
     });
   }
 };
+//* 🟢 Restore Product (خارج کردن از آرشیو)
+const restoreProduct = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({
+        success: false,
+        error: true,
+        message: "شناسه محصول نامعتبر است",
+      });
+    }
+
+    const prod = await Product.findById(id);
+    if (!prod) {
+      return res.status(404).json({
+        success: false,
+        error: true,
+        message: "محصول یافت نشد",
+      });
+    }
+
+    // فقط محصولی که در آرشیو است قابل بازگردانی است
+    if (prod.status !== "ARCHIVED") {
+      return res.status(400).json({
+        success: false,
+        error: true,
+        message: "این محصول در آرشیو نیست",
+      });
+    }
+
+    // تصمیم: وقتی برمی‌گردد، ACTIVE و قابل نمایش باشد
+    prod.status = "ACTIVE";
+    prod.visible = true;
+
+    await prod.save();
+
+    return res.status(200).json({
+      success: true,
+      error: false,
+      message: "محصول از آرشیو خارج شد",
+    });
+  } catch (err) {
+    return res.status(500).json({
+      success: false,
+      error: true,
+      message: "خطا در خارج کردن محصول از آرشیو",
+    });
+  }
+};
 
 //? 🔵Export Controller
 module.exports = {
@@ -1512,5 +1562,7 @@ module.exports = {
   archiveProduct,
   deleteProductPermanently,
   searchProducts,
+  restoreProduct,
 };
+
 

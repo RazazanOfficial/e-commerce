@@ -5,18 +5,14 @@ meta {
 }
 
 put {
-  url: {{baseURL}}/api/admin/products/69218b879988a3ad7f008002
+  url: {{baseURL}}/api/admin/products/69218ba39988a3ad7f008007
   body: json
   auth: inherit
 }
 
 body:json {
   {
-    "hasVariants": true,
-    "variants": [
-      { "variantKey": "v1", "price": 1000, "inventory": { "manage": true, "qty": 1 } },
-      { "variantKey": "v1", "price": 2000, "inventory": { "manage": true, "qty": 2 } }
-    ]
+    "visible": "true"
   }
   
 }
