@@ -1,0 +1,16 @@
+meta {
+  name: Product DELETE
+  type: http
+  seq: 6
+}
+
+delete {
+  url: {{baseURL}}/api/admin/products/{{productId}}/hard
+  body: none
+  auth: inherit
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

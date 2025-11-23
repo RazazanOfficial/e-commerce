@@ -1,0 +1,20 @@
+meta {
+  name: Products GET
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{baseURL}}/api/admin/products
+  body: none
+  auth: inherit
+}
+
+params:query {
+  ~search: 1
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

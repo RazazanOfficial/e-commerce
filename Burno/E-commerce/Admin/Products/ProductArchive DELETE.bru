@@ -1,0 +1,16 @@
+meta {
+  name: ProductArchive DELETE
+  type: http
+  seq: 5
+}
+
+delete {
+  url: {{baseURL}}/api/admin/products/64f000000000000000000000
+  body: none
+  auth: inherit
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

@@ -1,0 +1,21 @@
+meta {
+  name: ProductSearch GET
+  type: http
+  seq: 7
+}
+
+get {
+  url: {{baseURL}}/api/admin/products/search?q=test
+  body: none
+  auth: inherit
+}
+
+params:query {
+  q: test
+  ~visible: true
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}
