@@ -6,24 +6,14 @@
     "auditLog": "logs\\.83a24af147dcf257fa98246feebc00ed6867217f-audit.json",
     "files": [
         {
-            "date": 1763617034086,
-            "name": "logs\\app-2025-11-20.log",
-            "hash": "baa39b2b83d162ca17b738fe8d12344fb7d8232712246299c5884a959b86a2c0"
+            "date": 1766909076877,
+            "name": "logs\\app-2025-12-28.log",
+            "hash": "f1de6fd0c75c816e8708f7914481f87620606eb00dcca114bacdcbde9efe2c96"
         },
         {
-            "date": 1763720125027,
-            "name": "logs\\app-2025-11-21.log",
-            "hash": "ad7ba1c688b171119902448b65cbaa4c036e9a2666eb46777fffe32942b0a91c"
-        },
-        {
-            "date": 1763785570173,
-            "name": "logs\\app-2025-11-22.log",
-            "hash": "6ddb0ab44b7ef1732f7b6ca8567552e1613c4380efb94b4e55878cd6ab1c384b"
-        },
-        {
-            "date": 1763873961326,
-            "name": "logs\\app-2025-11-23.log",
-            "hash": "525b0c3f0cd62293e8614a6ee38ee881eb7871fcc72c21da9edd3f014f7804a5"
+            "date": 1768997500662,
+            "name": "logs\\app-2026-01-21.log",
+            "hash": "c669c97a8463cada23890fe015e9251a8ccaa146c73b081699a39d5f32e7db40"
         }
     ],
     "hashType": "sha256"
