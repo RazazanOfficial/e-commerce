@@ -2,41 +2,20 @@
 
 import { useAdminTheme } from "@/context/AdminThemeContext";
 import { useTheme } from "next-themes";
-import { Check, Moon, Sun, Laptop } from "lucide-react";
-
-function ModeButton({ active, icon: Icon, label, onClick }) {
-  return (
-    <button
-      onClick={onClick}
-      className="flex-1 inline-flex items-center justify-center gap-2 px-3 py-2 rounded-xl border transition"
-      style={{
-        background: active ? "var(--adm-primary-soft)" : "var(--adm-surface)",
-        borderColor: active ? "var(--adm-primary)" : "var(--adm-border)",
-        color: active ? "var(--adm-text)" : "var(--adm-text-muted)",
-      }}
-      onMouseEnter={(e) => {
-        if (active) return;
-        e.currentTarget.style.background = "var(--adm-surface-2)";
-        e.currentTarget.style.color = "var(--adm-text)";
-      }}
-      onMouseLeave={(e) => {
-        if (active) return;
-        e.currentTarget.style.background = "var(--adm-surface)";
-        e.currentTarget.style.color = "var(--adm-text-muted)";
-      }}
-    >
-      <Icon className="w-4 h-4" />
-      <span className="text-sm font-semibold">{label}</span>
-    </button>
-  );
-}
+import { Check, Laptop, Moon, Sun } from "lucide-react";
+import { cn } from "@/lib/utils";
+import {
+  AdminButton,
+  AdminCard,
+  AdminCardContent,
+  AdminCardDescription,
+  AdminCardTitle,
+} from "@/components/admin-ui";
 
 function SwatchRow({ label, colors }) {
   return (
     <div className="flex items-center gap-3">
-      <div className="w-12 text-xs" style={{ color: "var(--adm-text-muted)" }}>
-        {label}
-      </div>
+      <div className="w-12 text-xs text-[var(--adm-text-muted)]">{label}</div>
       <div className="flex-1 grid grid-cols-6 gap-2">
         {colors.map((c, idx) => (
           <div
@@ -75,52 +54,35 @@ function PaletteCard({ paletteKey, palette, active, onSelect }) {
 
   return (
     <button
+      type="button"
       onClick={onSelect}
-      className="w-full text-right rounded-2xl border p-4 transition"
-      style={{
-        background: "var(--adm-surface)",
-        borderColor: active ? "var(--adm-primary)" : "var(--adm-border)",
-        boxShadow: active ? `0 0 0 3px var(--adm-ring)` : "none",
-      }}
-      onMouseEnter={(e) => {
-        if (active) return;
-        e.currentTarget.style.background = "var(--adm-surface-2)";
-      }}
-      onMouseLeave={(e) => {
-        if (active) return;
-        e.currentTarget.style.background = "var(--adm-surface)";
-      }}
+      className={cn(
+        "w-full text-right rounded-2xl border p-4 transition",
+        "bg-[var(--adm-surface)] border-[color:var(--adm-border)] hover:bg-[var(--adm-surface-2)]",
+        active ? "border-[color:var(--adm-primary)] ring-2 ring-[color:var(--adm-ring)]" : ""
+      )}
     >
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <div className="flex items-center gap-2">
-            <div className="font-bold" style={{ color: "var(--adm-text)" }}>
-              {palette.label}
-            </div>
-            <span
-              className="text-xs px-2 py-0.5 rounded-lg border"
-              style={{
-                borderColor: "var(--adm-border)",
-                color: "var(--adm-text-muted)",
-              }}
-            >
+            <div className="font-bold text-[var(--adm-text)]">{palette.label}</div>
+            <span className="text-xs px-2 py-0.5 rounded-lg border border-[color:var(--adm-border)] text-[var(--adm-text-muted)]">
               {paletteKey}
             </span>
           </div>
-          <div className="mt-1 text-sm" style={{ color: "var(--adm-text-muted)" }}>
+          <div className="mt-1 text-sm text-[var(--adm-text-muted)]">
             پس‌زمینه، سرفیس‌ها، پرایمری، اینفو، ساکسس
           </div>
         </div>
 
-        {active && (
+        {active ? (
           <div
-            className="h-8 w-8 rounded-xl flex items-center justify-center"
-            style={{ background: "var(--adm-primary)", color: "var(--adm-on-primary)" }}
+            className="h-8 w-8 rounded-xl flex items-center justify-center bg-[var(--adm-primary)] text-[var(--adm-on-primary)]"
             title="فعال"
           >
             <Check className="w-5 h-5" />
           </div>
-        )}
+        ) : null}
       </div>
 
       <div className="mt-4 space-y-2">
@@ -139,84 +101,92 @@ export default function AdminSettingsPage() {
 
   return (
     <div className="space-y-6">
-      <div
-        className="rounded-2xl p-5"
-        style={{
-          background: "var(--adm-surface)",
-          border: "1px solid var(--adm-border)",
-          boxShadow: "0 20px 60px var(--adm-shadow)",
-        }}
-      >
-        <h1 className="text-2xl font-bold" style={{ color: "var(--adm-text)" }}>
-          تنظیمات پنل
-        </h1>
-        <p className="mt-1" style={{ color: "var(--adm-text-muted)" }}>
-          انتخاب پالت رنگی و حالت نمایش (Light / Dark)
-        </p>
-      </div>
+      <AdminCard elevated>
+        <AdminCardContent className="p-5">
+          <AdminCardTitle className="text-2xl">تنظیمات پنل</AdminCardTitle>
+          <AdminCardDescription>
+            انتخاب پالت رنگی و حالت نمایش (Light / Dark / System)
+          </AdminCardDescription>
+        </AdminCardContent>
+      </AdminCard>
 
-      <div
-        className="rounded-2xl p-5"
-        style={{ background: "var(--adm-surface)", border: "1px solid var(--adm-border)" }}
-      >
-        <div className="flex items-center justify-between gap-4 flex-wrap">
-          <div>
-            <div className="font-bold" style={{ color: "var(--adm-text)" }}>
-              حالت نمایش
+      <AdminCard>
+        <AdminCardContent className="p-5">
+          <div className="flex items-center justify-between gap-4 flex-wrap">
+            <div>
+              <div className="font-bold text-[var(--adm-text)]">حالت نمایش</div>
+              <div className="text-sm text-[var(--adm-text-muted)]">
+                وضعیت فعلی: {activeTheme}
+              </div>
             </div>
-            <div className="text-sm" style={{ color: "var(--adm-text-muted)" }}>
-              وضعیت فعلی: {activeTheme}
+
+            <div className="flex gap-2 w-full sm:w-auto">
+              <AdminButton
+                variant="secondary"
+                className={cn(
+                  "flex-1",
+                  theme === "light"
+                    ? "bg-[var(--adm-primary-soft)] border-[color:var(--adm-primary)] text-[var(--adm-text)]"
+                    : ""
+                )}
+                onClick={() => setTheme("light")}
+                leftIcon={Sun}
+              >
+                Light
+              </AdminButton>
+              <AdminButton
+                variant="secondary"
+                className={cn(
+                  "flex-1",
+                  theme === "dark"
+                    ? "bg-[var(--adm-primary-soft)] border-[color:var(--adm-primary)] text-[var(--adm-text)]"
+                    : ""
+                )}
+                onClick={() => setTheme("dark")}
+                leftIcon={Moon}
+              >
+                Dark
+              </AdminButton>
+              <AdminButton
+                variant="secondary"
+                className={cn(
+                  "flex-1",
+                  theme === "system"
+                    ? "bg-[var(--adm-primary-soft)] border-[color:var(--adm-primary)] text-[var(--adm-text)]"
+                    : ""
+                )}
+                onClick={() => setTheme("system")}
+                leftIcon={Laptop}
+              >
+                System
+              </AdminButton>
+            </div>
+          </div>
+        </AdminCardContent>
+      </AdminCard>
+
+      <AdminCard>
+        <AdminCardContent className="p-5">
+          <div className="mb-4">
+            <div className="font-bold text-[var(--adm-text)]">پالت رنگی</div>
+            <div className="text-sm text-[var(--adm-text-muted)]">
+              انتخاب شما فقط روی پنل ادمین اثر دارد. (بعداً می‌توانیم اسم پالت را از API بخوانیم.)
             </div>
           </div>
 
-          <div className="flex gap-2 w-full sm:w-auto">
-            <ModeButton
-              active={theme === "light"}
-              icon={Sun}
-              label="Light"
-              onClick={() => setTheme("light")}
-            />
-            <ModeButton
-              active={theme === "dark"}
-              icon={Moon}
-              label="Dark"
-              onClick={() => setTheme("dark")}
-            />
-            <ModeButton
-              active={theme === "system"}
-              icon={Laptop}
-              label="System"
-              onClick={() => setTheme("system")}
-            />
+          <div className="grid gap-3 lg:grid-cols-2">
+            {Object.entries(palettes).map(([key, pal]) => (
+              <PaletteCard
+                key={key}
+                paletteKey={key}
+                palette={pal}
+                active={key === paletteKey}
+                onSelect={() => setPaletteKey(key)}
+              />
+            ))}
           </div>
-        </div>
-      </div>
-
-      <div
-        className="rounded-2xl p-5"
-        style={{ background: "var(--adm-surface)", border: "1px solid var(--adm-border)" }}
-      >
-        <div className="mb-4">
-          <div className="font-bold" style={{ color: "var(--adm-text)" }}>
-            پالت رنگی
-          </div>
-          <div className="text-sm" style={{ color: "var(--adm-text-muted)" }}>
-            انتخاب شما فقط روی پنل ادمین اثر دارد. (بعداً می‌توانیم اسم پالت را از API بخوانیم.)
-          </div>
-        </div>
-
-        <div className="grid gap-3 lg:grid-cols-2">
-          {Object.entries(palettes).map(([key, pal]) => (
-            <PaletteCard
-              key={key}
-              paletteKey={key}
-              palette={pal}
-              active={key === paletteKey}
-              onSelect={() => setPaletteKey(key)}
-            />
-          ))}
-        </div>
-      </div>
+        </AdminCardContent>
+      </AdminCard>
     </div>
   );
 }

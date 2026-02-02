@@ -1,12 +1,24 @@
 "use client";
 
-import { X, Eye, Edit, Trash2 } from "lucide-react";
-import { useEffect, useState } from "react";
-import UserModal from "./UserModal";
+import { useEffect, useMemo, useState } from "react";
+import { Eye, Edit, Trash2 } from "lucide-react";
 import backApis from "@/common/inedx";
 import axios from "axios";
+import UserModal from "./UserModal";
+import { cn } from "@/lib/utils";
+import {
+  AdminBadge,
+  AdminIconButton,
+  AdminModal,
+  AdminTable,
+  AdminTableShell,
+  AdminTHead,
+  AdminTD,
+  AdminTH,
+  AdminTR,
+} from "@/components/admin-ui";
 
-const SearchModal = ({
+export default function SearchModal({
   users,
   isOpen,
   onClose,
@@ -14,7 +26,7 @@ const SearchModal = ({
   getRoleBadgeVariant,
   onUserUpdate,
   onUserDelete,
-}) => {
+}) {
   const [selectedUser, setSelectedUser] = useState(null);
   const [actionMode, setActionMode] = useState(null);
   const [searchResults, setSearchResults] = useState(users || []);
@@ -23,15 +35,10 @@ const SearchModal = ({
     setSearchResults(users || []);
   }, [users]);
 
-  useEffect(() => {
-    const handleEscape = (e) => {
-      if (e.key === "Escape") onClose();
-    };
-    document.addEventListener("keydown", handleEscape);
-    return () => {
-      document.removeEventListener("keydown", handleEscape);
-    };
-  }, [onClose]);
+  const title = useMemo(() => {
+    const count = searchResults?.length || 0;
+    return count ? `نتایج جستجو (${count})` : "نتایج جستجو";
+  }, [searchResults]);
 
   const handleAction = (user, mode) => {
     setSelectedUser(user);
@@ -51,11 +58,10 @@ const SearchModal = ({
       const updated = response.data?.data;
 
       setSearchResults((prev) =>
-        prev.map((user) => (user._id === updated._id ? updated : user))
+        prev.map((u) => (u._id === updated._id ? updated : u))
       );
 
       onUserUpdate?.(updated);
-
       setSelectedUser(null);
       setActionMode(null);
     } catch (error) {
@@ -68,7 +74,7 @@ const SearchModal = ({
       const { url, method } = backApis.deleteUser(userId);
       await axios({ method, url, withCredentials: true });
 
-      setSearchResults((prev) => prev.filter((user) => user._id !== userId));
+      setSearchResults((prev) => prev.filter((u) => u._id !== userId));
       onUserDelete?.(userId);
 
       setSelectedUser(null);
@@ -81,185 +87,114 @@ const SearchModal = ({
   if (!isOpen) return null;
 
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center backdrop-blur-sm"
-      style={{ background: "var(--adm-overlay, rgba(0,0,0,0.55))" }}
-      onClick={onClose}
-    >
-      <div
-        className="relative w-full max-w-4xl mx-auto rounded-2xl shadow-2xl p-6"
-        style={{
-          background: "var(--adm-surface, #111827)",
-          border: "1px solid var(--adm-border, rgba(148,163,184,0.25))",
-        }}
-        onClick={(e) => e.stopPropagation()}
+    <>
+      <AdminModal
+        open={isOpen}
+        onClose={onClose}
+        title={title}
+        size="xl"
+        description="نتایج جستجو کاربران"
       >
-        {/* دکمه بستن */}
-        <button
-          onClick={onClose}
-          className="absolute top-4 left-4 transition-colors"
-          style={{ color: "var(--adm-text-muted, #9CA3AF)" }}
-          onMouseEnter={(e) => (e.currentTarget.style.color = "var(--adm-error, #EF4444)")}
-          onMouseLeave={(e) => (e.currentTarget.style.color = "var(--adm-text-muted, #9CA3AF)")}
-        >
-          <X className="w-6 h-6" />
-        </button>
-
-        {/* عنوان */}
-        <h2
-          className="text-xl font-bold mb-6 pb-2"
-          style={{
-            color: "var(--adm-text, #E5E7EB)",
-            borderBottom: "1px solid var(--adm-border, rgba(148,163,184,0.25))",
-          }}
-        >
-          نتایج جستجو
-        </h2>
-
-        {/* محتوای جدول */}
         {searchResults.length === 0 ? (
-          <p className="text-center" style={{ color: "var(--adm-text-muted, #9CA3AF)" }}>
+          <p className="text-center text-sm text-[var(--adm-text-muted)]">
             کاربری یافت نشد
           </p>
         ) : (
-          <div
-            className="overflow-x-auto max-h-[450px] rounded-xl"
-            style={{ border: "1px solid var(--adm-border, rgba(148,163,184,0.25))" }}
-          >
-            <table className="w-full text-right text-sm">
-              <thead
-                style={{
-                  background: "var(--adm-surface-2, #1F2937)",
-                  color: "var(--adm-text-muted, #D1D5DB)",
-                }}
-              >
+          <AdminTableShell className="max-h-[450px] overflow-y-auto">
+            <AdminTable>
+              <AdminTHead>
                 <tr>
-                  <th className="py-3 px-4 font-medium">نام</th>
-                  <th className="py-3 px-4 font-medium">ایمیل</th>
-                  <th className="py-3 px-4 font-medium">شماره موبایل</th>
-                  <th className="py-3 px-4 font-medium">نقش</th>
-                  <th className="py-3 px-4 font-medium">عملیات</th>
+                  <AdminTH>نام</AdminTH>
+                  <AdminTH>ایمیل</AdminTH>
+                  <AdminTH>شماره موبایل</AdminTH>
+                  <AdminTH>نقش</AdminTH>
+                  <AdminTH>عملیات</AdminTH>
                 </tr>
-              </thead>
+              </AdminTHead>
               <tbody>
-                {searchResults.map((user, idx) => (
-                  <tr
-                    key={user._id || user.id}
-                    className="transition-colors"
-                    style={{
-                      background:
-                        idx % 2 === 0
-                          ? "var(--adm-surface, #111827)"
-                          : "var(--adm-surface-2, #1F2937)",
-                    }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.background =
-                        "var(--adm-primary-soft, rgba(99,102,241,0.12))";
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.background =
-                        idx % 2 === 0
-                          ? "var(--adm-surface, #111827)"
-                          : "var(--adm-surface-2, #1F2937)";
-                    }}
-                  >
-                    {/* نام + آواتار */}
-                    <td className="py-3 px-4 flex items-center">
-                      <div
-                        className={`w-8 h-8 rounded-full ${getUserAvatarColor(
-                          user.name
-                        )} flex items-center justify-center font-bold text-sm ml-2 text-white`}
-                      >
+                {searchResults.map((user) => (
+                  <AdminTR key={user._id || user.id} interactive>
+                    <AdminTD className="flex items-center gap-2">
+                      {(() => {
+                        const av = getUserAvatarColor?.(user.name || "کاربر");
+                        const cls = typeof av === "string" ? av : "";
+                        const style =
+                          av && typeof av === "object"
+                            ? { background: av.bg, color: av.fg }
+                            : undefined;
+                        return (
+                          <div
+                            className={cn(
+                              "w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs",
+                              cls
+                            )}
+                            style={style}
+                          >
                         {user.name?.charAt(0)}
-                      </div>
-                      <span style={{ color: "var(--adm-text, #E5E7EB)" }}>
-                        {user.name}
-                      </span>
-                    </td>
+                          </div>
+                        );
+                      })()}
+                      <span className="text-[var(--adm-text)]">{user.name}</span>
+                    </AdminTD>
 
-                    {/* ایمیل */}
-                    <td className="py-3 px-4" style={{ color: "var(--adm-text-muted, #D1D5DB)" }}>
+                    <AdminTD className="text-[var(--adm-text-muted)]">
                       {user.email}
-                    </td>
+                    </AdminTD>
 
-                    {/* موبایل */}
-                    <td className="py-3 px-4" style={{ color: "var(--adm-text-muted, #D1D5DB)" }}>
+                    <AdminTD className="text-[var(--adm-text-muted)]">
                       {user.phone || "-"}
-                    </td>
+                    </AdminTD>
 
-                    {/* نقش */}
-                    <td className="py-3 px-4">
-                      <span
-                        className={`${getRoleBadgeVariant(
-                          user.role
-                        )} px-3 py-1 rounded-full text-xs font-medium`}
-                      >
-                        {user.role === "admin" ? "مدیر" : "کاربر"}
-                      </span>
-                    </td>
+                    <AdminTD>
+                      {/* backward compatibility: if parent passes a class-string, use it; otherwise use AdminBadge */}
+                      {typeof getRoleBadgeVariant === "function" ? (
+                        <span
+                          className={`${getRoleBadgeVariant(
+                            user.role
+                          )} px-3 py-1 rounded-full text-xs font-semibold`}
+                        >
+                          {user.role === "admin" ? "مدیر" : user.role === "seller" ? "فروشنده" : "کاربر"}
+                        </span>
+                      ) : (
+                        <AdminBadge variant="primary">
+                          {user.role || "user"}
+                        </AdminBadge>
+                      )}
+                    </AdminTD>
 
-                    {/* اکشن‌ها */}
-                    <td className="py-3 px-4">
-                      <div className="flex gap-2">
-                        <button
+                    <AdminTD>
+                      <div className="flex gap-1">
+                        <AdminIconButton
+                          intent="success"
+                          label="مشاهده"
                           onClick={() => handleAction(user, "view")}
-                          className="p-2 rounded-lg transition-colors"
-                          style={{ color: "var(--adm-text-muted, #9CA3AF)" }}
-                          onMouseEnter={(e) => {
-                            e.currentTarget.style.background =
-                              "var(--adm-success-soft, rgba(34,197,94,0.14))";
-                            e.currentTarget.style.color = "var(--adm-success, #22C55E)";
-                          }}
-                          onMouseLeave={(e) => {
-                            e.currentTarget.style.background = "transparent";
-                            e.currentTarget.style.color = "var(--adm-text-muted, #9CA3AF)";
-                          }}
                         >
                           <Eye className="h-5 w-5" />
-                        </button>
-                        <button
+                        </AdminIconButton>
+                        <AdminIconButton
+                          intent="primary"
+                          label="ویرایش"
                           onClick={() => handleAction(user, "edit")}
-                          className="p-2 rounded-lg transition-colors"
-                          style={{ color: "var(--adm-text-muted, #9CA3AF)" }}
-                          onMouseEnter={(e) => {
-                            e.currentTarget.style.background =
-                              "var(--adm-primary-soft, rgba(99,102,241,0.12))";
-                            e.currentTarget.style.color = "var(--adm-primary, #6366F1)";
-                          }}
-                          onMouseLeave={(e) => {
-                            e.currentTarget.style.background = "transparent";
-                            e.currentTarget.style.color = "var(--adm-text-muted, #9CA3AF)";
-                          }}
                         >
                           <Edit className="h-5 w-5" />
-                        </button>
-                        <button
+                        </AdminIconButton>
+                        <AdminIconButton
+                          intent="danger"
+                          label="حذف"
                           onClick={() => handleAction(user, "delete")}
-                          className="p-2 rounded-lg transition-colors"
-                          style={{ color: "var(--adm-text-muted, #9CA3AF)" }}
-                          onMouseEnter={(e) => {
-                            e.currentTarget.style.background =
-                              "var(--adm-error-soft, rgba(239,68,68,0.14))";
-                            e.currentTarget.style.color = "var(--adm-error, #EF4444)";
-                          }}
-                          onMouseLeave={(e) => {
-                            e.currentTarget.style.background = "transparent";
-                            e.currentTarget.style.color = "var(--adm-text-muted, #9CA3AF)";
-                          }}
                         >
                           <Trash2 className="h-5 w-5" />
-                        </button>
+                        </AdminIconButton>
                       </div>
-                    </td>
-                  </tr>
+                    </AdminTD>
+                  </AdminTR>
                 ))}
               </tbody>
-            </table>
-          </div>
+            </AdminTable>
+          </AdminTableShell>
         )}
-      </div>
+      </AdminModal>
 
-      {/* مودال عملیات (ویرایش، مشاهده، حذف) */}
       <UserModal
         isOpen={!!selectedUser}
         user={selectedUser}
@@ -271,8 +206,6 @@ const SearchModal = ({
         onUpdate={handleUpdateUser}
         onDelete={handleDeleteUser}
       />
-    </div>
+    </>
   );
-};
-
-export default SearchModal;
+}

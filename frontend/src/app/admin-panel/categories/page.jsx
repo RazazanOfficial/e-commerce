@@ -22,6 +22,16 @@ import {
   MoreVertical,
 } from "lucide-react";
 
+import {
+  AdminButton,
+  AdminField,
+  AdminIconButton,
+  AdminInput,
+  AdminModal,
+  AdminSelect,
+  AdminTextarea,
+} from "@/components/admin-ui";
+
 const slugify = (str = "") =>
   str
     .toString()
@@ -56,55 +66,6 @@ const flattenForSelect = (tree, depth = 0, arr = []) => {
   });
   return arr;
 };
-
-function Modal({ open, onClose, title, children, footer }) {
-  if (!open) return null;
-  return (
-    <div className="fixed inset-0 flex items-end sm:items-center justify-center z-50">
-      <div
-        className="absolute inset-0"
-        style={{ background: "var(--adm-overlay, rgba(0,0,0,0.55))" }}
-        onClick={onClose}
-      />
-
-      <div
-        className="w-full sm:max-w-2xl rounded-2xl m-3 sm:m-0 overflow-hidden z-50"
-        style={{
-          background: "var(--adm-surface, #111827)",
-          border: "1px solid var(--adm-border, rgba(148,163,184,0.25))",
-          boxShadow: "0 30px 90px var(--adm-shadow, rgba(0,0,0,0.35))",
-          color: "var(--adm-text, #E5E7EB)",
-        }}
-      >
-        <div
-          className="px-4 py-3"
-          style={{
-            background: "var(--adm-surface-2, #1F2937)",
-            borderBottom: "1px solid var(--adm-border, rgba(148,163,184,0.25))",
-          }}
-        >
-          <h3 className="font-bold" style={{ color: "var(--adm-text, #E5E7EB)" }}>
-            {title}
-          </h3>
-        </div>
-
-        <div className="p-4">{children}</div>
-
-        {footer && (
-          <div
-            className="p-3"
-            style={{
-              borderTop: "1px solid var(--adm-border, rgba(148,163,184,0.25))",
-              background: "var(--adm-surface, #111827)",
-            }}
-          >
-            {footer}
-          </div>
-        )}
-      </div>
-    </div>
-  );
-}
 
 function CategoryFormModal({
   open,
@@ -220,203 +181,95 @@ function CategoryFormModal({
   ]);
 
   return (
-    <Modal
+    <AdminModal
       open={open}
       onClose={onClose}
       title={isEdit ? "ویرایش دسته‌بندی" : "ایجاد دسته‌بندی"}
+      description="Ctrl/⌘ + Enter برای ثبت سریع"
+      size="lg"
       footer={
         <div className="flex items-center justify-end gap-2">
-          <button
-            onClick={onClose}
-            className="px-4 py-2 rounded-xl transition"
-            style={{
-              background: "var(--adm-surface-2)",
-              color: "var(--adm-text)",
-              border: "1px solid var(--adm-border)",
-            }}
-            onMouseEnter={(e) => (e.currentTarget.style.background = "var(--adm-surface)")}
-            onMouseLeave={(e) => (e.currentTarget.style.background = "var(--adm-surface-2)")}
-          >
+          <AdminButton variant="secondary" onClick={onClose}>
             انصراف
-          </button>
-          <button
-            onClick={handleSubmit}
-            className="px-4 py-2 rounded-xl transition"
-            style={{
-              background: "var(--adm-primary)",
-              color: "var(--adm-on-primary)",
-            }}
-            onMouseEnter={(e) => (e.currentTarget.style.background = "var(--adm-primary-hover)")}
-            onMouseLeave={(e) => (e.currentTarget.style.background = "var(--adm-primary)")}
-          >
+          </AdminButton>
+          <AdminButton variant="primary" onClick={handleSubmit}>
             {isEdit ? "ذخیره تغییرات" : "ایجاد"}
-          </button>
+          </AdminButton>
         </div>
       }
     >
       {initial?._loading && (
-        <div className="mb-3 text-sm" style={{ color: "var(--adm-text-muted)" }}>
+        <div className="mb-3 text-sm text-[var(--adm-text-muted)]">
           در حال دریافت اطلاعات از سرور...
         </div>
       )}
 
       <div className="grid md:grid-cols-2 gap-4">
-        <div>
-          <label className="block text-sm mb-1" style={{ color: "var(--adm-text-muted)" }}>
-            نام *
-          </label>
-          <input
+        <AdminField label="نام" required>
+          <AdminInput
             disabled={Boolean(initial?._loading)}
-            className="w-full rounded-xl px-3 py-2 focus:outline-none focus:ring-2"
-            style={{
-              background: "var(--adm-surface-2)",
-              border: "1px solid var(--adm-border)",
-              color: "var(--adm-text)",
-              boxShadow: "none",
-            }}
-            onFocus={(e) => (e.currentTarget.style.boxShadow = "0 0 0 3px var(--adm-ring)")}
-            onBlur={(e) => (e.currentTarget.style.boxShadow = "none")}
             value={name}
             onChange={(e) => setName(e.target.value)}
             placeholder="مثل: موبایل"
+            variant="filled"
           />
-        </div>
-        <div>
-          <label
-            className="block text-sm mb-1"
-            style={{ color: "var(--adm-text-muted)" }}
-          >
-            اسلاگ
-          </label>
-          <div className="flex items-center gap-2">
-            <input
+        </AdminField>
+
+        <AdminField label="اسلاگ" hint="(اختیاری)" >
+          <div className="flex flex-col gap-2">
+            <AdminInput
               disabled={Boolean(initial?._loading)}
-              className="flex-1 rounded-xl px-3 py-2 focus:outline-none focus:ring-2"
-              style={{
-                background: "var(--adm-surface-2)",
-                border: "1px solid var(--adm-border)",
-                color: "var(--adm-text)",
-                boxShadow: "none",
-              }}
-              onFocus={(e) =>
-                (e.currentTarget.style.boxShadow =
-                  "0 0 0 3px var(--adm-ring)")
-              }
-              onBlur={(e) => (e.currentTarget.style.boxShadow = "none")}
               value={slug}
               onChange={(e) => setSlug(slugify(e.target.value))}
               placeholder="mobile-phones"
               dir="ltr"
+              className="text-left"
+              variant="filled"
             />
-            <span
-              className="text-xs flex items-center gap-1"
-              style={{ color: "var(--adm-text-muted)" }}
-              dir="ltr"
-            >
-              <Link2 className="w-4 h-4" /> {slug || slugify(name || "")}
+            <span className="text-xs flex items-center gap-1 text-[var(--adm-text-muted)]" dir="ltr">
+              <Link2 className="w-4 h-4" /> /{slug || slugify(name || "")}
             </span>
           </div>
-        </div>
+        </AdminField>
+
         <div className="md:col-span-2">
-          <label
-            className="block text-sm mb-1"
-            style={{ color: "var(--adm-text-muted)" }}
-          >
-            توضیحات
-          </label>
-          <textarea
-            disabled={Boolean(initial?._loading)}
-            className="w-full rounded-xl px-3 py-2 focus:outline-none focus:ring-2"
-            style={{
-              background: "var(--adm-surface-2)",
-              border: "1px solid var(--adm-border)",
-              color: "var(--adm-text)",
-              boxShadow: "none",
-            }}
-            onFocus={(e) =>
-              (e.currentTarget.style.boxShadow =
-                "0 0 0 3px var(--adm-ring)")
-            }
-            onBlur={(e) => (e.currentTarget.style.boxShadow = "none")}
-            rows={3}
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-          />
+          <AdminField label="توضیحات" hint="(اختیاری)">
+            <AdminTextarea
+              disabled={Boolean(initial?._loading)}
+              rows={3}
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              variant="filled"
+            />
+          </AdminField>
         </div>
-        <div>
-          <label
-            className="block text-sm mb-1"
-            style={{ color: "var(--adm-text-muted)" }}
-          >
-            تصویر (URL)
-          </label>
-          <input
+
+        <AdminField label="تصویر (URL)" hint="(اختیاری)">
+          <AdminInput
             disabled={Boolean(initial?._loading)}
-            className="w-full rounded-xl px-3 py-2 focus:outline-none focus:ring-2"
-            style={{
-              background: "var(--adm-surface-2)",
-              border: "1px solid var(--adm-border)",
-              color: "var(--adm-text)",
-              boxShadow: "none",
-            }}
-            onFocus={(e) =>
-              (e.currentTarget.style.boxShadow =
-                "0 0 0 3px var(--adm-ring)")
-            }
-            onBlur={(e) => (e.currentTarget.style.boxShadow = "none")}
             value={image}
             onChange={(e) => setImage(e.target.value)}
             dir="ltr"
+            className="text-left"
+            variant="filled"
           />
-        </div>
-        <div>
-          <label
-            className="block text-sm mb-1"
-            style={{ color: "var(--adm-text-muted)" }}
-          >
-            متن جایگزین تصویر
-          </label>
-          <input
+        </AdminField>
+
+        <AdminField label="متن جایگزین تصویر" hint="(اختیاری)">
+          <AdminInput
             disabled={Boolean(initial?._loading)}
-            className="w-full rounded-xl px-3 py-2 focus:outline-none focus:ring-2"
-            style={{
-              background: "var(--adm-surface-2)",
-              border: "1px solid var(--adm-border)",
-              color: "var(--adm-text)",
-              boxShadow: "none",
-            }}
-            onFocus={(e) =>
-              (e.currentTarget.style.boxShadow =
-                "0 0 0 3px var(--adm-ring)")
-            }
-            onBlur={(e) => (e.currentTarget.style.boxShadow = "none")}
             value={imageAlt}
             onChange={(e) => setImageAlt(e.target.value)}
+            variant="filled"
           />
-        </div>
-        <div>
-          <label
-            className="block text-sm mb-1"
-            style={{ color: "var(--adm-text-muted)" }}
-          >
-            والد
-          </label>
-          <select
+        </AdminField>
+
+        <AdminField label="والد" hint="(اختیاری)">
+          <AdminSelect
             disabled={Boolean(initial?._loading)}
-            className="w-full rounded-xl px-3 py-2 focus:outline-none focus:ring-2"
-            style={{
-              background: "var(--adm-surface-2)",
-              border: "1px solid var(--adm-border)",
-              color: "var(--adm-text)",
-              boxShadow: "none",
-            }}
-            onFocus={(e) =>
-              (e.currentTarget.style.boxShadow =
-                "0 0 0 3px var(--adm-ring)")
-            }
-            onBlur={(e) => (e.currentTarget.style.boxShadow = "none")}
             value={parent}
             onChange={(e) => setParent(e.target.value)}
+            variant="filled"
           >
             <option value="">— بدون والد (دسته سطح ۱)</option>
             {options.map((o) => (
@@ -424,9 +277,10 @@ function CategoryFormModal({
                 {o.name}
               </option>
             ))}
-          </select>
-        </div>
-        <div className="flex items-center gap-3">
+          </AdminSelect>
+        </AdminField>
+
+        <div className="flex items-center gap-3 pt-2">
           <input
             disabled={Boolean(initial?._loading)}
             id="isActive"
@@ -436,122 +290,71 @@ function CategoryFormModal({
             checked={isActive}
             onChange={(e) => setIsActive(e.target.checked)}
           />
-          <label
-            htmlFor="isActive"
-            className="text-sm"
-            style={{ color: "var(--adm-text-muted)" }}
-          >
+          <label htmlFor="isActive" className="text-sm text-[var(--adm-text-muted)]">
             فعال باشد
           </label>
         </div>
-        <div>
-          <label className="block text-sm mb-1" style={{ color: "var(--adm-text-muted)" }}>
-            Meta Title
-          </label>
-          <input
+
+        <AdminField label="Meta Title" hint="(اختیاری)">
+          <AdminInput
             disabled={Boolean(initial?._loading)}
-            className="w-full rounded-xl px-3 py-2 focus:outline-none focus:ring-2"
-            style={{
-              background: "var(--adm-surface-2)",
-              border: "1px solid var(--adm-border)",
-              color: "var(--adm-text)",
-              boxShadow: "none",
-            }}
-            onFocus={(e) => (e.currentTarget.style.boxShadow = "0 0 0 3px var(--adm-ring)")}
-            onBlur={(e) => (e.currentTarget.style.boxShadow = "none")}
             value={metaTitle}
             onChange={(e) => setMetaTitle(e.target.value)}
+            variant="filled"
           />
-        </div>
-        <div>
-          <label className="block text-sm mb-1" style={{ color: "var(--adm-text-muted)" }}>
-            Meta Description
-          </label>
-          <input
+        </AdminField>
+
+        <AdminField label="Meta Description" hint="(اختیاری)">
+          <AdminInput
             disabled={Boolean(initial?._loading)}
-            className="w-full rounded-xl px-3 py-2 focus:outline-none focus:ring-2"
-            style={{
-              background: "var(--adm-surface-2)",
-              border: "1px solid var(--adm-border)",
-              color: "var(--adm-text)",
-              boxShadow: "none",
-            }}
-            onFocus={(e) => (e.currentTarget.style.boxShadow = "0 0 0 3px var(--adm-ring)")}
-            onBlur={(e) => (e.currentTarget.style.boxShadow = "none")}
             value={metaDescription}
             onChange={(e) => setMetaDescription(e.target.value)}
+            variant="filled"
           />
-        </div>
+        </AdminField>
+
         <div className="md:col-span-2">
-          <label className="block text-sm mb-1" style={{ color: "var(--adm-text-muted)" }}>
-            کلمات کلیدی (با ویرگول جدا کنید)
-          </label>
-          <input
-            disabled={Boolean(initial?._loading)}
-            className="w-full rounded-xl px-3 py-2 focus:outline-none focus:ring-2"
-            style={{
-              background: "var(--adm-surface-2)",
-              border: "1px solid var(--adm-border)",
-              color: "var(--adm-text)",
-              boxShadow: "none",
-            }}
-            onFocus={(e) => (e.currentTarget.style.boxShadow = "0 0 0 3px var(--adm-ring)")}
-            onBlur={(e) => (e.currentTarget.style.boxShadow = "none")}
-            value={keywords}
-            onChange={(e) => setKeywords(e.target.value)}
-            placeholder="گوشی, موبایل, سامسونگ"
-          />
+          <AdminField label="کلمات کلیدی" hint="با ویرگول جدا کنید">
+            <AdminInput
+              disabled={Boolean(initial?._loading)}
+              value={keywords}
+              onChange={(e) => setKeywords(e.target.value)}
+              placeholder="گوشی, موبایل, سامسونگ"
+              variant="filled"
+            />
+          </AdminField>
         </div>
       </div>
-    </Modal>
+    </AdminModal>
   );
 }
 
 function ConfirmDeleteModal({ open, onClose, onConfirm, category }) {
   return (
-    <Modal
+    <AdminModal
       open={open}
       onClose={onClose}
       title="حذف دسته‌بندی"
+      size="sm"
+      description="این عملیات قابل بازگشت نیست"
       footer={
         <div className="flex items-center justify-end gap-2">
-          <button
-            onClick={onClose}
-            className="px-4 py-2 rounded-xl transition"
-            style={{
-              background: "var(--adm-surface-2)",
-              color: "var(--adm-text)",
-              border: "1px solid var(--adm-border)",
-            }}
-            onMouseEnter={(e) => (e.currentTarget.style.background = "var(--adm-surface)")}
-            onMouseLeave={(e) => (e.currentTarget.style.background = "var(--adm-surface-2)")}
-          >
+          <AdminButton variant="secondary" onClick={onClose}>
             انصراف
-          </button>
-          <button
-            onClick={onConfirm}
-            className="px-4 py-2 rounded-xl transition"
-            style={{ background: "var(--adm-error)", color: "#fff" }}
-            onMouseEnter={(e) => (e.currentTarget.style.background = "#b91c1c")}
-            onMouseLeave={(e) => (e.currentTarget.style.background = "var(--adm-error)")}
-          >
+          </AdminButton>
+          <AdminButton variant="danger" onClick={onConfirm}>
             حذف
-          </button>
+          </AdminButton>
         </div>
       }
     >
-      <p style={{ color: "var(--adm-text)" }}>
-        آیا از حذف{" "}
-        <span style={{ color: "var(--adm-text)" }} className="font-semibold">
-          {category?.name}
-        </span>{" "}
-        مطمئن
-        هستید؟
+      <p className="text-sm" style={{ color: "var(--adm-text)" }}>
+        آیا از حذف <span className="font-semibold">{category?.name}</span> مطمئن هستید؟
       </p>
-      <p className="mt-2 text-sm" style={{ color: "var(--adm-text-muted)" }}>
+      <p className="mt-2 text-sm text-[var(--adm-text-muted)]">
         اگر زیر‌دسته داشته باشد، بک‌اند مانع حذف می‌شود.
       </p>
-    </Modal>
+    </AdminModal>
   );
 }
 
@@ -590,34 +393,27 @@ function ActionMenu({ node, onAddChild, onEdit, onDelete }) {
 
   return (
     <div className="relative">
-      <button
+      <AdminIconButton
         ref={btnRef}
         onClick={() => setOpen((o) => !o)}
-        className="p-2 rounded-lg transition"
-        style={{ color: "var(--adm-text-muted)" }}
-        onMouseEnter={(e) => (e.currentTarget.style.background = "var(--adm-surface-2)")}
-        onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
+        label="عملیات"
+        intent="muted"
         aria-haspopup="menu"
         aria-expanded={open}
-        title="عملیات"
       >
         <MoreVertical className="w-4 h-4" />
-      </button>
+      </AdminIconButton>
 
       {open && (
         <div
           ref={menuRef}
           role="menu"
-          className="absolute top-full left-0 mt-1 w-40 rounded-xl shadow-xl z-50 overflow-hidden"
-          style={{ background: "var(--adm-surface)", border: "1px solid var(--adm-border)" }}
+          className="absolute top-full left-0 mt-1 w-40 rounded-xl shadow-xl z-50 overflow-hidden border border-[color:var(--adm-border)] bg-[var(--adm-surface)]"
         >
           <button
             role="menuitem"
             onClick={() => handle(onAddChild)}
-            className="w-full flex items-center gap-2 px-3 py-2 text-sm transition"
-            style={{ color: "var(--adm-text)" }}
-            onMouseEnter={(e) => (e.currentTarget.style.background = "var(--adm-surface-2)")}
-            onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
+            className="w-full flex items-center gap-2 px-3 py-2 text-sm text-[var(--adm-text)] hover:bg-[var(--adm-surface-2)] transition"
           >
             <Plus className="w-4 h-4" />
             زیر‌دسته
@@ -625,10 +421,7 @@ function ActionMenu({ node, onAddChild, onEdit, onDelete }) {
           <button
             role="menuitem"
             onClick={() => handle(onEdit)}
-            className="w-full flex items-center gap-2 px-3 py-2 text-sm transition"
-            style={{ color: "var(--adm-text)" }}
-            onMouseEnter={(e) => (e.currentTarget.style.background = "var(--adm-surface-2)")}
-            onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
+            className="w-full flex items-center gap-2 px-3 py-2 text-sm text-[var(--adm-text)] hover:bg-[var(--adm-surface-2)] transition"
           >
             <Edit className="w-4 h-4" />
             ویرایش
@@ -636,10 +429,7 @@ function ActionMenu({ node, onAddChild, onEdit, onDelete }) {
           <button
             role="menuitem"
             onClick={() => handle(onDelete)}
-            className="w-full flex items-center gap-2 px-3 py-2 text-sm transition"
-            style={{ color: "var(--adm-error)" }}
-            onMouseEnter={(e) => (e.currentTarget.style.background = "var(--adm-error-soft)")}
-            onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
+            className="w-full flex items-center gap-2 px-3 py-2 text-sm text-[var(--adm-error)] hover:bg-[var(--adm-error-soft)] transition"
           >
             <Trash2 className="w-4 h-4" />
             حذف
