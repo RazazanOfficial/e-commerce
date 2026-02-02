@@ -61,14 +61,43 @@ function Modal({ open, onClose, title, children, footer }) {
   if (!open) return null;
   return (
     <div className="fixed inset-0 flex items-end sm:items-center justify-center z-50">
-      <div className="absolute inset-0 bg-black/50" onClick={onClose} />
-      <div className="w-full sm:max-w-2xl bg-slate-900 border border-slate-700 rounded-2xl m-3 sm:m-0 overflow-hidden shadow-xl z-50">
-        <div className="bg-gradient-to-l from-slate-800 to-indigo-900 px-4 py-3">
-          <h3 className="text-white font-bold">{title}</h3>
+      <div
+        className="absolute inset-0"
+        style={{ background: "var(--adm-overlay, rgba(0,0,0,0.55))" }}
+        onClick={onClose}
+      />
+
+      <div
+        className="w-full sm:max-w-2xl rounded-2xl m-3 sm:m-0 overflow-hidden z-50"
+        style={{
+          background: "var(--adm-surface, #111827)",
+          border: "1px solid var(--adm-border, rgba(148,163,184,0.25))",
+          boxShadow: "0 30px 90px var(--adm-shadow, rgba(0,0,0,0.35))",
+          color: "var(--adm-text, #E5E7EB)",
+        }}
+      >
+        <div
+          className="px-4 py-3"
+          style={{
+            background: "var(--adm-surface-2, #1F2937)",
+            borderBottom: "1px solid var(--adm-border, rgba(148,163,184,0.25))",
+          }}
+        >
+          <h3 className="font-bold" style={{ color: "var(--adm-text, #E5E7EB)" }}>
+            {title}
+          </h3>
         </div>
+
         <div className="p-4">{children}</div>
+
         {footer && (
-          <div className="p-3 border-t border-slate-700 bg-slate-900">
+          <div
+            className="p-3"
+            style={{
+              borderTop: "1px solid var(--adm-border, rgba(148,163,184,0.25))",
+              background: "var(--adm-surface, #111827)",
+            }}
+          >
             {footer}
           </div>
         )}
@@ -199,13 +228,26 @@ function CategoryFormModal({
         <div className="flex items-center justify-end gap-2">
           <button
             onClick={onClose}
-            className="px-4 py-2 rounded-lg bg-slate-800 text-gray-200 hover:bg-slate-700 transition"
+            className="px-4 py-2 rounded-xl transition"
+            style={{
+              background: "var(--adm-surface-2)",
+              color: "var(--adm-text)",
+              border: "1px solid var(--adm-border)",
+            }}
+            onMouseEnter={(e) => (e.currentTarget.style.background = "var(--adm-surface)")}
+            onMouseLeave={(e) => (e.currentTarget.style.background = "var(--adm-surface-2)")}
           >
             انصراف
           </button>
           <button
             onClick={handleSubmit}
-            className="px-4 py-2 rounded-lg bg-indigo-600 text-white hover:bg-indigo-700 transition"
+            className="px-4 py-2 rounded-xl transition"
+            style={{
+              background: "var(--adm-primary)",
+              color: "var(--adm-on-primary)",
+            }}
+            onMouseEnter={(e) => (e.currentTarget.style.background = "var(--adm-primary-hover)")}
+            onMouseLeave={(e) => (e.currentTarget.style.background = "var(--adm-primary)")}
           >
             {isEdit ? "ذخیره تغییرات" : "ایجاد"}
           </button>
@@ -213,35 +255,62 @@ function CategoryFormModal({
       }
     >
       {initial?._loading && (
-        <div className="mb-3 text-sm text-indigo-300">
+        <div className="mb-3 text-sm" style={{ color: "var(--adm-text-muted)" }}>
           در حال دریافت اطلاعات از سرور...
         </div>
       )}
 
       <div className="grid md:grid-cols-2 gap-4">
         <div>
-          <label className="block text-sm text-gray-300 mb-1">نام *</label>
+          <label className="block text-sm mb-1" style={{ color: "var(--adm-text-muted)" }}>
+            نام *
+          </label>
           <input
             disabled={Boolean(initial?._loading)}
-            className="w-full rounded-lg bg-slate-800 border border-slate-700 px-3 py-2 text-gray-200 focus:ring-2 focus:ring-indigo-500 outline-none"
+            className="w-full rounded-xl px-3 py-2 focus:outline-none focus:ring-2"
+            style={{
+              background: "var(--adm-surface-2)",
+              border: "1px solid var(--adm-border)",
+              color: "var(--adm-text)",
+              boxShadow: "none",
+            }}
+            onFocus={(e) => (e.currentTarget.style.boxShadow = "0 0 0 3px var(--adm-ring)")}
+            onBlur={(e) => (e.currentTarget.style.boxShadow = "none")}
             value={name}
             onChange={(e) => setName(e.target.value)}
             placeholder="مثل: موبایل"
           />
         </div>
         <div>
-          <label className="block text-sm text-gray-300 mb-1">اسلاگ</label>
+          <label
+            className="block text-sm mb-1"
+            style={{ color: "var(--adm-text-muted)" }}
+          >
+            اسلاگ
+          </label>
           <div className="flex items-center gap-2">
             <input
               disabled={Boolean(initial?._loading)}
-              className="flex-1 rounded-lg bg-slate-800 border border-slate-700 px-3 py-2 text-gray-200 focus:ring-2 focus:ring-indigo-500 outline-none"
+              className="flex-1 rounded-xl px-3 py-2 focus:outline-none focus:ring-2"
+              style={{
+                background: "var(--adm-surface-2)",
+                border: "1px solid var(--adm-border)",
+                color: "var(--adm-text)",
+                boxShadow: "none",
+              }}
+              onFocus={(e) =>
+                (e.currentTarget.style.boxShadow =
+                  "0 0 0 3px var(--adm-ring)")
+              }
+              onBlur={(e) => (e.currentTarget.style.boxShadow = "none")}
               value={slug}
               onChange={(e) => setSlug(slugify(e.target.value))}
               placeholder="mobile-phones"
               dir="ltr"
             />
             <span
-              className="text-xs text-gray-400 flex items-center gap-1"
+              className="text-xs flex items-center gap-1"
+              style={{ color: "var(--adm-text-muted)" }}
               dir="ltr"
             >
               <Link2 className="w-4 h-4" /> {slug || slugify(name || "")}
@@ -249,43 +318,103 @@ function CategoryFormModal({
           </div>
         </div>
         <div className="md:col-span-2">
-          <label className="block text-sm text-gray-300 mb-1">توضیحات</label>
+          <label
+            className="block text-sm mb-1"
+            style={{ color: "var(--adm-text-muted)" }}
+          >
+            توضیحات
+          </label>
           <textarea
             disabled={Boolean(initial?._loading)}
-            className="w-full rounded-lg bg-slate-800 border border-slate-700 px-3 py-2 text-gray-200 focus:ring-2 focus:ring-indigo-500 outline-none"
+            className="w-full rounded-xl px-3 py-2 focus:outline-none focus:ring-2"
+            style={{
+              background: "var(--adm-surface-2)",
+              border: "1px solid var(--adm-border)",
+              color: "var(--adm-text)",
+              boxShadow: "none",
+            }}
+            onFocus={(e) =>
+              (e.currentTarget.style.boxShadow =
+                "0 0 0 3px var(--adm-ring)")
+            }
+            onBlur={(e) => (e.currentTarget.style.boxShadow = "none")}
             rows={3}
             value={description}
             onChange={(e) => setDescription(e.target.value)}
           />
         </div>
         <div>
-          <label className="block text-sm text-gray-300 mb-1">
+          <label
+            className="block text-sm mb-1"
+            style={{ color: "var(--adm-text-muted)" }}
+          >
             تصویر (URL)
           </label>
           <input
             disabled={Boolean(initial?._loading)}
-            className="w-full rounded-lg bg-slate-800 border border-slate-700 px-3 py-2 text-gray-200 focus:ring-2 focus:ring-indigo-500 outline-none"
+            className="w-full rounded-xl px-3 py-2 focus:outline-none focus:ring-2"
+            style={{
+              background: "var(--adm-surface-2)",
+              border: "1px solid var(--adm-border)",
+              color: "var(--adm-text)",
+              boxShadow: "none",
+            }}
+            onFocus={(e) =>
+              (e.currentTarget.style.boxShadow =
+                "0 0 0 3px var(--adm-ring)")
+            }
+            onBlur={(e) => (e.currentTarget.style.boxShadow = "none")}
             value={image}
             onChange={(e) => setImage(e.target.value)}
             dir="ltr"
           />
         </div>
         <div>
-          <label className="block text-sm text-gray-300 mb-1">
+          <label
+            className="block text-sm mb-1"
+            style={{ color: "var(--adm-text-muted)" }}
+          >
             متن جایگزین تصویر
           </label>
           <input
             disabled={Boolean(initial?._loading)}
-            className="w-full rounded-lg bg-slate-800 border border-slate-700 px-3 py-2 text-gray-200 focus:ring-2 focus:ring-indigo-500 outline-none"
+            className="w-full rounded-xl px-3 py-2 focus:outline-none focus:ring-2"
+            style={{
+              background: "var(--adm-surface-2)",
+              border: "1px solid var(--adm-border)",
+              color: "var(--adm-text)",
+              boxShadow: "none",
+            }}
+            onFocus={(e) =>
+              (e.currentTarget.style.boxShadow =
+                "0 0 0 3px var(--adm-ring)")
+            }
+            onBlur={(e) => (e.currentTarget.style.boxShadow = "none")}
             value={imageAlt}
             onChange={(e) => setImageAlt(e.target.value)}
           />
         </div>
         <div>
-          <label className="block text-sm text-gray-300 mb-1">والد</label>
+          <label
+            className="block text-sm mb-1"
+            style={{ color: "var(--adm-text-muted)" }}
+          >
+            والد
+          </label>
           <select
             disabled={Boolean(initial?._loading)}
-            className="w-full rounded-lg bg-slate-800 border border-slate-700 px-3 py-2 text-gray-200 focus:ring-2 focus:ring-indigo-500 outline-none"
+            className="w-full rounded-xl px-3 py-2 focus:outline-none focus:ring-2"
+            style={{
+              background: "var(--adm-surface-2)",
+              border: "1px solid var(--adm-border)",
+              color: "var(--adm-text)",
+              boxShadow: "none",
+            }}
+            onFocus={(e) =>
+              (e.currentTarget.style.boxShadow =
+                "0 0 0 3px var(--adm-ring)")
+            }
+            onBlur={(e) => (e.currentTarget.style.boxShadow = "none")}
             value={parent}
             onChange={(e) => setParent(e.target.value)}
           >
@@ -302,41 +431,72 @@ function CategoryFormModal({
             disabled={Boolean(initial?._loading)}
             id="isActive"
             type="checkbox"
-            className="w-5 h-5 accent-indigo-600"
+            className="w-5 h-5"
+            style={{ accentColor: "var(--adm-primary)" }}
             checked={isActive}
             onChange={(e) => setIsActive(e.target.checked)}
           />
-          <label htmlFor="isActive" className="text-sm text-gray-300">
+          <label
+            htmlFor="isActive"
+            className="text-sm"
+            style={{ color: "var(--adm-text-muted)" }}
+          >
             فعال باشد
           </label>
         </div>
         <div>
-          <label className="block text-sm text-gray-300 mb-1">Meta Title</label>
+          <label className="block text-sm mb-1" style={{ color: "var(--adm-text-muted)" }}>
+            Meta Title
+          </label>
           <input
             disabled={Boolean(initial?._loading)}
-            className="w-full rounded-lg bg-slate-800 border border-slate-700 px-3 py-2 text-gray-200 focus:ring-2 focus:ring-indigo-500 outline-none"
+            className="w-full rounded-xl px-3 py-2 focus:outline-none focus:ring-2"
+            style={{
+              background: "var(--adm-surface-2)",
+              border: "1px solid var(--adm-border)",
+              color: "var(--adm-text)",
+              boxShadow: "none",
+            }}
+            onFocus={(e) => (e.currentTarget.style.boxShadow = "0 0 0 3px var(--adm-ring)")}
+            onBlur={(e) => (e.currentTarget.style.boxShadow = "none")}
             value={metaTitle}
             onChange={(e) => setMetaTitle(e.target.value)}
           />
         </div>
         <div>
-          <label className="block text-sm text-gray-300 mb-1">
+          <label className="block text-sm mb-1" style={{ color: "var(--adm-text-muted)" }}>
             Meta Description
           </label>
           <input
             disabled={Boolean(initial?._loading)}
-            className="w-full rounded-lg bg-slate-800 border border-slate-700 px-3 py-2 text-gray-200 focus:ring-2 focus:ring-indigo-500 outline-none"
+            className="w-full rounded-xl px-3 py-2 focus:outline-none focus:ring-2"
+            style={{
+              background: "var(--adm-surface-2)",
+              border: "1px solid var(--adm-border)",
+              color: "var(--adm-text)",
+              boxShadow: "none",
+            }}
+            onFocus={(e) => (e.currentTarget.style.boxShadow = "0 0 0 3px var(--adm-ring)")}
+            onBlur={(e) => (e.currentTarget.style.boxShadow = "none")}
             value={metaDescription}
             onChange={(e) => setMetaDescription(e.target.value)}
           />
         </div>
         <div className="md:col-span-2">
-          <label className="block text-sm text-gray-300 mb-1">
+          <label className="block text-sm mb-1" style={{ color: "var(--adm-text-muted)" }}>
             کلمات کلیدی (با ویرگول جدا کنید)
           </label>
           <input
             disabled={Boolean(initial?._loading)}
-            className="w-full rounded-lg bg-slate-800 border border-slate-700 px-3 py-2 text-gray-200 focus:ring-2 focus:ring-indigo-500 outline-none"
+            className="w-full rounded-xl px-3 py-2 focus:outline-none focus:ring-2"
+            style={{
+              background: "var(--adm-surface-2)",
+              border: "1px solid var(--adm-border)",
+              color: "var(--adm-text)",
+              boxShadow: "none",
+            }}
+            onFocus={(e) => (e.currentTarget.style.boxShadow = "0 0 0 3px var(--adm-ring)")}
+            onBlur={(e) => (e.currentTarget.style.boxShadow = "none")}
             value={keywords}
             onChange={(e) => setKeywords(e.target.value)}
             placeholder="گوشی, موبایل, سامسونگ"
@@ -357,110 +517,45 @@ function ConfirmDeleteModal({ open, onClose, onConfirm, category }) {
         <div className="flex items-center justify-end gap-2">
           <button
             onClick={onClose}
-            className="px-4 py-2 rounded-lg bg-slate-800 text-gray-200 hover:bg-slate-700 transition"
+            className="px-4 py-2 rounded-xl transition"
+            style={{
+              background: "var(--adm-surface-2)",
+              color: "var(--adm-text)",
+              border: "1px solid var(--adm-border)",
+            }}
+            onMouseEnter={(e) => (e.currentTarget.style.background = "var(--adm-surface)")}
+            onMouseLeave={(e) => (e.currentTarget.style.background = "var(--adm-surface-2)")}
           >
             انصراف
           </button>
           <button
             onClick={onConfirm}
-            className="px-4 py-2 rounded-lg bg-red-600 text-white hover:bg-red-700 transition"
+            className="px-4 py-2 rounded-xl transition"
+            style={{ background: "var(--adm-error)", color: "#fff" }}
+            onMouseEnter={(e) => (e.currentTarget.style.background = "#b91c1c")}
+            onMouseLeave={(e) => (e.currentTarget.style.background = "var(--adm-error)")}
           >
             حذف
           </button>
         </div>
       }
     >
-      <p className="text-gray-300">
+      <p style={{ color: "var(--adm-text)" }}>
         آیا از حذف{" "}
-        <span className="text-white font-semibold">{category?.name}</span> مطمئن
+        <span style={{ color: "var(--adm-text)" }} className="font-semibold">
+          {category?.name}
+        </span>{" "}
+        مطمئن
         هستید؟
       </p>
-      <p className="text-gray-400 mt-2 text-sm">
+      <p className="mt-2 text-sm" style={{ color: "var(--adm-text-muted)" }}>
         اگر زیر‌دسته داشته باشد، بک‌اند مانع حذف می‌شود.
       </p>
     </Modal>
   );
 }
 
-const DEPTH_THEMES = {
-  root: {
-    bgBase: "bg-indigo-700/20",
-    bgOpen: "bg-indigo-700/28",
-    ring: "ring-indigo-400/70",
-    icon: "text-indigo-300",
-    indent: "bg-indigo-500/60",
-    desc: "bg-indigo-700/14",
-    hover: "hover:bg-indigo-700/36",
-    edge: "rtl:border-r-4 ltr:border-l-4 border-indigo-400/90",
-  },
-  levels: [
-    {
-      icon: "text-indigo-200",
-      bgBase: "bg-indigo-400/30",
-      bgOpen: "bg-indigo-400/38",
-      ring: "ring-indigo-300/70",
-      desc: "bg-indigo-400/18",
-      indent: "bg-indigo-500/70",
-      hover: "hover:bg-indigo-400/45",
-      edge: "rtl:border-r-4 ltr:border-l-4 border-indigo-400/95",
-    },
-    {
-      icon: "text-blue-200",
-      bgBase: "bg-blue-600/35",
-      bgOpen: "bg-blue-600/42",
-      ring: "ring-blue-300/70",
-      desc: "bg-blue-600/20",
-      indent: "bg-blue-500/70",
-      hover: "hover:bg-blue-600/50",
-      edge: "rtl:border-r-4 ltr:border-l-4 border-blue-400/95",
-    },
-    {
-      icon: "text-teal-200",
-      bgBase: "bg-teal-600/40",
-      bgOpen: "bg-teal-600/48",
-      ring: "ring-teal-300/70",
-      desc: "bg-teal-600/22",
-      indent: "bg-teal-500/70",
-      hover: "hover:bg-teal-600/55",
-      edge: "rtl:border-r-4 ltr:border-l-4 border-teal-400/95",
-    },
-    {
-      icon: "text-emerald-200",
-      bgBase: "bg-emerald-600/45",
-      bgOpen: "bg-emerald-600/52",
-      ring: "ring-emerald-300/70",
-      desc: "bg-emerald-600/24",
-      indent: "bg-emerald-500/70",
-      hover: "hover:bg-emerald-600/60",
-      edge: "rtl:border-r-4 ltr:border-l-4 border-emerald-400/95",
-    },
-    {
-      icon: "text-emerald-100",
-      bgBase: "bg-emerald-500/48",
-      bgOpen: "bg-emerald-500/56",
-      ring: "ring-emerald-200/70",
-      desc: "bg-emerald-500/26",
-      indent: "bg-emerald-500/75",
-      hover: "hover:bg-emerald-500/65",
-      edge: "rtl:border-r-4 ltr:border-l-4 border-emerald-300/95",
-    },
-    {
-      icon: "text-emerald-100",
-      bgBase: "bg-emerald-400/52",
-      bgOpen: "bg-emerald-400/60",
-      ring: "ring-emerald-200/70",
-      desc: "bg-emerald-400/28",
-      indent: "bg-emerald-400/80",
-      hover: "hover:bg-emerald-400/70",
-      edge: "rtl:border-r-4 ltr:border-l-4 border-emerald-300/95",
-    },
-  ],
-};
-
-const getThemeForDepth = (depth) =>
-  depth <= 0
-    ? DEPTH_THEMES.root
-    : DEPTH_THEMES.levels[Math.min(depth - 1, DEPTH_THEMES.levels.length - 1)];
+// Depth styling is now neutral + token-based (no rainbow themes).
 
 function ActionMenu({ node, onAddChild, onEdit, onDelete }) {
   const [open, setOpen] = useState(false);
@@ -498,7 +593,10 @@ function ActionMenu({ node, onAddChild, onEdit, onDelete }) {
       <button
         ref={btnRef}
         onClick={() => setOpen((o) => !o)}
-        className="p-2 rounded-lg hover:bg-slate-700/60 text-gray-300"
+        className="p-2 rounded-lg transition"
+        style={{ color: "var(--adm-text-muted)" }}
+        onMouseEnter={(e) => (e.currentTarget.style.background = "var(--adm-surface-2)")}
+        onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
         aria-haspopup="menu"
         aria-expanded={open}
         title="عملیات"
@@ -510,12 +608,16 @@ function ActionMenu({ node, onAddChild, onEdit, onDelete }) {
         <div
           ref={menuRef}
           role="menu"
-          className="absolute top-full left-0 mt-1 w-40 rounded-xl border border-slate-700 bg-slate-800 shadow-xl z-50 overflow-hidden"
+          className="absolute top-full left-0 mt-1 w-40 rounded-xl shadow-xl z-50 overflow-hidden"
+          style={{ background: "var(--adm-surface)", border: "1px solid var(--adm-border)" }}
         >
           <button
             role="menuitem"
             onClick={() => handle(onAddChild)}
-            className="w-full flex items-center gap-2 px-3 py-2 text-sm text-gray-200 hover:bg-slate-700/60"
+            className="w-full flex items-center gap-2 px-3 py-2 text-sm transition"
+            style={{ color: "var(--adm-text)" }}
+            onMouseEnter={(e) => (e.currentTarget.style.background = "var(--adm-surface-2)")}
+            onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
           >
             <Plus className="w-4 h-4" />
             زیر‌دسته
@@ -523,7 +625,10 @@ function ActionMenu({ node, onAddChild, onEdit, onDelete }) {
           <button
             role="menuitem"
             onClick={() => handle(onEdit)}
-            className="w-full flex items-center gap-2 px-3 py-2 text-sm text-gray-200 hover:bg-slate-700/60"
+            className="w-full flex items-center gap-2 px-3 py-2 text-sm transition"
+            style={{ color: "var(--adm-text)" }}
+            onMouseEnter={(e) => (e.currentTarget.style.background = "var(--adm-surface-2)")}
+            onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
           >
             <Edit className="w-4 h-4" />
             ویرایش
@@ -531,7 +636,10 @@ function ActionMenu({ node, onAddChild, onEdit, onDelete }) {
           <button
             role="menuitem"
             onClick={() => handle(onDelete)}
-            className="w-full flex items-center gap-2 px-3 py-2 text-sm text-red-300 hover:bg-red-900/30"
+            className="w-full flex items-center gap-2 px-3 py-2 text-sm transition"
+            style={{ color: "var(--adm-error)" }}
+            onMouseEnter={(e) => (e.currentTarget.style.background = "var(--adm-error-soft)")}
+            onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
           >
             <Trash2 className="w-4 h-4" />
             حذف
@@ -555,19 +663,27 @@ function Row({
   onMoveDown,
   isAncestorHighlighted,
 }) {
-  const theme = getThemeForDepth(depth);
   const hasChildren = (node.children || []).length > 0;
-  const padRight = 10 + depth * 1;
   const isOpen = expanded;
+  const padRight = 12 + depth * 18;
+
+  const baseBg = "var(--adm-surface)";
+  const hoverBg = "var(--adm-surface-2)";
+  const openBg = "var(--adm-primary-soft)";
+
+  const rowBg = isOpen ? openBg : isAncestorHighlighted ? openBg : baseBg;
 
   return (
     <div className="relative">
       {depth > 0 && (
         <div
           className="absolute inset-y-0"
-          style={{ right: 3 + (depth - 1) * 10, width: 2 }}
+          style={{ right: 12 + (depth - 1) * 18, width: 2 }}
         >
-          <div className={`h-full w-px ${theme.indent}`} />
+          <div
+            className="h-full w-px"
+            style={{ background: "var(--adm-border)" }}
+          />
         </div>
       )}
 
@@ -575,17 +691,20 @@ function Row({
         role="treeitem"
         aria-expanded={hasChildren ? isOpen : undefined}
         tabIndex={0}
-        className={[
-          "group grid grid-cols-[1fr_auto_auto_auto] items-center gap-1 px-3 sm:px-1 py-2 border-b border-slate-700/60 focus:outline-none focus:ring-2 focus:ring-indigo-500/30",
-          depth > 0 ? theme.bgBase : "",
-          isOpen
-            ? `ring-1 ring-inset ${theme.ring} ${theme.bgOpen}`
-            : isAncestorHighlighted && depth > 0
-            ? theme.desc
-            : "",
-          theme.hover || "hover:bg-white/5",
-        ].join(" ")}
-        style={{ paddingRight: padRight }}
+        className="group grid grid-cols-[1fr_auto_auto_auto] items-center gap-1 px-3 sm:px-2 py-2 focus:outline-none focus-visible:ring-2"
+        style={{
+          paddingRight: padRight,
+          background: rowBg,
+          borderBottom: "1px solid var(--adm-border)",
+          color: "var(--adm-text)",
+        }}
+        onMouseEnter={(e) => {
+          if (isOpen) return;
+          e.currentTarget.style.background = hoverBg;
+        }}
+        onMouseLeave={(e) => {
+          e.currentTarget.style.background = rowBg;
+        }}
         onKeyDown={(e) => {
           if (!hasChildren) return;
           if (e.key === "ArrowLeft" && isOpen) onToggleExpand(node._id);
@@ -597,34 +716,44 @@ function Row({
           {hasChildren ? (
             <button
               onClick={() => onToggleExpand(node._id)}
-              className="p-1 rounded hover:bg-slate-700/60"
+              className="p-1 rounded-lg transition"
+              style={{ color: "var(--adm-text-muted)" }}
+              onMouseEnter={(e) => (e.currentTarget.style.background = "var(--adm-surface-2)")}
+              onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
               title={isOpen ? "بستن" : "بازکردن"}
               aria-label={isOpen ? "بستن" : "بازکردن"}
             >
               {isOpen ? (
-                <ChevronDown className="w-4 h-4 text-gray-300" />
+                <ChevronDown className="w-4 h-4" />
               ) : (
-                <ChevronRight className="w-4 h-4 text-gray-300" />
+                <ChevronRight className="w-4 h-4" />
               )}
             </button>
           ) : (
             <span className="w-5" />
           )}
-          <div className="w-6 h-6 rounded bg-slate-800 border border-slate-700 flex items-center justify-center">
+          <div
+            className="w-6 h-6 rounded-lg flex items-center justify-center"
+            style={{
+              background: "var(--adm-surface-2)",
+              border: "1px solid var(--adm-border)",
+              color: "var(--adm-text-muted)",
+            }}
+          >
             {isOpen ? (
-              <FolderOpen className={`w-3.5 h-3.5 ${theme.icon}`} />
+              <FolderOpen className="w-3.5 h-3.5" />
             ) : (
-              <Folder className={`w-3.5 h-3.5 ${theme.icon}`} />
+              <Folder className="w-3.5 h-3.5" />
             )}
           </div>
           <div className="min-w-0">
             <div
-              className="text-white font-medium truncate sm:text-base text-sm"
+              className="font-medium truncate sm:text-base text-sm"
               title={node.name}
             >
               {node._highlightedName || node.name}
             </div>
-            <div className="text-xs text-gray-400 truncate" dir="ltr">
+            <div className="text-xs truncate" dir="ltr" style={{ color: "var(--adm-text-muted)" }}>
               /{node._highlightedSlug || node.slug}
             </div>
           </div>
@@ -632,34 +761,59 @@ function Row({
 
         <div className="flex items-center gap-1 justify-self-end">
           <button
-            className="p-1.5 rounded-lg hover:bg-slate-700/60"
+            className="p-1.5 rounded-lg transition"
             onClick={() => onMoveUp(node)}
             title="بالا"
             aria-label="بالا"
+            style={{ color: "var(--adm-text-muted)" }}
+            onMouseEnter={(e) => (e.currentTarget.style.background = "var(--adm-surface-2)")}
+            onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
           >
-            <ArrowUp className="w-4 h-4 text-gray-300" />
+            <ArrowUp className="w-4 h-4" />
           </button>
           <button
-            className="p-1.5 rounded-lg hover:bg-slate-700/60"
+            className="p-1.5 rounded-lg transition"
             onClick={() => onMoveDown(node)}
             title="پایین"
             aria-label="پایین"
+            style={{ color: "var(--adm-text-muted)" }}
+            onMouseEnter={(e) => (e.currentTarget.style.background = "var(--adm-surface-2)")}
+            onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
           >
-            <ArrowDown className="w-4 h-4 text-gray-300" />
+            <ArrowDown className="w-4 h-4" />
           </button>
         </div>
 
         <div className="justify-self-end">
           <button
             onClick={() => onToggleActive(node)}
-            className={`px-2 py-1 rounded-lg text-sm flex items-center gap-0 lg:gap-1 border transition ${
-              node.isActive
-                ? "bg-transparent text-green-300 border-green-800/60 hover:bg-green-900/20"
-                : "bg-transparent text-gray-300 border-slate-700 hover:bg-slate-800/60"
-            }`}
+            className="px-2 py-1 rounded-lg text-sm flex items-center gap-0 lg:gap-1 border transition"
             title="فعال/غیرفعال"
             aria-pressed={node.isActive}
             aria-label={node.isActive ? "فعال" : "غیرفعال"}
+            style={
+              node.isActive
+                ? {
+                    background: "var(--adm-success-soft)",
+                    color: "var(--adm-success)",
+                    borderColor: "var(--adm-success)",
+                  }
+                : {
+                    background: "transparent",
+                    color: "var(--adm-text-muted)",
+                    borderColor: "var(--adm-border)",
+                  }
+            }
+            onMouseEnter={(e) => {
+              if (node.isActive) return;
+              e.currentTarget.style.background = "var(--adm-surface-2)";
+              e.currentTarget.style.color = "var(--adm-text)";
+            }}
+            onMouseLeave={(e) => {
+              if (node.isActive) return;
+              e.currentTarget.style.background = "transparent";
+              e.currentTarget.style.color = "var(--adm-text-muted)";
+            }}
           >
             {node.isActive ? (
               <CheckCircle2 className="w-4 h-4" />
@@ -676,7 +830,10 @@ function Row({
           <div className="hidden lg:flex items-center gap-1">
             <button
               onClick={() => onAddChild(node)}
-              className="p-2 rounded-lg hover:bg-slate-700/60 text-gray-300"
+              className="p-2 rounded-lg transition"
+              style={{ color: "var(--adm-text-muted)" }}
+              onMouseEnter={(e) => (e.currentTarget.style.background = "var(--adm-surface-2)")}
+              onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
               title="زیر‌دسته"
               aria-label="زیر‌دسته"
             >
@@ -684,7 +841,10 @@ function Row({
             </button>
             <button
               onClick={() => onEdit(node)}
-              className="p-2 rounded-lg hover:bg-slate-700/60 text-gray-300"
+              className="p-2 rounded-lg transition"
+              style={{ color: "var(--adm-text-muted)" }}
+              onMouseEnter={(e) => (e.currentTarget.style.background = "var(--adm-surface-2)")}
+              onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
               title="ویرایش"
               aria-label="ویرایش"
             >
@@ -692,7 +852,16 @@ function Row({
             </button>
             <button
               onClick={() => onDelete(node)}
-              className="p-2 rounded-lg hover:bg-slate-700/60 text-gray-300"
+              className="p-2 rounded-lg transition"
+              style={{ color: "var(--adm-text-muted)" }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = "var(--adm-error-soft)";
+                e.currentTarget.style.color = "var(--adm-error)";
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = "transparent";
+                e.currentTarget.style.color = "var(--adm-text-muted)";
+              }}
               title="حذف"
               aria-label="حذف"
             >
@@ -793,7 +962,10 @@ export default function CategoriesPage() {
     return (
       <>
         {text.slice(0, i)}
-        <mark className="bg-yellow-500/30 rounded px-0.5">
+        <mark
+          className="rounded px-0.5"
+          style={{ background: "var(--adm-warning-soft)" }}
+        >
           {text.slice(i, i + q.length)}
         </mark>
         {text.slice(i + q.length)}
@@ -991,12 +1163,25 @@ export default function CategoriesPage() {
     <div className="py-8" role="tree" aria-label="مدیریت دسته‌ها">
       <div className="mb-6 flex flex-col lg:flex-row items-center justify-between gap-4 md:w-full w-[95vw] mx-auto">
         <div className="w-full">
-          <div className="rounded-2xl overflow-hidden border border-slate-700 bg-slate-900">
-            <div className="bg-gradient-to-l from-slate-800 to-indigo-900 p-5">
-              <h1 className="text-white text-2xl font-bold">
+          <div
+            className="rounded-2xl overflow-hidden"
+            style={{
+              background: "var(--adm-surface)",
+              border: "1px solid var(--adm-border)",
+              boxShadow: "0 20px 60px var(--adm-shadow)",
+            }}
+          >
+            <div
+              className="p-5"
+              style={{
+                background: "var(--adm-surface-2)",
+                borderBottom: "1px solid var(--adm-border)",
+              }}
+            >
+              <h1 className="text-2xl font-bold" style={{ color: "var(--adm-text)" }}>
                 مدیریت دسته‌بندی‌ها
               </h1>
-              <p className="text-gray-300 mt-1">
+              <p className="mt-1" style={{ color: "var(--adm-text-muted)" }}>
                 ایجاد، ویرایش و سازمان‌دهی دسته‌ها به‌صورت درختی
               </p>
             </div>
@@ -1007,42 +1192,72 @@ export default function CategoriesPage() {
                   value={qInput}
                   onChange={(e) => setQInput(e.target.value)}
                   placeholder="جستجو بر اساس نام/اسلاگ..."
-                  className="w-full pl-10 pr-3 py-2 rounded-lg bg-slate-800 border border-slate-700 text-gray-200 focus:ring-2 focus:ring-indigo-500 outline-none"
+                  className="w-full pl-10 pr-3 py-2 rounded-xl border focus:outline-none focus:ring-2"
+                  style={{
+                    background: "var(--adm-surface-2)",
+                    borderColor: "var(--adm-border)",
+                    color: "var(--adm-text)",
+                    boxShadow: "none",
+                  }}
+                  onFocus={(e) => (e.currentTarget.style.boxShadow = "0 0 0 3px var(--adm-ring)")}
+                  onBlur={(e) => (e.currentTarget.style.boxShadow = "none")}
                 />
-                <Search className="w-4 h-4 absolute left-2.5 top-2.5 text-gray-400" />
+                <Search
+                  className="w-4 h-4 absolute left-2.5 top-2.5"
+                  style={{ color: "var(--adm-text-muted)" }}
+                />
               </div>
               <div className="flex items-center gap-2">
                 <button
                   onClick={openAll}
-                  className="px-2 py-1 sm:px-3 sm:py-2 rounded-lg bg-slate-800 text-xs sm:text-sm text-gray-200 hover:bg-slate-700"
+                  className="px-2 py-1 sm:px-3 sm:py-2 rounded-xl text-xs sm:text-sm transition"
+                  style={{ background: "var(--adm-surface-2)", color: "var(--adm-text)", border: "1px solid var(--adm-border)" }}
+                  onMouseEnter={(e) => (e.currentTarget.style.background = "var(--adm-surface)")}
+                  onMouseLeave={(e) => (e.currentTarget.style.background = "var(--adm-surface-2)")}
                 >
                   باز کردن همه
                 </button>
 
                 <button
                   onClick={closeAll}
-                  className="px-2 py-1 sm:px-3 sm:py-2 rounded-lg bg-slate-800 text-xs sm:text-sm text-gray-200 hover:bg-slate-700"
+                  className="px-2 py-1 sm:px-3 sm:py-2 rounded-xl text-xs sm:text-sm transition"
+                  style={{ background: "var(--adm-surface-2)", color: "var(--adm-text)", border: "1px solid var(--adm-border)" }}
+                  onMouseEnter={(e) => (e.currentTarget.style.background = "var(--adm-surface)")}
+                  onMouseLeave={(e) => (e.currentTarget.style.background = "var(--adm-surface-2)")}
                 >
                   بستن همه
                 </button>
 
                 <button
                   onClick={() => setCreateOpen(true)}
-                  className="px-2 py-1 sm:px-3 sm:py-2 rounded-lg bg-indigo-600 text-white hover:bg-indigo-700 flex items-center gap-1 text-xs sm:text-sm"
+                  className="px-2 py-1 sm:px-3 sm:py-2 rounded-xl flex items-center gap-1 text-xs sm:text-sm transition"
+                  style={{ background: "var(--adm-primary)", color: "var(--adm-on-primary)" }}
+                  onMouseEnter={(e) => (e.currentTarget.style.background = "var(--adm-primary-hover)")}
+                  onMouseLeave={(e) => (e.currentTarget.style.background = "var(--adm-primary)")}
                 >
                   <Plus className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                   دسته جدید
                 </button>
               </div>
             </div>
-            <div className="border-t border-slate-700">
+            <div
+              className="border-t"
+              style={{ borderColor: "var(--adm-border)" }}
+            >
               {loading ? (
                 <div className="p-8 flex items-center justify-center">
-                  <Spinner />
+                  <Spinner inline />
                 </div>
               ) : (
-                <div className="divide-y divide-slate-700/60">
-                  <div className="grid grid-cols-[1fr_auto_auto_auto] gap-2 ps-4 py-3 bg-slate-800/60 text-gray-300 sticky top-0 z-10 backdrop-blur supports-[backdrop-filter]:bg-slate-800/50">
+                <div>
+                  <div
+                    className="grid grid-cols-[1fr_auto_auto_auto] gap-2 ps-4 py-3 sticky top-0 z-10 backdrop-blur"
+                    style={{
+                      background: "var(--adm-surface-2)",
+                      borderBottom: "1px solid var(--adm-border)",
+                      color: "var(--adm-text-muted)",
+                    }}
+                  >
                     <div>نام / اسلاگ</div>
                     <div className="flex lg:gap-10 gap-2">
                       <div className="justify-self-end">ترتیب</div>
@@ -1054,9 +1269,9 @@ export default function CategoriesPage() {
                     </div>
                   </div>
 
-                  <div className="bg-slate-900">
+                  <div style={{ background: "var(--adm-surface)" }}>
                     {filteredTree.length === 0 && (
-                      <div className="p-6 text-center text-gray-400">
+                      <div className="p-6 text-center" style={{ color: "var(--adm-text-muted)" }}>
                         دسته‌ای یافت نشد
                       </div>
                     )}
@@ -1078,7 +1293,6 @@ export default function CategoriesPage() {
           handleCreate(payload);
         }}
         allCategoriesTree={tree}
-        jojoijji
       />
 
       <CategoryFormModal

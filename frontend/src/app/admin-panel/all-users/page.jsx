@@ -76,15 +76,16 @@ const AllUsersPage = () => {
   };
 
   const getUserAvatarColor = (name) => {
+    // Friendly in both light/dark.
     const colors = [
-      "bg-indigo-800 text-indigo-200",
-      "bg-purple-800 text-purple-200",
-      "bg-blue-800 text-blue-200",
-      "bg-pink-800 text-pink-200",
-      "bg-yellow-800 text-yellow-200",
-      "bg-red-800 text-red-200",
-      "bg-slate-700 text-slate-200",
-      "bg-green-800 text-green-200",
+      "bg-indigo-50 text-indigo-700 dark:bg-indigo-900 dark:text-indigo-200",
+      "bg-purple-50 text-purple-700 dark:bg-purple-900 dark:text-purple-200",
+      "bg-sky-50 text-sky-700 dark:bg-sky-900 dark:text-sky-200",
+      "bg-pink-50 text-pink-700 dark:bg-pink-900 dark:text-pink-200",
+      "bg-amber-50 text-amber-800 dark:bg-amber-900 dark:text-amber-200",
+      "bg-rose-50 text-rose-700 dark:bg-rose-900 dark:text-rose-200",
+      "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-200",
+      "bg-emerald-50 text-emerald-700 dark:bg-emerald-900 dark:text-emerald-200",
     ];
     const hash = name
       .split("")
@@ -95,11 +96,11 @@ const AllUsersPage = () => {
   const getRoleBadgeVariant = (role) => {
     switch (role?.toLowerCase()) {
       case "admin":
-        return "bg-red-900 text-red-200";
+        return "bg-[var(--adm-error-soft)] text-[var(--adm-error)]";
       case "seller":
-        return "bg-purple-900 text-purple-200";
+        return "bg-[var(--adm-info-soft)] text-[var(--adm-info)]";
       default:
-        return "bg-indigo-900 text-indigo-200";
+        return "bg-[var(--adm-primary-soft)] text-[var(--adm-primary)]";
     }
   };
 
@@ -108,10 +109,10 @@ const AllUsersPage = () => {
       {/* Page header */}
       <div className="mb-8 flex sm:flex-row flex-col items-center justify-between responsive-table mx-auto">
         <div className="flex flex-col justify-center gap-1 sm:items-stretch items-center">
-          <h1 className="text-2xl md:text-3xl font-bold text-white sm:text-start text-center">
+          <h1 className="text-2xl md:text-3xl font-bold text-[var(--adm-text)] sm:text-start text-center">
             لیست کاربران
           </h1>
-          <p className="mt-2 text-gray-400 text-center">
+          <p className="mt-2 text-[var(--adm-text-muted)] text-center">
             مدیریت و مشاهده تمامی کاربران سیستم
           </p>
         </div>
@@ -126,15 +127,26 @@ const AllUsersPage = () => {
             <input
               type="text"
               placeholder="جستجوی کاربر..."
-              className="w-full pl-12 pr-4 py-2 bg-slate-800 rounded-lg border border-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 text-gray-200"
+              className="w-full pl-12 pr-4 py-2 rounded-xl border focus:outline-none focus:ring-2"
+              style={{
+                background: "var(--adm-surface)",
+                borderColor: "var(--adm-border)",
+                color: "var(--adm-text)",
+                boxShadow: "none",
+              }}
+              onFocus={(e) => (e.currentTarget.style.boxShadow = "0 0 0 3px var(--adm-ring)")}
+              onBlur={(e) => (e.currentTarget.style.boxShadow = "none")}
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
             />
             <button
               type="submit"
-              className="absolute left-2 top-1/2 -translate-y-1/2 p-2 rounded-md hover:bg-indigo-500/20 transition"
+              className="absolute left-2 top-1/2 -translate-y-1/2 p-2 rounded-lg transition"
+              style={{ color: "var(--adm-text-muted)" }}
+              onMouseEnter={(e) => (e.currentTarget.style.background = "var(--adm-primary-soft)")}
+              onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
             >
-              <Search className="h-5 w-5 text-gray-400" />
+              <Search className="h-5 w-5" />
             </button>
           </form>
         </div>
@@ -154,39 +166,55 @@ const AllUsersPage = () => {
       )}
 
       {/* Users table */}
-      <div className="bg-slate-900 border border-slate-700 rounded-2xl shadow-lg overflow-hidden mb-6 relative responsive-table mx-auto">
+      <div
+        className="rounded-2xl shadow-lg overflow-hidden mb-6 relative responsive-table mx-auto"
+        style={{
+          background: "var(--adm-surface)",
+          border: "1px solid var(--adm-border)",
+          boxShadow: "0 20px 60px var(--adm-shadow)",
+        }}
+      >
         {isLoading && (
-          <div className="absolute inset-0 bg-black/30 flex items-center justify-center z-10">
-            <div className="w-10 h-10 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin"></div>
+          <div className="absolute inset-0 flex items-center justify-center z-10" style={{ background: "var(--adm-overlay)" }}>
+            <div
+              className="w-10 h-10 border-4 border-t-transparent rounded-full animate-spin"
+              style={{ borderColor: "var(--adm-primary)", borderTopColor: "transparent" }}
+            ></div>
           </div>
         )}
 
         {/* Table header */}
-        <div className="bg-gradient-to-l from-slate-800 to-indigo-900 text-white p-4 sm:p-6">
+        <div
+          className="p-4 sm:p-6"
+          style={{
+            background: "var(--adm-surface-2)",
+            borderBottom: "1px solid var(--adm-border)",
+          }}
+        >
           <div className="flex flex-wrap justify-between items-center">
             <div>
-              <h2 className="text-xl font-bold">اطلاعات کاربران</h2>
-              <p className="text-gray-300 mt-1">
+              <h2 className="text-xl font-bold" style={{ color: "var(--adm-text)" }}>اطلاعات کاربران</h2>
+              <p className="mt-1" style={{ color: "var(--adm-text-muted)" }}>
                 لیست تمام کاربران ثبت شده در سیستم
               </p>
             </div>
 
             <div className="flex gap-4 mt-4 sm:mt-0">
-              <div className="bg-slate-800 rounded-lg p-3 text-center">
-                <div className="text-2xl font-bold text-white">
+              <div className="rounded-xl p-3 text-center" style={{ background: "var(--adm-surface)" }}>
+                <div className="text-2xl font-bold" style={{ color: "var(--adm-text)" }}>
                   {totalCount}
                 </div>
-                <div className="text-xs text-gray-300">کل کاربران</div>
+                <div className="text-xs" style={{ color: "var(--adm-text-muted)" }}>کل کاربران</div>
               </div>
             </div>
           </div>
         </div>
 
         {/* Table body */}
-        <div className="overflow-x-scroll top-0 bg-slate-900 z-10">
+        <div className="overflow-x-scroll top-0 z-10">
           <table className="w-full text-right">
             <thead>
-              <tr className="bg-slate-800 text-white">
+              <tr style={{ background: "var(--adm-surface-2)", color: "var(--adm-text)" }}>
                 <th className="py-4 px-6 font-medium">نام</th>
                 <th className="py-4 px-6 font-medium">ایمیل</th>
                 <th className="py-4 px-6 font-medium">شماره تلفن</th>
@@ -202,7 +230,10 @@ const AllUsersPage = () => {
                   return (
                     <tr
                       key={user._id}
-                      className="border-b border-slate-700 bg-slate-800/40 hover:bg-indigo-600/30 transition-colors"
+                      className="transition-colors"
+                      style={{ borderBottom: "1px solid var(--adm-border)", background: "var(--adm-surface)" }}
+                      onMouseEnter={(e) => (e.currentTarget.style.background = "var(--adm-primary-soft)")}
+                      onMouseLeave={(e) => (e.currentTarget.style.background = "var(--adm-surface)")}
                     >
                       <td className="py-4 px-2 flex flex-col lg:flex-row items-center gap-2">
                         <div
@@ -211,14 +242,15 @@ const AllUsersPage = () => {
                           {user.name?.charAt(0) || "U"}
                         </div>
                         <span
-                          className="text-gray-200 whitespace-nowrap truncate max-w-[150px] sm:max-w-[200px] md:max-w-[250px] lg:max-w-none"
+                          className="whitespace-nowrap truncate max-w-[150px] sm:max-w-[200px] md:max-w-[250px] lg:max-w-none"
+                          style={{ color: "var(--adm-text)" }}
                           title={user.name}
                         >
                           {user.name}
                         </span>
                       </td>
-                      <td className="py-4 px-2 text-gray-300">{user.email}</td>
-                      <td className="py-4 px-2 text-gray-300">
+                      <td className="py-4 px-2" style={{ color: "var(--adm-text-muted)" }}>{user.email}</td>
+                      <td className="py-4 px-2" style={{ color: "var(--adm-text-muted)" }}>
                         {user.phone || "-"}
                       </td>
                       <td className="py-4 px-2">
@@ -234,19 +266,46 @@ const AllUsersPage = () => {
                         <div className="flex flex-wrap gap-2 justify-center sm:justify-start">
                           <button
                             onClick={() => handleOpenModal(user, "view")}
-                            className="p-2 sm:p-1.5 rounded-lg text-gray-400 hover:text-indigo-400 hover:bg-slate-700 transition-colors min-w-[36px] min-h-[36px]"
+                            className="p-2 sm:p-1.5 rounded-lg transition-colors min-w-[36px] min-h-[36px]"
+                            style={{ color: "var(--adm-text-muted)" }}
+                            onMouseEnter={(e) => {
+                              e.currentTarget.style.background = "var(--adm-success-soft)";
+                              e.currentTarget.style.color = "var(--adm-success)";
+                            }}
+                            onMouseLeave={(e) => {
+                              e.currentTarget.style.background = "transparent";
+                              e.currentTarget.style.color = "var(--adm-text-muted)";
+                            }}
                           >
                             <Eye className="w-4 h-4 sm:h-5 sm:w-5" />
                           </button>
                           <button
                             onClick={() => handleOpenModal(user, "edit")}
-                            className="p-2 sm:p-1.5 rounded-lg text-gray-400 hover:text-blue-400 hover:bg-slate-700 transition-colors min-w-[36px] min-h-[36px]"
+                            className="p-2 sm:p-1.5 rounded-lg transition-colors min-w-[36px] min-h-[36px]"
+                            style={{ color: "var(--adm-text-muted)" }}
+                            onMouseEnter={(e) => {
+                              e.currentTarget.style.background = "var(--adm-primary-soft)";
+                              e.currentTarget.style.color = "var(--adm-primary)";
+                            }}
+                            onMouseLeave={(e) => {
+                              e.currentTarget.style.background = "transparent";
+                              e.currentTarget.style.color = "var(--adm-text-muted)";
+                            }}
                           >
                             <Edit className="w-4 h-4 sm:h-5 sm:w-5" />
                           </button>
                           <button
                             onClick={() => handleOpenModal(user, "delete")}
-                            className="p-2 sm:p-1.5 rounded-lg text-gray-400 hover:text-red-400 hover:bg-slate-700 transition-colors min-w-[36px] min-h-[36px]"
+                            className="p-2 sm:p-1.5 rounded-lg transition-colors min-w-[36px] min-h-[36px]"
+                            style={{ color: "var(--adm-text-muted)" }}
+                            onMouseEnter={(e) => {
+                              e.currentTarget.style.background = "var(--adm-error-soft)";
+                              e.currentTarget.style.color = "var(--adm-error)";
+                            }}
+                            onMouseLeave={(e) => {
+                              e.currentTarget.style.background = "transparent";
+                              e.currentTarget.style.color = "var(--adm-text-muted)";
+                            }}
                           >
                             <Trash2 className="w-4 h-4 sm:h-5 sm:w-5" />
                           </button>
@@ -261,12 +320,15 @@ const AllUsersPage = () => {
       </div>
 
       {/* Pagination */}
-      <div className="bg-slate-900 border border-slate-700 p-4 rounded-xl flex flex-col sm:flex-row items-center justify-between responsive-table mx-auto">
-        <div className="text-gray-300 mb-4 sm:mb-0">
+      <div
+        className="p-4 rounded-2xl flex flex-col sm:flex-row items-center justify-between responsive-table mx-auto"
+        style={{ background: "var(--adm-surface)", border: "1px solid var(--adm-border)" }}
+      >
+        <div className="mb-4 sm:mb-0" style={{ color: "var(--adm-text-muted)" }}>
           نمایش{" "}
-          <span className="font-medium text-white">{users?.length || 0}</span>{" "}
+          <span className="font-medium" style={{ color: "var(--adm-text)" }}>{users?.length || 0}</span>{" "}
           از
-          <span className="font-medium text-white mx-1">
+          <span className="font-medium mx-1" style={{ color: "var(--adm-text)" }}>
             {users?.length || 0}
           </span>{" "}
           کاربر
@@ -276,7 +338,12 @@ const AllUsersPage = () => {
           <button
             onClick={() => setPage((prev) => Math.max(prev - 1, 1))}
             disabled={page === 1}
-            className="flex items-center justify-center h-10 w-10 rounded-lg bg-slate-800 text-gray-300 hover:bg-indigo-600 hover:text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            className="flex items-center justify-center h-10 w-10 rounded-xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            style={{
+              background: "var(--adm-surface-2)",
+              color: "var(--adm-text)",
+              border: "1px solid var(--adm-border)",
+            }}
           >
             <ArrowRight className="h-5 w-5" />
           </button>
@@ -296,11 +363,22 @@ const AllUsersPage = () => {
                 <button
                   key={pageNum}
                   onClick={() => setPage(pageNum)}
-                  className={`h-10 w-10 rounded-lg font-medium transition-colors ${
+                  className="h-10 w-10 rounded-xl font-medium transition-colors"
+                  style={
                     page === pageNum
-                      ? "bg-indigo-600 text-white"
-                      : "hover:bg-slate-700 text-gray-300"
-                  }`}
+                      ? { background: "var(--adm-primary)", color: "var(--adm-on-primary)" }
+                      : { background: "transparent", color: "var(--adm-text-muted)" }
+                  }
+                  onMouseEnter={(e) => {
+                    if (page === pageNum) return;
+                    e.currentTarget.style.background = "var(--adm-surface-2)";
+                    e.currentTarget.style.color = "var(--adm-text)";
+                  }}
+                  onMouseLeave={(e) => {
+                    if (page === pageNum) return;
+                    e.currentTarget.style.background = "transparent";
+                    e.currentTarget.style.color = "var(--adm-text-muted)";
+                  }}
                 >
                   {pageNum}
                 </button>
@@ -313,7 +391,15 @@ const AllUsersPage = () => {
               setPage((prev) => Math.min(prev + 1, totalPages || 1))
             }
             disabled={page === (totalPages || 1)}
-            className="flex items-center justify-center h-10 w-10 rounded-lg bg-indigo-600 text-white hover:bg-indigo-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            className="flex items-center justify-center h-10 w-10 rounded-xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            style={{ background: "var(--adm-primary)", color: "var(--adm-on-primary)" }}
+            onMouseEnter={(e) => {
+              if (page === (totalPages || 1)) return;
+              e.currentTarget.style.background = "var(--adm-primary-hover)";
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = "var(--adm-primary)";
+            }}
           >
             <ArrowLeft className="h-5 w-5" />
           </button>

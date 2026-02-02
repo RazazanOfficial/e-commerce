@@ -1,3 +1,5 @@
+"use client";
+
 import { useEffect, useState } from "react";
 import { X } from "lucide-react";
 import { toast } from "react-toastify";
@@ -51,23 +53,36 @@ const UserModal = ({ isOpen, onClose, mode, user, onUpdate, onDelete }) => {
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-md"
+      className="fixed inset-0 z-50 flex items-center justify-center backdrop-blur-md"
+      style={{ background: "var(--adm-overlay, rgba(0,0,0,0.62))" }}
       onClick={onClose}
     >
       <div
-        className="relative w-full max-w-md mx-auto bg-gray-800/90 border border-gray-700 rounded-2xl shadow-xl p-6 text-gray-100"
+        className="relative w-full max-w-md mx-auto rounded-2xl shadow-xl p-6"
+        style={{
+          background: "var(--adm-surface, #111827)",
+          border: "1px solid var(--adm-border, rgba(148,163,184,0.25))",
+          color: "var(--adm-text, #E5E7EB)",
+        }}
         onClick={(e) => e.stopPropagation()}
       >
         {/* دکمه بستن */}
         <button
           onClick={onClose}
-          className="absolute top-4 left-4 text-gray-400 hover:text-red-500 transition"
+          className="absolute top-4 left-4 transition"
+          style={{ color: "var(--adm-text-muted, #9CA3AF)" }}
+          onMouseEnter={(e) =>
+            (e.currentTarget.style.color = "var(--adm-error, #EF4444)")
+          }
+          onMouseLeave={(e) =>
+            (e.currentTarget.style.color = "var(--adm-text-muted, #9CA3AF)")
+          }
         >
           <X className="w-5 h-5" />
         </button>
 
         {/* تیتر */}
-        <h2 className="text-xl font-bold text-white mb-6 text-center">
+        <h2 className="text-xl font-bold mb-6 text-center" style={{ color: "var(--adm-text, #E5E7EB)" }}>
           {mode === "view"
             ? "نمایش اطلاعات کاربر"
             : mode === "edit"
@@ -86,7 +101,10 @@ const UserModal = ({ isOpen, onClose, mode, user, onUpdate, onDelete }) => {
               { label: "کد پستی", name: "postalCode", type: "text" },
             ].map((field) => (
               <div key={field.name}>
-                <label className="block text-sm text-gray-300 mb-1">
+                <label
+                  className="block text-sm mb-1"
+                  style={{ color: "var(--adm-text-muted, #9CA3AF)" }}
+                >
                   {field.label}
                 </label>
                 <input
@@ -95,7 +113,18 @@ const UserModal = ({ isOpen, onClose, mode, user, onUpdate, onDelete }) => {
                   value={formData[field.name] || ""}
                   disabled={mode === "view"}
                   onChange={handleChange}
-                  className="w-full bg-gray-900/60 border border-gray-700 rounded-lg px-3 py-2 text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:opacity-50"
+                  className="w-full rounded-xl px-3 py-2 focus:outline-none focus:ring-2 disabled:opacity-50"
+                  style={{
+                    background: "var(--adm-surface-2, rgba(15,23,42,0.7))",
+                    border: "1px solid var(--adm-border, rgba(148,163,184,0.25))",
+                    color: "var(--adm-text, #E5E7EB)",
+                    boxShadow: "none",
+                  }}
+                  onFocus={(e) =>
+                    (e.currentTarget.style.boxShadow =
+                      "0 0 0 3px var(--adm-ring, rgba(99,102,241,0.35))")
+                  }
+                  onBlur={(e) => (e.currentTarget.style.boxShadow = "none")}
                 />
               </div>
             ))}
@@ -114,9 +143,9 @@ const UserModal = ({ isOpen, onClose, mode, user, onUpdate, onDelete }) => {
         {/* حذف */}
         {mode === "delete" && (
           <div className="text-center space-y-4">
-            <p className="text-white font-medium">
+            <p className="font-medium" style={{ color: "var(--adm-text, #E5E7EB)" }}>
               آیا مطمئن هستید که می‌خواهید کاربر{" "}
-              <strong className="text-red-500">{user.name}</strong> را حذف کنید؟
+              <strong style={{ color: "var(--adm-error, #EF4444)" }}>{user.name}</strong> را حذف کنید؟
             </p>
             <Btn1
               text={

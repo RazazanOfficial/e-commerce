@@ -1,3 +1,5 @@
+"use client";
+
 import { X, Eye, Edit, Trash2 } from "lucide-react";
 import { useEffect, useState } from "react";
 import UserModal from "./UserModal";
@@ -80,33 +82,57 @@ const SearchModal = ({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm"
+      className="fixed inset-0 z-50 flex items-center justify-center backdrop-blur-sm"
+      style={{ background: "var(--adm-overlay, rgba(0,0,0,0.55))" }}
       onClick={onClose}
     >
       <div
-        className="relative w-full max-w-4xl mx-auto bg-gray-900 border border-gray-700 rounded-xl shadow-2xl p-6"
+        className="relative w-full max-w-4xl mx-auto rounded-2xl shadow-2xl p-6"
+        style={{
+          background: "var(--adm-surface, #111827)",
+          border: "1px solid var(--adm-border, rgba(148,163,184,0.25))",
+        }}
         onClick={(e) => e.stopPropagation()}
       >
         {/* دکمه بستن */}
         <button
           onClick={onClose}
-          className="absolute top-4 left-4 text-gray-400 hover:text-red-500 transition-colors"
+          className="absolute top-4 left-4 transition-colors"
+          style={{ color: "var(--adm-text-muted, #9CA3AF)" }}
+          onMouseEnter={(e) => (e.currentTarget.style.color = "var(--adm-error, #EF4444)")}
+          onMouseLeave={(e) => (e.currentTarget.style.color = "var(--adm-text-muted, #9CA3AF)")}
         >
           <X className="w-6 h-6" />
         </button>
 
         {/* عنوان */}
-        <h2 className="text-xl font-bold text-white mb-6 border-b border-gray-700 pb-2">
+        <h2
+          className="text-xl font-bold mb-6 pb-2"
+          style={{
+            color: "var(--adm-text, #E5E7EB)",
+            borderBottom: "1px solid var(--adm-border, rgba(148,163,184,0.25))",
+          }}
+        >
           نتایج جستجو
         </h2>
 
         {/* محتوای جدول */}
         {searchResults.length === 0 ? (
-          <p className="text-gray-400 text-center">کاربری یافت نشد</p>
+          <p className="text-center" style={{ color: "var(--adm-text-muted, #9CA3AF)" }}>
+            کاربری یافت نشد
+          </p>
         ) : (
-          <div className="overflow-x-auto max-h-[450px] rounded-lg border border-gray-700">
+          <div
+            className="overflow-x-auto max-h-[450px] rounded-xl"
+            style={{ border: "1px solid var(--adm-border, rgba(148,163,184,0.25))" }}
+          >
             <table className="w-full text-right text-sm">
-              <thead className="bg-gray-800 text-gray-300">
+              <thead
+                style={{
+                  background: "var(--adm-surface-2, #1F2937)",
+                  color: "var(--adm-text-muted, #D1D5DB)",
+                }}
+              >
                 <tr>
                   <th className="py-3 px-4 font-medium">نام</th>
                   <th className="py-3 px-4 font-medium">ایمیل</th>
@@ -119,9 +145,23 @@ const SearchModal = ({
                 {searchResults.map((user, idx) => (
                   <tr
                     key={user._id || user.id}
-                    className={`${
-                      idx % 2 === 0 ? "bg-gray-900" : "bg-gray-800/60"
-                    } hover:bg-gray-700 transition-colors`}
+                    className="transition-colors"
+                    style={{
+                      background:
+                        idx % 2 === 0
+                          ? "var(--adm-surface, #111827)"
+                          : "var(--adm-surface-2, #1F2937)",
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.background =
+                        "var(--adm-primary-soft, rgba(99,102,241,0.12))";
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.background =
+                        idx % 2 === 0
+                          ? "var(--adm-surface, #111827)"
+                          : "var(--adm-surface-2, #1F2937)";
+                    }}
                   >
                     {/* نام + آواتار */}
                     <td className="py-3 px-4 flex items-center">
@@ -132,14 +172,18 @@ const SearchModal = ({
                       >
                         {user.name?.charAt(0)}
                       </div>
-                      <span className="text-gray-200">{user.name}</span>
+                      <span style={{ color: "var(--adm-text, #E5E7EB)" }}>
+                        {user.name}
+                      </span>
                     </td>
 
                     {/* ایمیل */}
-                    <td className="py-3 px-4 text-gray-300">{user.email}</td>
+                    <td className="py-3 px-4" style={{ color: "var(--adm-text-muted, #D1D5DB)" }}>
+                      {user.email}
+                    </td>
 
                     {/* موبایل */}
-                    <td className="py-3 px-4 text-gray-300">
+                    <td className="py-3 px-4" style={{ color: "var(--adm-text-muted, #D1D5DB)" }}>
                       {user.phone || "-"}
                     </td>
 
@@ -159,19 +203,49 @@ const SearchModal = ({
                       <div className="flex gap-2">
                         <button
                           onClick={() => handleAction(user, "view")}
-                          className="p-2 rounded-md text-gray-400 hover:text-emerald-400 hover:bg-gray-700 transition-colors"
+                          className="p-2 rounded-lg transition-colors"
+                          style={{ color: "var(--adm-text-muted, #9CA3AF)" }}
+                          onMouseEnter={(e) => {
+                            e.currentTarget.style.background =
+                              "var(--adm-success-soft, rgba(34,197,94,0.14))";
+                            e.currentTarget.style.color = "var(--adm-success, #22C55E)";
+                          }}
+                          onMouseLeave={(e) => {
+                            e.currentTarget.style.background = "transparent";
+                            e.currentTarget.style.color = "var(--adm-text-muted, #9CA3AF)";
+                          }}
                         >
                           <Eye className="h-5 w-5" />
                         </button>
                         <button
                           onClick={() => handleAction(user, "edit")}
-                          className="p-2 rounded-md text-gray-400 hover:text-blue-400 hover:bg-gray-700 transition-colors"
+                          className="p-2 rounded-lg transition-colors"
+                          style={{ color: "var(--adm-text-muted, #9CA3AF)" }}
+                          onMouseEnter={(e) => {
+                            e.currentTarget.style.background =
+                              "var(--adm-primary-soft, rgba(99,102,241,0.12))";
+                            e.currentTarget.style.color = "var(--adm-primary, #6366F1)";
+                          }}
+                          onMouseLeave={(e) => {
+                            e.currentTarget.style.background = "transparent";
+                            e.currentTarget.style.color = "var(--adm-text-muted, #9CA3AF)";
+                          }}
                         >
                           <Edit className="h-5 w-5" />
                         </button>
                         <button
                           onClick={() => handleAction(user, "delete")}
-                          className="p-2 rounded-md text-gray-400 hover:text-red-400 hover:bg-gray-700 transition-colors"
+                          className="p-2 rounded-lg transition-colors"
+                          style={{ color: "var(--adm-text-muted, #9CA3AF)" }}
+                          onMouseEnter={(e) => {
+                            e.currentTarget.style.background =
+                              "var(--adm-error-soft, rgba(239,68,68,0.14))";
+                            e.currentTarget.style.color = "var(--adm-error, #EF4444)";
+                          }}
+                          onMouseLeave={(e) => {
+                            e.currentTarget.style.background = "transparent";
+                            e.currentTarget.style.color = "var(--adm-text-muted, #9CA3AF)";
+                          }}
                         >
                           <Trash2 className="h-5 w-5" />
                         </button>

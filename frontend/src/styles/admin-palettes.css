@@ -1,0 +1,276 @@
+/*
+  Admin palette tokens (UI-only)
+  --------------------------------
+  Usage:
+    - <html data-scope="admin" data-palette="paletteA" data-theme="dark|light">
+    - All admin UI should use CSS variables below via Tailwind arbitrary values:
+        bg-[var(--adm-bg)] text-[var(--adm-text)] border-[color:var(--adm-border)]
+*/
+
+html[data-scope="admin"] {
+  /* Generic admin tokens */
+  --adm-radius: 16px;
+  --adm-radius-sm: 12px;
+  --adm-radius-xs: 10px;
+  --adm-ring-size: 2px;
+}
+
+/* -----------------------------
+   Palette A — Slate + Indigo
+------------------------------ */
+
+html[data-scope="admin"][data-palette="paletteA"] {
+  --adm-bg: #F8FAFC;
+  --adm-surface: #FFFFFF;
+  --adm-surface-2: #F1F5F9;
+  --adm-border: #E2E8F0;
+  --adm-text: #0F172A;
+  --adm-text-muted: #475569;
+  --adm-primary: #4F46E5;
+  --adm-primary-hover: #4338CA;
+  --adm-on-primary: #FFFFFF;
+  --adm-primary-soft: rgba(79,70,229,0.12);
+  --adm-info: #0284C7;
+  --adm-info-soft: rgba(2,132,199,0.14);
+  --adm-success: #16A34A;
+  --adm-success-soft: rgba(22,163,74,0.14);
+  --adm-warning: #F59E0B;
+  --adm-warning-soft: rgba(245,158,11,0.18);
+  --adm-error: #DC2626;
+  --adm-error-soft: rgba(220,38,38,0.14);
+  --adm-ring: rgba(79,70,229,0.45);
+  --adm-overlay: rgba(2,6,23,0.55);
+  --adm-shadow: rgba(2,6,23,0.08);
+}
+
+html[data-scope="admin"][data-palette="paletteA"][data-theme="dark"] {
+  --adm-bg: #020617;
+  --adm-surface: #0F172A;
+  --adm-surface-2: #111C33;
+  --adm-border: #1E293B;
+  --adm-text: #E2E8F0;
+  --adm-text-muted: #94A3B8;
+  --adm-primary: #818CF8;
+  --adm-primary-hover: #6366F1;
+  --adm-on-primary: #0B1220;
+  --adm-primary-soft: rgba(129,140,248,0.16);
+  --adm-info: #38BDF8;
+  --adm-info-soft: rgba(56,189,248,0.16);
+  --adm-success: #4ADE80;
+  --adm-success-soft: rgba(74,222,128,0.16);
+  --adm-warning: #FBBF24;
+  --adm-warning-soft: rgba(251,191,36,0.18);
+  --adm-error: #F87171;
+  --adm-error-soft: rgba(248,113,113,0.16);
+  --adm-ring: rgba(129,140,248,0.55);
+  --adm-overlay: rgba(0,0,0,0.62);
+  --adm-shadow: rgba(0,0,0,0.35);
+}
+
+/* -----------------------------
+   Palette B — Zinc + Blue
+------------------------------ */
+
+html[data-scope="admin"][data-palette="paletteB"] {
+  --adm-bg: #FAFAFA;
+  --adm-surface: #FFFFFF;
+  --adm-surface-2: #F4F4F5;
+  --adm-border: #E4E4E7;
+  --adm-text: #18181B;
+  --adm-text-muted: #52525B;
+  --adm-primary: #2563EB;
+  --adm-primary-hover: #1D4ED8;
+  --adm-on-primary: #FFFFFF;
+  --adm-primary-soft: rgba(37,99,235,0.12);
+  --adm-info: #0EA5E9;
+  --adm-info-soft: rgba(14,165,233,0.14);
+  --adm-success: #22C55E;
+  --adm-success-soft: rgba(34,197,94,0.14);
+  --adm-warning: #F59E0B;
+  --adm-warning-soft: rgba(245,158,11,0.18);
+  --adm-error: #EF4444;
+  --adm-error-soft: rgba(239,68,68,0.14);
+  --adm-ring: rgba(37,99,235,0.45);
+  --adm-overlay: rgba(9,9,11,0.55);
+  --adm-shadow: rgba(9,9,11,0.10);
+}
+
+html[data-scope="admin"][data-palette="paletteB"][data-theme="dark"] {
+  --adm-bg: #09090B;
+  --adm-surface: #18181B;
+  --adm-surface-2: #1F1F23;
+  --adm-border: #27272A;
+  --adm-text: #FAFAFA;
+  --adm-text-muted: #A1A1AA;
+  --adm-primary: #60A5FA;
+  --adm-primary-hover: #3B82F6;
+  --adm-on-primary: #0B1220;
+  --adm-primary-soft: rgba(96,165,250,0.18);
+  --adm-info: #38BDF8;
+  --adm-info-soft: rgba(56,189,248,0.16);
+  --adm-success: #4ADE80;
+  --adm-success-soft: rgba(74,222,128,0.16);
+  --adm-warning: #FBBF24;
+  --adm-warning-soft: rgba(251,191,36,0.18);
+  --adm-error: #F87171;
+  --adm-error-soft: rgba(248,113,113,0.16);
+  --adm-ring: rgba(96,165,250,0.55);
+  --adm-overlay: rgba(0,0,0,0.62);
+  --adm-shadow: rgba(0,0,0,0.38);
+}
+
+/* -----------------------------
+   Palette C — Stone + Teal
+------------------------------ */
+
+html[data-scope="admin"][data-palette="paletteC"] {
+  --adm-bg: #FAFAF9;
+  --adm-surface: #FFFFFF;
+  --adm-surface-2: #F5F5F4;
+  --adm-border: #E7E5E4;
+  --adm-text: #1C1917;
+  --adm-text-muted: #57534E;
+  --adm-primary: #0F766E;
+  --adm-primary-hover: #115E59;
+  --adm-on-primary: #FFFFFF;
+  --adm-primary-soft: rgba(15,118,110,0.12);
+  --adm-info: #0891B2;
+  --adm-info-soft: rgba(8,145,178,0.14);
+  --adm-success: #16A34A;
+  --adm-success-soft: rgba(22,163,74,0.14);
+  --adm-warning: #F59E0B;
+  --adm-warning-soft: rgba(245,158,11,0.18);
+  --adm-error: #DC2626;
+  --adm-error-soft: rgba(220,38,38,0.14);
+  --adm-ring: rgba(15,118,110,0.45);
+  --adm-overlay: rgba(12,10,9,0.55);
+  --adm-shadow: rgba(12,10,9,0.10);
+}
+
+html[data-scope="admin"][data-palette="paletteC"][data-theme="dark"] {
+  --adm-bg: #0C0A09;
+  --adm-surface: #1C1917;
+  --adm-surface-2: #211E1B;
+  --adm-border: #292524;
+  --adm-text: #FAFAF9;
+  --adm-text-muted: #A8A29E;
+  --adm-primary: #2DD4BF;
+  --adm-primary-hover: #14B8A6;
+  --adm-on-primary: #042F2E;
+  --adm-primary-soft: rgba(45,212,191,0.16);
+  --adm-info: #22D3EE;
+  --adm-info-soft: rgba(34,211,238,0.16);
+  --adm-success: #4ADE80;
+  --adm-success-soft: rgba(74,222,128,0.16);
+  --adm-warning: #FBBF24;
+  --adm-warning-soft: rgba(251,191,36,0.18);
+  --adm-error: #F87171;
+  --adm-error-soft: rgba(248,113,113,0.16);
+  --adm-ring: rgba(45,212,191,0.55);
+  --adm-overlay: rgba(0,0,0,0.62);
+  --adm-shadow: rgba(0,0,0,0.38);
+}
+
+/* -----------------------------
+   Palette D — Neutral + Violet
+------------------------------ */
+
+html[data-scope="admin"][data-palette="paletteD"] {
+  --adm-bg: #F7F7FF;
+  --adm-surface: #FFFFFF;
+  --adm-surface-2: #EEF2FF;
+  --adm-border: #E0E7FF;
+  --adm-text: #111827;
+  --adm-text-muted: #4B5563;
+  --adm-primary: #7C3AED;
+  --adm-primary-hover: #6D28D9;
+  --adm-on-primary: #FFFFFF;
+  --adm-primary-soft: rgba(124,58,237,0.12);
+  --adm-info: #0EA5E9;
+  --adm-info-soft: rgba(14,165,233,0.14);
+  --adm-success: #22C55E;
+  --adm-success-soft: rgba(34,197,94,0.14);
+  --adm-warning: #F59E0B;
+  --adm-warning-soft: rgba(245,158,11,0.18);
+  --adm-error: #EF4444;
+  --adm-error-soft: rgba(239,68,68,0.14);
+  --adm-ring: rgba(124,58,237,0.45);
+  --adm-overlay: rgba(17,24,39,0.55);
+  --adm-shadow: rgba(17,24,39,0.10);
+}
+
+html[data-scope="admin"][data-palette="paletteD"][data-theme="dark"] {
+  --adm-bg: #0B0814;
+  --adm-surface: #141024;
+  --adm-surface-2: #1A1530;
+  --adm-border: #2B2346;
+  --adm-text: #F5F3FF;
+  --adm-text-muted: #C4B5FD;
+  --adm-primary: #A78BFA;
+  --adm-primary-hover: #8B5CF6;
+  --adm-on-primary: #160B2E;
+  --adm-primary-soft: rgba(167,139,250,0.16);
+  --adm-info: #38BDF8;
+  --adm-info-soft: rgba(56,189,248,0.16);
+  --adm-success: #4ADE80;
+  --adm-success-soft: rgba(74,222,128,0.16);
+  --adm-warning: #FBBF24;
+  --adm-warning-soft: rgba(251,191,36,0.18);
+  --adm-error: #F87171;
+  --adm-error-soft: rgba(248,113,113,0.16);
+  --adm-ring: rgba(167,139,250,0.55);
+  --adm-overlay: rgba(0,0,0,0.62);
+  --adm-shadow: rgba(0,0,0,0.38);
+}
+
+/* -----------------------------
+   Palette E — Warm Commerce
+------------------------------ */
+
+html[data-scope="admin"][data-palette="paletteE"] {
+  --adm-bg: #FFFBEB;
+  --adm-surface: #FFFFFF;
+  --adm-surface-2: #FEF3C7;
+  --adm-border: #E5E7EB;
+  --adm-text: #111827;
+  --adm-text-muted: #6B7280;
+  --adm-primary: #D97706;
+  --adm-primary-hover: #B45309;
+  --adm-on-primary: #FFFFFF;
+  --adm-primary-soft: rgba(217,119,6,0.14);
+  --adm-info: #0284C7;
+  --adm-info-soft: rgba(2,132,199,0.14);
+  --adm-success: #16A34A;
+  --adm-success-soft: rgba(22,163,74,0.14);
+  --adm-warning: #F59E0B;
+  --adm-warning-soft: rgba(245,158,11,0.18);
+  --adm-error: #DC2626;
+  --adm-error-soft: rgba(220,38,38,0.14);
+  --adm-ring: rgba(217,119,6,0.45);
+  --adm-overlay: rgba(15,17,21,0.55);
+  --adm-shadow: rgba(15,17,21,0.10);
+}
+
+html[data-scope="admin"][data-palette="paletteE"][data-theme="dark"] {
+  --adm-bg: #0F1115;
+  --adm-surface: #151922;
+  --adm-surface-2: #1B2230;
+  --adm-border: #232A3A;
+  --adm-text: #F9FAFB;
+  --adm-text-muted: #9CA3AF;
+  --adm-primary: #F59E0B;
+  --adm-primary-hover: #D97706;
+  --adm-on-primary: #1F1300;
+  --adm-primary-soft: rgba(245,158,11,0.18);
+  --adm-info: #38BDF8;
+  --adm-info-soft: rgba(56,189,248,0.16);
+  --adm-success: #4ADE80;
+  --adm-success-soft: rgba(74,222,128,0.16);
+  --adm-warning: #FBBF24;
+  --adm-warning-soft: rgba(251,191,36,0.18);
+  --adm-error: #F87171;
+  --adm-error-soft: rgba(248,113,113,0.16);
+  --adm-ring: rgba(245,158,11,0.55);
+  --adm-overlay: rgba(0,0,0,0.62);
+  --adm-shadow: rgba(0,0,0,0.38);
+}

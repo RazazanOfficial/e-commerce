@@ -6,6 +6,7 @@ import { toast } from "react-toastify";
 import Spinner from "@/components/Spinner";
 import { notFound } from "next/navigation";
 import { UserContext } from "@/context/UserContext";
+import { AdminThemeProvider } from "@/context/AdminThemeContext";
 import ThemeProvider from "@/components/theme-provider";
 import { usePathname, useRouter } from "next/navigation";
 import { useContext, useEffect, useMemo, useState } from "react";
@@ -34,29 +35,30 @@ function ThemeToggle() {
 
   const btnBase =
     "inline-flex items-center justify-center transition-colors " +
-    "text-zinc-600 dark:text-zinc-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 " +
+    "text-[var(--adm-text-muted)] hover:text-[var(--adm-text)] " +
+    "focus:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--adm-ring)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--adm-bg)] " +
     "w-[var(--sz)] h-[var(--sz)] min-w-[var(--sz)] min-h-[var(--sz)] [--sz:32px] sm:[--sz:36px] md:[--sz:40px] " +
-    "p-0.5 rounded-full hover:text-black dark:hover:text-white data-[state=active]:bg-blue-600/15";
+    "p-0.5 rounded-full hover:bg-[var(--adm-surface-2)]";
 
   return (
-    <div className="flex items-center p-[2px] sm:p-[3px] border border-zinc-400/60 dark:border-zinc-600/60 rounded-full w-max bg-white/70 dark:bg-slate-900/60 backdrop-blur">
+    <div className="flex items-center p-[2px] sm:p-[3px] border border-[color:var(--adm-border)] rounded-full w-max bg-[var(--adm-surface)]">
       <button
         aria-label="Light"
-        className={btnBase}
+        className={`${btnBase} ${theme === "light" ? "bg-[var(--adm-primary-soft)]" : ""}`}
         onClick={() => setTheme("light")}
       >
         <Sun size={14} className="sm:w-4 sm:h-4 md:w-[18px] md:h-[18px]" />
       </button>
       <button
         aria-label="System"
-        className={btnBase}
+        className={`${btnBase} ${theme === "system" ? "bg-[var(--adm-primary-soft)]" : ""}`}
         onClick={() => setTheme("system")}
       >
         <Monitor size={14} className="sm:w-4 sm:h-4 md:w-[18px] md:h-[18px]" />
       </button>
       <button
         aria-label="Dark"
-        className={btnBase}
+        className={`${btnBase} ${theme === "dark" ? "bg-[var(--adm-primary-soft)]" : ""}`}
         onClick={() => setTheme("dark")}
       >
         <Moon size={14} className="sm:w-4 sm:h-4 md:w-[18px] md:h-[18px]" />
@@ -68,10 +70,10 @@ function ThemeToggle() {
 // --- Sidebar Item
 function NavItem({ href, icon, label, active, onClick }) {
   const base =
-    "group flex items-center gap-2 sm:gap-3 px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl transition-all " +
-    "text-slate-700 dark:text-slate-200 hover:bg-blue-600/10 dark:hover:bg-slate-700/60";
+    "group flex items-center gap-2 sm:gap-3 px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl transition-colors " +
+    "text-[var(--adm-text-muted)] hover:text-[var(--adm-text)] hover:bg-[var(--adm-surface-2)]";
   const act =
-    "bg-blue-700 text-white shadow-inner hover:bg-blue-700 dark:shadow-black/20";
+    "bg-[var(--adm-primary-soft)] text-[var(--adm-text)] ring-1 ring-inset ring-[color:var(--adm-ring)]";
 
   return (
     <Link
@@ -151,12 +153,13 @@ export default function AdminPanelLayout({ children }) {
 
   return (
     <ThemeProvider>
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-950 dark:to-slate-900">
+      <AdminThemeProvider>
+      <div className="min-h-screen bg-[var(--adm-bg)] text-[var(--adm-text)]">
         <div className="min-h-screen flex flex-col">
           <div className="flex flex-1">
             {/* Sidebar toggle (mobile) */}
             <button
-              className="xl:hidden fixed top-3 right-3 z-50 p-2 rounded-full bg-blue-700 text-white shadow-lg"
+              className="xl:hidden fixed top-3 right-3 z-50 p-2 rounded-full bg-[var(--adm-primary)] text-[var(--adm-on-primary)] shadow-[0_10px_30px_var(--adm-shadow)]"
               onClick={() => setSidebarOpen((s) => !s)}
             >
               {sidebarOpen ? (
@@ -171,14 +174,14 @@ export default function AdminPanelLayout({ children }) {
               className={`${
                 sidebarOpen ? "flex" : "hidden"
               } xl:flex xl:w-64 lg:w-60 flex-col fixed inset-y-0 right-0 transition duration-300 ease-in-out z-30 h-full 
-              bg-white/80 dark:bg-slate-900/70 backdrop-blur border-l border-slate-200/60 dark:border-slate-700/60`}
+              bg-[var(--adm-surface)] border-l border-[color:var(--adm-border)] shadow-[0_20px_60px_var(--adm-shadow)]`}
             >
               <div className="p-4 sm:p-5 pt-14 sm:pt-16">
-                <div className="flex items-center gap-2 sm:gap-3 mb-6 sm:mb-8 rounded-xl p-3 sm:p-4 border border-sky-400/30 bg-sky-400/10">
-                  <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-blue-700 text-white flex items-center justify-center">
+                <div className="flex items-center gap-2 sm:gap-3 mb-6 sm:mb-8 rounded-xl p-3 sm:p-4 border border-[color:var(--adm-border)] bg-[var(--adm-surface-2)]">
+                  <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-[var(--adm-primary)] text-[var(--adm-on-primary)] flex items-center justify-center">
                     <Users className="h-4 w-4 sm:h-5 sm:w-5" />
                   </div>
-                  <h1 className="text-slate-900 dark:text-slate-100 text-sm sm:text-base font-bold">
+                  <h1 className="text-[var(--adm-text)] text-sm sm:text-base font-bold">
                     پنل ادمین
                   </h1>
                 </div>
@@ -204,8 +207,20 @@ export default function AdminPanelLayout({ children }) {
               </div>
 
               <div className="mt-auto p-4 sm:p-5">
+                <div className="mb-4 rounded-2xl border border-[color:var(--adm-border)] bg-[var(--adm-surface)] p-3">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-xs text-[var(--adm-text-muted)]">حالت نمایش</span>
+                    <Link
+                      href="/admin-panel/settings"
+                      className="text-xs text-[var(--adm-primary)] hover:underline"
+                    >
+                      تنظیمات
+                    </Link>
+                  </div>
+                  <ThemeToggle />
+                </div>
                 <button
-                  className="w-full flex items-center gap-2 sm:gap-3 px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl text-red-600 hover:bg-red-600/10 transition-colors text-sm sm:text-base"
+                  className="w-full flex items-center gap-2 sm:gap-3 px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl text-[var(--adm-error)] hover:bg-[var(--adm-error-soft)] transition-colors text-sm sm:text-base"
                   onClick={async () => {
                     try {
                       await axios.post("/api/logout");
@@ -223,53 +238,14 @@ export default function AdminPanelLayout({ children }) {
 
             {/* Main content */}
             <main className="flex-1 xl:mr-64 mr-0 transition-all duration-300 py-10">
-              {/* Top bar */}
-
-              {/* <header
-                className="w-full mb-4 sm:mb-6 rounded-2xl border border-slate-200/60 dark:border-slate-700/60 
-              bg-white/70 dark:bg-slate-900/60 backdrop-blur p-2 sm:p-3 
-                flex flex-wrap items-center justify-between gap-2"
-              >
-                <div className="relative flex-1 max-w-xs sm:max-w-sm md:max-w-md">
-                  <input
-                    type="text"
-                    placeholder="جستجو..."
-                    className="w-full py-1.5 sm:py-2 pl-9 pr-3 sm:pr-4 rounded-xl text-sm sm:text-base 
-                  bg-white/80 dark:bg-slate-900/70 border border-slate-200/60 dark:border-slate-700/60 
-                    focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-800 dark:text-slate-100 placeholder:text-slate-400"
-                  />
-                  <Search className="w-4 h-4 sm:w-5 sm:h-5 absolute left-2.5 top-2 sm:top-2.5 text-slate-500 dark:text-slate-400" />
-                </div>
-
-                <div className="flex items-center gap-3 sm:gap-4">
-                  <button className="relative p-1.5 sm:p-2 rounded-full hover:bg-blue-600/10 dark:hover:bg-slate-700/60">
-                    <Bell className="w-4 h-4 sm:w-5 sm:h-5 text-slate-700 dark:text-slate-200" />
-                    <span className="absolute -top-1 -right-1 w-3.5 h-3.5 sm:w-4 sm:h-4 bg-red-500 rounded-full text-white text-[10px] sm:text-xs flex items-center justify-center">
-                      3
-                    </span>
-                  </button>
-                  <ThemeToggle />
-                  <div className="flex items-center gap-2 sm:gap-3">
-                    <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-gradient-to-br from-blue-700 to-blue-900 text-white flex items-center justify-center text-xs sm:text-sm font-bold">
-                      {user?.name?.charAt(0) || "A"}
-                    </div>
-                    <div className="hidden md:block">
-                      <p className="text-sm font-medium text-slate-900 dark:text-slate-100">
-                        {user?.name || "ادمین"}
-                      </p>
-                      <p className="text-xs text-slate-500 dark:text-slate-400">مدیر</p>
-                    </div>
-                  </div>
-                </div>
-              </header>  */}
-
-              <div className="animate-[fadeIn_0.5s_ease_forwards] md:px-8">
+              <div className="animate-[fadeIn_0.5s_ease_forwards] md:px-8 px-4">
                 {children}
               </div>
             </main>
           </div>
         </div>
       </div>
+      </AdminThemeProvider>
     </ThemeProvider>
   );
 }
