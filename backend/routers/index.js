@@ -7,6 +7,7 @@ const user = require("./Admin-Panel/allUsers/user");
 const searchUsers = require("./Admin-Panel/allUsers/searchUsers");
 const categoryRouters = require("./Admin-Panel/products/categoryRouters");
 const productRouters = require("./Admin-Panel/products/productRouters");
+const optionCatalogRouters = require("./Admin-Panel/products/optionCatalogRouters");
 
 //! Auth
 router.use("", authRouters);
@@ -20,5 +21,6 @@ router.use("/admin/search-users", searchUsers);
 //? Products
 router.use("/admin/categories", categoryRouters);
 router.use("/admin/products", productRouters);
+router.use("/admin/option-catalogs", optionCatalogRouters);
 
 module.exports = router;
