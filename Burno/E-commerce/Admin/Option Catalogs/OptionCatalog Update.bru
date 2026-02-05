@@ -1,0 +1,15 @@
+meta {
+  name: OptionCatalog Update
+  type: http
+  seq: 4
+}
+
+put {
+  url: {{baseURL}}/api/admin/option-catalogs/
+  body: none
+  auth: inherit
+}
+
+settings {
+  encodeUrl: true
+}
