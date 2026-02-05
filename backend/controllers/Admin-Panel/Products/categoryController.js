@@ -1,6 +1,7 @@
 //? 🔵Required Modules
 const mongoose = require("mongoose");
 const CategoryModel = require("../../../models/categoryModel");
+const { Product } = require("../../../models/productModel");
 
 //* 🟢REQUIRED Utils
 const REQUIRED = {
@@ -139,18 +140,15 @@ const createCategory = async (req, res) => {
     }
 
     name = String(name).trim();
-    slug = String(slug).trim();
-    if (!slug) {
-      return res
-        .status(400)
-        .json({ success: false, error: true, message: REQUIRED.create.slug });
-    }
 
-    const slugExists = await CategoryModel.exists({ slug });
-    if (slugExists) {
+    let normalizedSlug;
+    try {
+      normalizedSlug = await validateAndNormalizeSlug(slug);
+    } catch (e) {
+      const status = e.code === 409 ? 409 : 400;
       return res
-        .status(409)
-        .json({ success: false, error: true, message: "slug تکراری است" });
+        .status(status)
+        .json({ success: false, error: true, message: e.message });
     }
 
     const parentId = await resolveParentId(parent);
@@ -169,7 +167,7 @@ const createCategory = async (req, res) => {
 
     const doc = await CategoryModel.create({
       name,
-      slug,
+      slug: normalizedSlug,
       description,
       image,
       imageAlt,
@@ -419,6 +417,15 @@ const deleteCategory = async (req, res) => {
         success: false,
         error: true,
         message: "این دسته‌بندی به‌دلیل داشتن زیرمجموعه قابل حذف نیست",
+      });
+    }
+
+    const productsCount = await Product.countDocuments({ categoryId: id });
+    if (productsCount > 0) {
+      return res.status(409).json({
+        success: false,
+        error: true,
+        message: "این دسته‌بندی به‌دلیل داشتن محصول قابل حذف نیست",
       });
     }
 

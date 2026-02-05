@@ -4,3 +4,4 @@ export * from "./AdminField";
 export * from "./AdminBadge";
 export * from "./AdminModal";
 export * from "./AdminTable";
+export * from "./AdminConfirmDialog";

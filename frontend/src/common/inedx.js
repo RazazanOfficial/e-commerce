@@ -44,6 +44,39 @@ const backApis = {
     url: `${backDomin}/api/admin/categories/${id}`,
     method: "DELETE",
   }),
+
+  getAllProducts: {
+    url: `${backDomin}/api/admin/products`,
+    method: "GET",
+  },
+  searchProducts: {
+    url: `${backDomin}/api/admin/products/search`,
+    method: "GET",
+  },
+  getSingleProduct: (id) => ({
+    url: `${backDomin}/api/admin/products/${id}`,
+    method: "GET",
+  }),
+  createProduct: {
+    url: `${backDomin}/api/admin/products`,
+    method: "POST",
+  },
+  updateProduct: (id) => ({
+    url: `${backDomin}/api/admin/products/${id}`,
+    method: "PUT",
+  }),
+  archiveProduct: (id) => ({
+    url: `${backDomin}/api/admin/products/${id}`,
+    method: "DELETE",
+  }),
+  restoreProduct: (id) => ({
+    url: `${backDomin}/api/admin/products/${id}/restore`,
+    method: "PATCH",
+  }),
+  deleteProductHard: (id) => ({
+    url: `${backDomin}/api/admin/products/${id}/hard`,
+    method: "DELETE",
+  }),
 };
 
 export default backApis;

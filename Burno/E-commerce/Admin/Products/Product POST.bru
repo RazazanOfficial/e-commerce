@@ -6,10 +6,25 @@ meta {
 
 post {
   url: {{baseURL}}/api/admin/products
-  body: none
+  body: json
   auth: inherit
+}
+
+body:json {
+  {
+    "name": "Test Product 1",
+    "categoryId": "<CATEGORY_ID>",
+    "price": 1000,
+    "currency": "IRT",
+    "images": [
+      { "url": "https://example.com/a.jpg", "isPrimary": true }
+    ],
+    "stock": 10
+  }
+  
 }
 
 settings {
   encodeUrl: true
+  timeout: 0
 }
