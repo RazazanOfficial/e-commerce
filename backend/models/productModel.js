@@ -2,6 +2,12 @@ const mongoose = require("mongoose");
 const { Schema } = mongoose;
 const { ObjectId } = Schema.Types;
 
+// فقط وقتی محصول "فعال" است، فیلدهای اصلی اجباری شوند
+function requiredIfActive() {
+  return this.status === "ACTIVE";
+}
+
+
 /* ========== Option Catalog (برای مدیریت آپشن‌های عمومی توسط ادمین) ========== */
 const OptionCatalogSchema = new Schema(
   {
@@ -44,6 +50,7 @@ const TechSpecSectionSchema = new Schema(
   { _id: false }
 );
 
+
 const MediaImageSchema = new Schema(
   {
     url: { type: String, required: true, trim: true },
@@ -67,6 +74,18 @@ const MediaVideoSchema = new Schema(
 
 /* قیمت‌ها و اعداد صحیح */
 const isIntOrUndef = (v) => v == null || Number.isInteger(v);
+
+/* FAQ (سوالات متداول) */
+const FaqSchema = new Schema(
+  {
+    question: { type: String, required: true, trim: true, maxlength: 140 },
+    answerHtml: { type: String, default: "" },
+    isActive: { type: Boolean, default: true },
+    sortOrder: { type: Number, default: 0, min: 0, validate: { validator: isIntOrUndef } },
+  },
+  { _id: true, timestamps: false }
+);
+
 
 /* Variant */
 const VariantSchema = new Schema(
@@ -114,17 +133,17 @@ const VariantSchema = new Schema(
 /* ========== Product ========== */
 const ProductSchema = new Schema(
   {
-    title: { type: String, required: true, maxlength: 120, trim: true },
+    title: { type: String, required: requiredIfActive, maxlength: 120, trim: true },
     slug: {
       type: String,
-      required: true,
+      required: requiredIfActive,
       index: true,
       lowercase: true,
       trim: true,
     },
     shortDescription: {
       type: String,
-      required: true,
+      required: requiredIfActive,
       maxlength: 160,
       trim: true,
     },
@@ -134,7 +153,7 @@ const ProductSchema = new Schema(
     categoryId: {
       type: ObjectId,
       ref: "Category",
-      required: true,
+      required: requiredIfActive,
       index: true,
     },
     brandId: { type: ObjectId, ref: "Brand" },
@@ -150,11 +169,11 @@ const ProductSchema = new Schema(
 
     price: {
       type: Number,
-      required: true,
+      required: requiredIfActive,
       min: 0,
       validate: { validator: Number.isInteger },
     }, // تومان به صورت عدد صحیح
-    currency: { type: String, required: true, enum: ["IRT", "IRR", "USD"] },
+    currency: { type: String, required: requiredIfActive, enum: ["IRT", "IRR", "USD"] },
     compareAt: {
       type: Number,
       min: 0,
@@ -162,7 +181,7 @@ const ProductSchema = new Schema(
         { validator: isIntOrUndef },
         {
           validator: function (v) {
-            if (v == null) return true;
+            if (v == null || this.price == null) return true;
             return v >= this.price;
           },
           message: "compareAt باید بزرگ‌تر یا مساوی price باشد",
@@ -213,16 +232,26 @@ const ProductSchema = new Schema(
       type: [MediaImageSchema],
       validate: {
         validator(arr) {
+          // Draft/Archived: تصاویر اختیاری هستند (اگر ارسال شدند باید یک primary داشته باشند)
+          if (this.status !== "ACTIVE") {
+            if (arr == null) return true;
+            if (!Array.isArray(arr)) return false;
+            if (arr.length === 0) return true;
+            return arr.filter((i) => i && i.isPrimary === true).length === 1;
+          }
+
+          // Active: حداقل یک تصویر + دقیقاً یک primary
           if (!Array.isArray(arr) || arr.length === 0) return false;
           return arr.filter((i) => i && i.isPrimary === true).length === 1;
         },
-        message: "باید دقیقاً یک تصویر اصلی داشته باشد",
+        message: "برای محصول فعال، حداقل یک تصویر و دقیقاً یک تصویر اصلی لازم است",
       },
     },
     videos: [MediaVideoSchema],
 
     attributes: [AttributeSchema],
     techSpecs: { type: [TechSpecSectionSchema], default: [] },
+    faqs: { type: [FaqSchema], default: [] },
 
     seo: {
       title: { type: String, maxlength: 60, trim: true },
@@ -265,6 +294,16 @@ const ProductSchema = new Schema(
 
 /* Hooks: مشتق‌سازی وضعیت و کنترل یکتایی واریانت‌ها */
 ProductSchema.pre("validate", function (next) {
+  // Draft/Archived should never be visible in site
+  if (this.status !== "ACTIVE") {
+    this.visible = false;
+    // اگر نامک/اسلاگ خالی باشد، برای Draft یک مقدار یکتا تولید کن (بر اساس _id)
+    if (!this.slug || !String(this.slug).trim()) {
+      this.slug = `draft-${this._id.toString()}`;
+    }
+  }
+
+
   const inv = this.inventory || {};
   const inStock =
     inv.manage === false || (Number.isInteger(inv.qty) ? inv.qty : 0) > 0;

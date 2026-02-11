@@ -1,5 +1,6 @@
 const express = require("express");
 const cors = require("cors");
+const path = require("path");
 const router = require("./routers");
 const connectDB = require("./config/db");
 const cookieParser = require("cookie-parser");
@@ -19,6 +20,10 @@ app.use(
     credentials: true,
   })
 );
+
+// Serve uploaded files
+app.use("/uploads", express.static(path.join(__dirname, "uploads")));
+
 app.use(express.json());
 app.use(sanitizeMid);
 app.use(cookieParser());

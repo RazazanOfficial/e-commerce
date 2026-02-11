@@ -8,6 +8,8 @@ const searchUsers = require("./Admin-Panel/allUsers/searchUsers");
 const categoryRouters = require("./Admin-Panel/products/categoryRouters");
 const productRouters = require("./Admin-Panel/products/productRouters");
 const optionCatalogRouters = require("./Admin-Panel/products/optionCatalogRouters");
+const tagCatalogRouters = require("./Admin-Panel/products/tagCatalogRouters");
+const uploadRouters = require("./Admin-Panel/uploads/uploadRouters");
 
 //! Auth
 router.use("", authRouters);
@@ -22,5 +24,9 @@ router.use("/admin/search-users", searchUsers);
 router.use("/admin/categories", categoryRouters);
 router.use("/admin/products", productRouters);
 router.use("/admin/option-catalogs", optionCatalogRouters);
+router.use("/admin/tag-catalogs", tagCatalogRouters);
+
+//? Uploads
+router.use("/admin/uploads", uploadRouters);
 
 module.exports = router;

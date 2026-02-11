@@ -44,6 +44,7 @@ const ALLOWED_UPDATE_FIELDS = new Set([
   "videos",
   "attributes",
   "techSpecs",
+  "faqs",
   "seo",
   "shipping",
   "warranty",
@@ -194,12 +195,22 @@ const normalizeInventory = (inventory) => {
 };
 
 //* normalizeImages Utils
-const normalizeImages = (images) => {
+const normalizeImages = (images, { required = false } = {}) => {
   if (images === undefined || images === null) {
-    throw new Error("حداقل یک تصویر برای محصول الزامی است");
+    if (required) {
+      throw new Error("حداقل یک تصویر برای محصول الزامی است");
+    }
+    return undefined;
   }
   if (!Array.isArray(images)) {
     throw new Error("ساختار تصاویر نامعتبر است");
+  }
+
+  if (images.length === 0) {
+    if (required) {
+      throw new Error("حداقل یک تصویر برای محصول الزامی است");
+    }
+    return [];
   }
 
   const mapped = images.map((img) => {
@@ -218,10 +229,6 @@ const normalizeImages = (images) => {
       variants: img.variants || undefined,
     };
   });
-
-  if (!mapped.length) {
-    throw new Error("حداقل یک تصویر برای محصول الزامی است");
-  }
 
   const primaryCount = mapped.filter((i) => i.isPrimary === true).length;
   if (primaryCount !== 1) {
@@ -322,6 +329,36 @@ const normalizeTechSpecs = (techSpecs) => {
       return { title, items: mappedItems };
     })
     .filter(Boolean);
+};
+
+//* normalizeFaqs (FAQ)
+const normalizeFaqs = (faqs) => {
+  if (faqs === null) return [];
+  if (!Array.isArray(faqs)) return undefined;
+
+  return faqs
+    .map((f) => {
+      if (!f || typeof f !== "object") return null;
+      const question = f.question && String(f.question).trim();
+      const answerHtml =
+        f.answerHtml === undefined || f.answerHtml === null
+          ? ""
+          : String(f.answerHtml);
+      if (!question) return null;
+
+      const out = {
+        question,
+        answerHtml,
+        isActive: typeof f.isActive === "boolean" ? f.isActive : true,
+        sortOrder:
+          f.sortOrder === undefined || f.sortOrder === null || f.sortOrder === ""
+            ? 0
+            : parseIntegerField(f.sortOrder, "ترتیب FAQ", { required: false, min: 0 }),
+      };
+      return out;
+    })
+    .filter(Boolean)
+    .sort((a, b) => (a.sortOrder || 0) - (b.sortOrder || 0));
 };
 
 //* normalizeAttributes
@@ -452,6 +489,7 @@ const createProduct = async (req, res) => {
       videos,
       attributes,
       techSpecs,
+      faqs,
       seo,
       shipping,
       warranty,
@@ -461,54 +499,80 @@ const createProduct = async (req, res) => {
       breadcrumbsCache,
     } = req.body || {};
 
-    // ۱) فیلدهای اجباری
-    const requiredErr = validateRequired(REQUIRED.create, {
-      title,
-      slug,
-      shortDescription,
-      categoryId,
-      price,
-      currency,
-      images,
-    });
-    if (requiredErr) {
+    // ۰) وضعیت نهایی
+    let effectiveStatus = "DRAFT";
+    try {
+      effectiveStatus =
+        validateEnumIfProvided(status, "وضعیت محصول", [
+          "DRAFT",
+          "ACTIVE",
+          "ARCHIVED",
+        ]) || "DRAFT";
+
+      stockStatus = validateEnumIfProvided(
+        stockStatus,
+        "وضعیت موجودی",
+        ["IN_STOCK", "OUT_OF_STOCK", "PREORDER"]
+      );
+    } catch (e) {
       return res
         .status(400)
-        .json({ success: false, error: true, message: requiredErr });
+        .json({ success: false, error: true, message: e.message });
     }
 
-    // ۲) slug
+    const isActive = effectiveStatus === "ACTIVE";
+
+    // ۱) فیلدهای اجباری (فقط برای محصول فعال)
+    if (isActive) {
+      const requiredErr = validateRequired(REQUIRED.create, {
+        title,
+        slug,
+        shortDescription,
+        categoryId,
+        price,
+        currency,
+        images,
+      });
+      if (requiredErr) {
+        return res
+          .status(400)
+          .json({ success: false, error: true, message: requiredErr });
+      }
+    }
+
+    // ۲) slug (نامک) - فقط وقتی ارسال شده یا محصول فعال است
     let normalizedSlug;
-    try {
-      normalizedSlug = await validateAndNormalizeSlug(slug);
-    } catch (e) {
-      const statusCode = e.code === 409 ? 409 : 400;
-      return res
-        .status(statusCode)
-        .json({ success: false, error: true, message: e.message });
+    if (isActive || (typeof slug === "string" && slug.trim())) {
+      try {
+        normalizedSlug = await validateAndNormalizeSlug(slug);
+      } catch (e) {
+        const statusCode = e.code === 409 ? 409 : 400;
+        return res
+          .status(statusCode)
+          .json({ success: false, error: true, message: e.message });
+      }
     }
 
-    // ۳) categoryId
-    try {
-      await validateCategoryId(categoryId);
-    } catch (e) {
-      return res
-        .status(400)
-        .json({ success: false, error: true, message: e.message });
+    // ۳) categoryId - فقط وقتی ارسال شده یا محصول فعال است
+    if (isActive || (categoryId !== undefined && categoryId !== null && categoryId !== "")) {
+      try {
+        await validateCategoryId(categoryId);
+      } catch (e) {
+        return res
+          .status(400)
+          .json({ success: false, error: true, message: e.message });
+      }
     }
 
     // ۴) قیمت‌ها
     let priceInt, compareAtInt, costInt, lowStockThreshInt;
     try {
-      priceInt = parseIntegerField(price, "قیمت", { required: true, min: 0 });
+      priceInt = parseIntegerField(price, "قیمت", { required: isActive, min: 0 });
       compareAtInt = parseIntegerField(compareAt, "compareAt", {
         required: false,
         min: 0,
       });
-      costInt = parseIntegerField(cost, "cost", {
-        required: false,
-        min: 0,
-      });
+      costInt = parseIntegerField(cost, "cost", { required: false, min: 0 });
       lowStockThreshInt = parseIntegerField(
         lowStockThreshold,
         "آستانه موجودی کم",
@@ -523,6 +587,8 @@ const createProduct = async (req, res) => {
     if (
       compareAtInt !== undefined &&
       compareAtInt !== null &&
+      priceInt !== undefined &&
+      priceInt !== null &&
       compareAtInt < priceInt
     ) {
       return res.status(400).json({
@@ -532,35 +598,19 @@ const createProduct = async (req, res) => {
       });
     }
 
-    // ۵) currency
+    // ۵) currency - فقط وقتی ارسال شده یا محصول فعال است
     let normalizedCurrency;
-    try {
-      normalizedCurrency = validateCurrency(currency);
-    } catch (e) {
-      return res
-        .status(400)
-        .json({ success: false, error: true, message: e.message });
+    if (isActive || (currency !== undefined && currency !== null && currency !== "")) {
+      try {
+        normalizedCurrency = validateCurrency(currency);
+      } catch (e) {
+        return res
+          .status(400)
+          .json({ success: false, error: true, message: e.message });
+      }
     }
 
-    // ۶) status و stockStatus
-    try {
-      status = validateEnumIfProvided(status, "وضعیت محصول", [
-        "DRAFT",
-        "ACTIVE",
-        "ARCHIVED",
-      ]);
-      stockStatus = validateEnumIfProvided(
-        stockStatus,
-        "وضعیت موجودی",
-        ["IN_STOCK", "OUT_OF_STOCK", "PREORDER"]
-      );
-    } catch (e) {
-      return res
-        .status(400)
-        .json({ success: false, error: true, message: e.message });
-    }
-
-    // ۷) inventory
+    // ۶) inventory
     let normalizedInventory;
     try {
       normalizedInventory = normalizeInventory(inventory);
@@ -570,20 +620,20 @@ const createProduct = async (req, res) => {
         .json({ success: false, error: true, message: e.message });
     }
 
-    // ۸) tags
+    // ۷) tags
     tags = normalizeTags(tags);
 
-    // ۹) images
+    // ۸) images
     let normalizedImages;
     try {
-      normalizedImages = normalizeImages(images);
+      normalizedImages = normalizeImages(images, { required: isActive });
     } catch (e) {
       return res
         .status(400)
         .json({ success: false, error: true, message: e.message });
     }
 
-    // ۱۰) publishAt
+    // ۹) publishAt
     let publishAtDate;
     if (publishAt !== undefined && publishAt !== null && publishAt !== "") {
       const d = new Date(publishAt);
@@ -597,29 +647,25 @@ const createProduct = async (req, res) => {
       publishAtDate = d;
     }
 
-    // ۱۱) سایر نرمال‌سازی‌ها
+    // ۱۰) سایر نرمال‌سازی‌ها
     hasVariants = typeof hasVariants === "boolean" ? hasVariants : false;
-    visible = typeof visible === "boolean" ? visible : true;
+
     allowBackorder =
       typeof allowBackorder === "boolean" ? allowBackorder : false;
     restockNotifyEnabled =
-      typeof restockNotifyEnabled === "boolean"
-        ? restockNotifyEnabled
-        : true;
+      typeof restockNotifyEnabled === "boolean" ? restockNotifyEnabled : true;
 
-    if (typeof title === "string") {
-      title = title.trim();
-    }
-    if (typeof shortDescription === "string") {
-      shortDescription = shortDescription.trim();
-    }
-    if (typeof overviewHtml !== "string") {
-      overviewHtml = "";
-    }
+    const finalVisible =
+      isActive ? (typeof visible === "boolean" ? visible : true) : false;
+
+    if (typeof title === "string") title = title.trim();
+    if (typeof shortDescription === "string") shortDescription = shortDescription.trim();
+    if (typeof overviewHtml !== "string") overviewHtml = "";
 
     const normalizedOptions = normalizeOptions(options);
     const normalizedVariants = normalizeVariants(variants);
     const normalizedTechSpecs = normalizeTechSpecs(techSpecs);
+    const normalizedFaqs = normalizeFaqs(faqs);
     const normalizedAttributes = normalizeAttributes(attributes);
     const normalizedSeo = normalizeSeo(seo);
     const normalizedShipping = normalizeShipping(shipping);
@@ -633,55 +679,58 @@ const createProduct = async (req, res) => {
       "زمان آماده‌سازی"
     );
 
-    // ۱۲) payload نهایی
+    // ۱۱) payload نهایی (فقط فیلدهای ارسال‌شده)
     const payload = {
-      title,
-      slug: normalizedSlug,
-      shortDescription,
-      overviewHtml,
-      categoryId,
-      price: priceInt,
-      currency: normalizedCurrency,
-      images: normalizedImages,
+      status: effectiveStatus,
+      visible: finalVisible,
+      allowBackorder,
+      restockNotifyEnabled,
+      hasVariants,
     };
+
+    if (title !== undefined) payload.title = title;
+    if (normalizedSlug !== undefined) payload.slug = normalizedSlug;
+    if (shortDescription !== undefined) payload.shortDescription = shortDescription;
+    if (overviewHtml !== undefined) payload.overviewHtml = overviewHtml;
+    if (normalizedFaqs !== undefined) payload.faqs = normalizedFaqs;
+
+    if (categoryId !== undefined && categoryId !== null && categoryId !== "") {
+      payload.categoryId = categoryId;
+    }
 
     if (brandId !== undefined) {
       payload.brandId = validateOptionalObjectId(brandId, "شناسه برند");
     }
+
     if (tags !== undefined) payload.tags = tags;
-    if (status) payload.status = status;
-    if (typeof visible === "boolean") payload.visible = visible;
+
+    if (priceInt !== undefined) payload.price = priceInt;
+    if (normalizedCurrency !== undefined) payload.currency = normalizedCurrency;
     if (compareAtInt !== undefined) payload.compareAt = compareAtInt;
     if (costInt !== undefined) payload.cost = costInt;
     if (normalizedInventory !== undefined) payload.inventory = normalizedInventory;
     if (stockStatus) payload.stockStatus = stockStatus;
-    if (lowStockThreshInt !== undefined) {
-      payload.lowStockThreshold = lowStockThreshInt;
-    }
+    if (lowStockThreshInt !== undefined) payload.lowStockThreshold = lowStockThreshInt;
     if (publishAtDate) payload.publishAt = publishAtDate;
-    payload.allowBackorder = allowBackorder;
-    payload.restockNotifyEnabled = restockNotifyEnabled;
-    payload.hasVariants = hasVariants;
+
     if (normalizedOptions !== undefined) payload.options = normalizedOptions;
     if (normalizedVariants !== undefined) payload.variants = normalizedVariants;
+    if (normalizedImages !== undefined) payload.images = normalizedImages;
+
     if (Array.isArray(videos)) payload.videos = videos;
     if (normalizedAttributes !== undefined) payload.attributes = normalizedAttributes;
     if (normalizedTechSpecs !== undefined) payload.techSpecs = normalizedTechSpecs;
     if (normalizedSeo !== undefined) payload.seo = normalizedSeo;
     if (normalizedShipping !== undefined) payload.shipping = normalizedShipping;
     if (warranty !== undefined) payload.warranty = String(warranty);
-    if (normalizedReturnPolicy !== undefined) {
-      payload.returnPolicy = normalizedReturnPolicy;
-    }
-    if (normalizedHandlingTime !== undefined) {
-      payload.handlingTime = normalizedHandlingTime;
-    }
-    if (normalizedRelated !== undefined) payload.related = normalizedRelated;
-    if (Array.isArray(breadcrumbsCache)) {
-      payload.breadcrumbsCache = breadcrumbsCache;
-    }
 
-    // ۱۳) ایجاد محصول
+    if (normalizedReturnPolicy !== undefined) payload.returnPolicy = normalizedReturnPolicy;
+    if (normalizedHandlingTime !== undefined) payload.handlingTime = normalizedHandlingTime;
+    if (normalizedRelated !== undefined) payload.related = normalizedRelated;
+
+    if (Array.isArray(breadcrumbsCache)) payload.breadcrumbsCache = breadcrumbsCache;
+
+    // ۱۲) ایجاد محصول
     const doc = await Product.create(payload);
 
     return res.status(201).json({
@@ -718,6 +767,7 @@ const createProduct = async (req, res) => {
     });
   }
 };
+
 
 //* 🟢 Get All Products (لیست برای پنل ادمین)
 const getAllProducts = async (req, res) => {
@@ -863,25 +913,19 @@ const updateProduct = async (req, res) => {
         message: "محصول یافت نشد",
       });
     }
+    // وضعیت مؤثر بعد از بروزرسانی (برای ولیدیشن شرطی)
+    const incomingStatus = Object.prototype.hasOwnProperty.call(body, "status")
+      ? body.status
+      : undefined;
 
-    // slug
-    let normalizedSlug;
-    if (Object.prototype.hasOwnProperty.call(body, "slug")) {
+    let effectiveStatus = prod.status;
+    if (incomingStatus !== undefined) {
       try {
-        normalizedSlug = await validateAndNormalizeSlug(body.slug, prod._id);
-      } catch (e) {
-        const statusCode = e.code === 409 ? 409 : 400;
-        return res
-          .status(statusCode)
-          .json({ success: false, error: true, message: e.message });
-      }
-    }
-
-    // categoryId
-    let newCategoryId;
-    if (Object.prototype.hasOwnProperty.call(body, "categoryId")) {
-      try {
-        newCategoryId = await validateCategoryId(body.categoryId);
+        effectiveStatus = validateEnumIfProvided(incomingStatus, "وضعیت محصول", [
+          "DRAFT",
+          "ACTIVE",
+          "ARCHIVED",
+        ]);
       } catch (e) {
         return res
           .status(400)
@@ -889,6 +933,44 @@ const updateProduct = async (req, res) => {
       }
     }
 
+    const isActive = effectiveStatus === "ACTIVE";
+
+
+    // slug
+    let normalizedSlug;
+    if (Object.prototype.hasOwnProperty.call(body, "slug")) {
+      const rawSlug = body.slug;
+      // برای DRAFT/ARCHIVED می‌توان slug را خالی فرستاد تا دوباره تولید شود
+      if (!isActive && (rawSlug === "" || rawSlug === null)) {
+        normalizedSlug = undefined;
+      } else {
+        try {
+          normalizedSlug = await validateAndNormalizeSlug(rawSlug, prod._id);
+        } catch (e) {
+          const statusCode = e.code === 409 ? 409 : 400;
+          return res
+            .status(statusCode)
+            .json({ success: false, error: true, message: e.message });
+        }
+      }
+    }
+    // categoryId
+    let newCategoryId;
+    const hasCategoryId = Object.prototype.hasOwnProperty.call(body, "categoryId");
+    if (hasCategoryId) {
+      const rawCat = body.categoryId;
+      if (!isActive && (rawCat === "" || rawCat === null)) {
+        newCategoryId = undefined;
+      } else {
+        try {
+          newCategoryId = await validateCategoryId(rawCat);
+        } catch (e) {
+          return res
+            .status(400)
+            .json({ success: false, error: true, message: e.message });
+        }
+      }
+    }
     // قیمت‌ها
     let priceInt;
     let compareAtInt;
@@ -908,7 +990,7 @@ const updateProduct = async (req, res) => {
     try {
       if (hasPrice) {
         priceInt = parseIntegerField(body.price, "قیمت", {
-          required: true,
+          required: isActive,
           min: 0,
         });
       }
@@ -955,30 +1037,19 @@ const updateProduct = async (req, res) => {
     // currency
     let normalizedCurrency;
     if (Object.prototype.hasOwnProperty.call(body, "currency")) {
-      try {
-        normalizedCurrency = validateCurrency(body.currency);
-      } catch (e) {
-        return res
-          .status(400)
-          .json({ success: false, error: true, message: e.message });
+      if (!isActive && (body.currency === "" || body.currency === null)) {
+        normalizedCurrency = undefined;
+      } else {
+        try {
+          normalizedCurrency = validateCurrency(body.currency);
+        } catch (e) {
+          return res
+            .status(400)
+            .json({ success: false, error: true, message: e.message });
+        }
       }
     }
-
-    // status و stockStatus
-    if (Object.prototype.hasOwnProperty.call(body, "status")) {
-      try {
-        body.status = validateEnumIfProvided(
-          body.status,
-          "وضعیت محصول",
-          ["DRAFT", "ACTIVE", "ARCHIVED"]
-        );
-      } catch (e) {
-        return res
-          .status(400)
-          .json({ success: false, error: true, message: e.message });
-      }
-    }
-
+    // status (قبلاً برای تعیین وضعیت مؤثر validate شد)
     if (Object.prototype.hasOwnProperty.call(body, "stockStatus")) {
       try {
         body.stockStatus = validateEnumIfProvided(
@@ -1015,14 +1086,13 @@ const updateProduct = async (req, res) => {
     let normalizedImages;
     if (Object.prototype.hasOwnProperty.call(body, "images")) {
       try {
-        normalizedImages = normalizeImages(body.images);
+        normalizedImages = normalizeImages(body.images, { required: isActive });
       } catch (e) {
         return res
           .status(400)
           .json({ success: false, error: true, message: e.message });
       }
     }
-
     // publishAt
     let publishAtDate;
     if (Object.prototype.hasOwnProperty.call(body, "publishAt")) {
@@ -1078,6 +1148,9 @@ const updateProduct = async (req, res) => {
     )
       ? normalizeTechSpecs(body.techSpecs)
       : undefined;
+    const normalizedFaqs = Object.prototype.hasOwnProperty.call(body, "faqs")
+      ? normalizeFaqs(body.faqs)
+      : undefined;
     const normalizedAttributes = Object.prototype.hasOwnProperty.call(
       body,
       "attributes"
@@ -1118,8 +1191,12 @@ const updateProduct = async (req, res) => {
         typeof body.title === "string" ? body.title.trim() : prod.title;
     }
 
-    if (normalizedSlug !== undefined) {
-      prod.slug = normalizedSlug;
+    if (Object.prototype.hasOwnProperty.call(body, "slug")) {
+      if (normalizedSlug === undefined && !isActive) {
+        prod.slug = undefined;
+      } else if (normalizedSlug !== undefined) {
+        prod.slug = normalizedSlug;
+      }
     }
 
     if (Object.prototype.hasOwnProperty.call(body, "shortDescription")) {
@@ -1134,8 +1211,12 @@ const updateProduct = async (req, res) => {
         typeof body.overviewHtml === "string" ? body.overviewHtml : "";
     }
 
-    if (newCategoryId) {
-      prod.categoryId = newCategoryId;
+    if (hasCategoryId) {
+      if (newCategoryId === undefined && !isActive) {
+        prod.categoryId = undefined;
+      } else if (newCategoryId) {
+        prod.categoryId = newCategoryId;
+      }
     }
 
     if (Object.prototype.hasOwnProperty.call(body, "brandId")) {
@@ -1147,20 +1228,34 @@ const updateProduct = async (req, res) => {
       prod.tags = normalizedTags;
     }
 
-    if (Object.prototype.hasOwnProperty.call(body, "status") && body.status) {
-      prod.status = body.status;
+    if (Object.prototype.hasOwnProperty.call(body, "status") && effectiveStatus) {
+      prod.status = effectiveStatus;
     }
 
-    if (hasVisible) {
-      prod.visible = !!body.visible;
+    // visible فقط برای ACTIVE معنی دارد، در غیر اینصورت همیشه false
+    if (isActive) {
+      if (hasVisible) {
+        prod.visible = !!body.visible;
+      }
+    } else {
+      prod.visible = false;
     }
 
-    if (hasPrice && priceInt !== undefined) {
-      prod.price = priceInt;
+
+    if (hasPrice) {
+      if (priceInt === undefined && !isActive) {
+        prod.price = undefined;
+      } else if (priceInt !== undefined) {
+        prod.price = priceInt;
+      }
     }
 
-    if (normalizedCurrency !== undefined) {
-      prod.currency = normalizedCurrency;
+    if (Object.prototype.hasOwnProperty.call(body, "currency")) {
+      if (normalizedCurrency === undefined && !isActive) {
+        prod.currency = undefined;
+      } else if (normalizedCurrency !== undefined) {
+        prod.currency = normalizedCurrency;
+      }
     }
 
     if (hasCompareAt) {
@@ -1243,6 +1338,10 @@ const updateProduct = async (req, res) => {
 
     if (normalizedTechSpecs !== undefined) {
       prod.techSpecs = normalizedTechSpecs;
+    }
+
+    if (normalizedFaqs !== undefined) {
+      prod.faqs = normalizedFaqs;
     }
 
     if (normalizedSeo !== undefined) {
