@@ -1,0 +1,34 @@
+meta {
+  name: Upload
+  type: http
+  seq: 2
+}
+
+put {
+  url: https://c321151.parspack.net/c321151/1770827500028-04c8768a.png?Content-Type=image%2Fpng&X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=nz93v4DTIUOD8sDj%2F20260211%2Fus-east-1%2Fs3%2Faws4_request&X-Amz-Date=20260211T163140Z&X-Amz-Expires=300&X-Amz-Signature=8ae61064a0c32efb6845e774e75e1219328928e749c67dc373b87c466e577451&X-Amz-SignedHeaders=host
+  body: file
+  auth: inherit
+}
+
+params:query {
+  Content-Type: image%2Fpng
+  X-Amz-Algorithm: AWS4-HMAC-SHA256
+  X-Amz-Credential: nz93v4DTIUOD8sDj%2F20260211%2Fus-east-1%2Fs3%2Faws4_request
+  X-Amz-Date: 20260211T163140Z
+  X-Amz-Expires: 300
+  X-Amz-Signature: 8ae61064a0c32efb6845e774e75e1219328928e749c67dc373b87c466e577451
+  X-Amz-SignedHeaders: host
+}
+
+headers {
+  Content-Type: image/png
+}
+
+body:file {
+  file: @file(C:\Users\GwynDolin\Desktop\test.png) @contentType(image/png)
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

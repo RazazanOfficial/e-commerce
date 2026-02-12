@@ -1,0 +1,25 @@
+meta {
+  name: PerSign
+  type: http
+  seq: 3
+}
+
+get {
+  url: {{baseURL}}/api/admin/media/presign
+  body: json
+  auth: inherit
+}
+
+body:json {
+  {
+    "fileName": "test.png",
+    "mimeType": "image/png",
+    "expiresInSec": 900
+  }
+  
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}
