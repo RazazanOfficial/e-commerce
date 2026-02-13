@@ -1,0 +1,24 @@
+meta {
+  name: Tag Catalogs POST
+  type: http
+  seq: 3
+}
+
+post {
+  url: {{baseURL}}/api/admin/tag-catalogs
+  body: json
+  auth: inherit
+}
+
+body:json {
+  {
+    "name": "گوشی سامسونگ",
+    "key": "samsung-phone" 
+  }
+  
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

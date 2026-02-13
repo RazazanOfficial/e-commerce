@@ -2,8 +2,7 @@
 const UserModel = require("../../models/userModel");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
-const coockieOptions = require("../../config/coockieOptions");
-
+const { cookieOptions } = require("../../config/coockieOptions");
 //* 🟢User Logination Controller
 const loginController = async (req, res) => {
   try {
@@ -44,9 +43,8 @@ const loginController = async (req, res) => {
       process.env.JWT_SECRET,
       { expiresIn: "7d" }
     );
-    res.cookie("token", token , coockieOptions);
-
-    //* 🟢Send Success Response
+    res.cookie("token", token, cookieOptions);
+//* 🟢Send Success Response
     return res.status(200).json({
       data: { token, userId: user._id },
       success: true,

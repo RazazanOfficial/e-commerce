@@ -1,10 +1,10 @@
 meta {
   name: PerSign
   type: http
-  seq: 3
+  seq: 1
 }
 
-get {
+post {
   url: {{baseURL}}/api/admin/media/presign
   body: json
   auth: inherit
@@ -12,11 +12,10 @@ get {
 
 body:json {
   {
-    "fileName": "test.png",
+    "fileName": "Capture.PNG",
     "mimeType": "image/png",
-    "expiresInSec": 900
+    "expiresInSec": 300
   }
-  
 }
 
 settings {

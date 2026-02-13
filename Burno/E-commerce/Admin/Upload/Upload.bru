@@ -5,27 +5,27 @@ meta {
 }
 
 put {
-  url: https://c321151.parspack.net/c321151/1770827500028-04c8768a.png?Content-Type=image%2Fpng&X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=nz93v4DTIUOD8sDj%2F20260211%2Fus-east-1%2Fs3%2Faws4_request&X-Amz-Date=20260211T163140Z&X-Amz-Expires=300&X-Amz-Signature=8ae61064a0c32efb6845e774e75e1219328928e749c67dc373b87c466e577451&X-Amz-SignedHeaders=host
+  url: https://c321151.parspack.net/c321151/1771012516407-5aa5523b.png?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=nz93v4DTIUOD8sDj%2F20260213%2Fus-west-2%2Fs3%2Faws4_request&X-Amz-Date=20260213T195516Z&X-Amz-Expires=300&X-Amz-Signature=c9251121620d7be043f658a2ed75322f48e6825d3f436cb5593725959d62441e&X-Amz-SignedHeaders=host
   body: file
   auth: inherit
 }
 
 params:query {
-  Content-Type: image%2Fpng
   X-Amz-Algorithm: AWS4-HMAC-SHA256
-  X-Amz-Credential: nz93v4DTIUOD8sDj%2F20260211%2Fus-east-1%2Fs3%2Faws4_request
-  X-Amz-Date: 20260211T163140Z
+  X-Amz-Credential: nz93v4DTIUOD8sDj%2F20260213%2Fus-west-2%2Fs3%2Faws4_request
+  X-Amz-Date: 20260213T195516Z
   X-Amz-Expires: 300
-  X-Amz-Signature: 8ae61064a0c32efb6845e774e75e1219328928e749c67dc373b87c466e577451
+  X-Amz-Signature: c9251121620d7be043f658a2ed75322f48e6825d3f436cb5593725959d62441e
   X-Amz-SignedHeaders: host
 }
 
 headers {
   Content-Type: image/png
+  Cache-Control: public, max-age=31536000, immutable
 }
 
 body:file {
-  file: @file(C:\Users\GwynDolin\Desktop\test.png) @contentType(image/png)
+  file: @file(D:\Capture.PNG) @contentType(image/png)
 }
 
 settings {

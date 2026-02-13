@@ -1,0 +1,20 @@
+meta {
+  name: Tag Catalog Suggest GET
+  type: http
+  seq: 6
+}
+
+get {
+  url: {{baseURL}}/api/admin/tag-catalogs/suggest?q=گوش
+  body: none
+  auth: inherit
+}
+
+params:query {
+  q: گوش
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

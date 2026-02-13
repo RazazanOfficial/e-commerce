@@ -1,0 +1,16 @@
+meta {
+  name: Tag Catalog DELETE
+  type: http
+  seq: 5
+}
+
+delete {
+  url: {{baseURL}}/api/admin/tag-catalogs/
+  body: none
+  auth: inherit
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

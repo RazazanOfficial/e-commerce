@@ -1,7 +1,9 @@
 const mongoose = require("mongoose");
 
-// Tag catalog: used for tag suggestions/autocomplete in admin panel.
-// Product model still keeps `tags: [String]` for simplicity.
+/**
+ * Tag catalog: used for tag suggestions/autocomplete in admin panel.
+ * Products store tags as array of strings (keys).
+ */
 
 const TagCatalogSchema = new mongoose.Schema(
   {
@@ -21,20 +23,31 @@ const TagCatalogSchema = new mongoose.Schema(
     isActive: {
       type: Boolean,
       default: true,
+      index: true,
     },
   },
   { timestamps: true }
 );
 
-// Normalize: key derived from label if missing; spaces -> underscore
-TagCatalogSchema.pre("validate", function (next) {
-  if (!this.label) return next();
+// Normalize key/label safely (sync middleware; no `next()` usage to avoid runtime mismatch)
+TagCatalogSchema.pre("validate", function () {
+  if (!this.label) return;
+
   this.label = String(this.label).trim();
+
   if (!this.key) {
-    this.key = this.label.replace(/\s+/g, "_");
+    this.key = this.label;
   }
-  this.key = String(this.key).trim().replace(/\s+/g, "_");
-  next();
+
+  // normalize key: lowercase, whitespace/_ -> -, allow [a-z0-9-]
+  this.key = String(this.key)
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, "-")
+    .replace(/_+/g, "-")
+    .replace(/[^a-z0-9-]/g, "")
+    .replace(/-+/g, "-")
+    .replace(/^-+|-+$/g, "");
 });
 
 module.exports = mongoose.model("TagCatalog", TagCatalogSchema);

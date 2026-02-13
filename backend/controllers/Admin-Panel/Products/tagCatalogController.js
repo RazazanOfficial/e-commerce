@@ -1,16 +1,37 @@
 const TagCatalog = require("../../../models/tagCatalogModel");
-const Product = require("../../../models/productModel");
+const { Product } = require("../../../models/productModel");
 
 function normalizeKey(input) {
   return String(input || "")
     .trim()
-    .replace(/\s+/g, "_");
+    .toLowerCase()
+    .replace(/\s+/g, "-")
+    .replace(/_+/g, "-")
+    .replace(/[^a-z0-9-]/g, "")
+    .replace(/-+/g, "-")
+    .replace(/^-+|-+$/g, "");
+}
+
+function escapeRegExp(str) {
+  return String(str || "").replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+function sendErr(res, err, fallbackMessage = "خطای داخلی سرور") {
+  // eslint-disable-next-line no-console
+  console.error(err);
+  return res.status(err?.statusCode || 500).json({
+    success: false,
+    error: true,
+    message: err?.message || fallbackMessage,
+  });
 }
 
 // POST /api/admin/tag-catalogs
-exports.createTagCatalog = async (req, res, next) => {
+exports.createTagCatalog = async (req, res) => {
   try {
-    const { label, key, isActive } = req.body;
+    const label = req.body?.label ?? req.body?.name ?? req.body?.title;
+    const key = req.body?.key;
+    const isActive = req.body?.isActive;
 
     if (!label || !String(label).trim()) {
       return res.status(400).json({
@@ -21,13 +42,11 @@ exports.createTagCatalog = async (req, res, next) => {
     }
 
     const normalizedKey = normalizeKey(key || label);
-
-    const exists = await TagCatalog.findOne({ key: normalizedKey });
-    if (exists) {
-      return res.status(409).json({
+    if (!normalizedKey) {
+      return res.status(400).json({
         success: false,
         error: true,
-        message: "این تگ قبلاً ثبت شده است",
+        message: "کلید تگ نامعتبر است",
       });
     }
 
@@ -43,27 +62,37 @@ exports.createTagCatalog = async (req, res, next) => {
       data: doc,
     });
   } catch (err) {
-    return next(err);
+    // Duplicate key (Mongo)
+    if (err?.code === 11000) {
+      return res.status(409).json({
+        success: false,
+        error: true,
+        message: "این تگ قبلاً ثبت شده است",
+      });
+    }
+    return sendErr(res, err);
   }
 };
 
 // GET /api/admin/tag-catalogs
-exports.getAllTagCatalogs = async (req, res, next) => {
+exports.getAllTagCatalogs = async (req, res) => {
   try {
-    const page = Math.max(parseInt(req.query.page || "1", 10), 1);
-    const limit = Math.min(Math.max(parseInt(req.query.limit || "50", 10), 1), 200);
-    const q = String(req.query.q || "").trim();
-    const isActive = req.query.isActive;
+    const page = Math.max(parseInt(req.query?.page || "1", 10), 1);
+    const limit = Math.min(Math.max(parseInt(req.query?.limit || "50", 10), 1), 200);
+    const q = String(req.query?.q || "").trim();
+    const isActive = req.query?.isActive;
 
     const filter = {};
     if (q) {
+      const safe = escapeRegExp(q);
       filter.$or = [
-        { label: { $regex: q, $options: "i" } },
-        { key: { $regex: q, $options: "i" } },
+        { label: { $regex: safe, $options: "i" } },
+        { key: { $regex: safe, $options: "i" } },
       ];
     }
-    if (isActive === "true") filter.isActive = true;
-    if (isActive === "false") filter.isActive = false;
+    if (isActive !== undefined && isActive !== "") {
+      filter.isActive = String(isActive) === "true";
+    }
 
     const [items, total] = await Promise.all([
       TagCatalog.find(filter).sort({ updatedAt: -1 }).skip((page - 1) * limit).limit(limit),
@@ -72,102 +101,164 @@ exports.getAllTagCatalogs = async (req, res, next) => {
 
     return res.status(200).json({
       success: true,
-      page,
-      limit,
-      total,
-      items,
+      data: items,
+      pagination: {
+        page,
+        limit,
+        total,
+        pages: Math.ceil(total / limit),
+      },
     });
   } catch (err) {
-    return next(err);
+    return sendErr(res, err);
   }
 };
 
 // GET /api/admin/tag-catalogs/suggest?q=...
-exports.suggestTags = async (req, res, next) => {
+exports.suggestTags = async (req, res) => {
   try {
-    const q = String(req.query.q || "").trim();
+    const q = String(req.query?.q || "").trim();
     if (!q) {
-      return res.status(200).json({ success: true, items: [] });
+      return res.status(200).json({ success: true, data: [] });
     }
+
+    const safe = escapeRegExp(q);
     const items = await TagCatalog.find({
       isActive: true,
-      $or: [{ label: { $regex: `^${q}`, $options: "i" } }, { key: { $regex: `^${q}`, $options: "i" } }],
+      $or: [
+        { label: { $regex: safe, $options: "i" } },
+        { key: { $regex: safe, $options: "i" } },
+      ],
     })
       .sort({ updatedAt: -1 })
-      .limit(15);
+      .limit(15)
+      .select("_id label key isActive");
 
-    return res.status(200).json({ success: true, items });
+    return res.status(200).json({ success: true, data: items });
   } catch (err) {
-    return next(err);
+    return sendErr(res, err);
   }
 };
 
 // GET /api/admin/tag-catalogs/:id
-exports.getTagCatalogById = async (req, res, next) => {
+exports.getTagCatalogById = async (req, res) => {
   try {
     const doc = await TagCatalog.findById(req.params.id);
     if (!doc) {
-      return res.status(404).json({ success: false, error: true, message: "تگ یافت نشد" });
+      return res.status(404).json({
+        success: false,
+        error: true,
+        message: "تگ یافت نشد",
+      });
     }
     return res.status(200).json({ success: true, data: doc });
   } catch (err) {
-    return next(err);
+    return sendErr(res, err);
   }
 };
 
 // PUT /api/admin/tag-catalogs/:id
-exports.updateTagCatalog = async (req, res, next) => {
+exports.updateTagCatalog = async (req, res) => {
   try {
-    const { label, key, isActive } = req.body;
+    const label = req.body?.label ?? req.body?.name ?? req.body?.title;
+    const key = req.body?.key;
+    const isActive = req.body?.isActive;
+
     const doc = await TagCatalog.findById(req.params.id);
     if (!doc) {
-      return res.status(404).json({ success: false, error: true, message: "تگ یافت نشد" });
+      return res.status(404).json({
+        success: false,
+        error: true,
+        message: "تگ یافت نشد",
+      });
     }
 
-    if (label !== undefined) doc.label = String(label).trim();
-    if (key !== undefined) doc.key = normalizeKey(key);
-    if (isActive !== undefined) doc.isActive = !!isActive;
-
-    // Uniqueness check for key
-    if (key !== undefined) {
-      const exists = await TagCatalog.findOne({ key: doc.key, _id: { $ne: doc._id } });
-      if (exists) {
-        return res.status(409).json({ success: false, error: true, message: "کلید تگ تکراری است" });
+    if (label !== undefined) {
+      if (!String(label).trim()) {
+        return res.status(400).json({
+          success: false,
+          error: true,
+          message: "عنوان تگ الزامی است",
+        });
       }
+      doc.label = String(label).trim();
+    }
+
+    if (key !== undefined) {
+      const normalizedKey = normalizeKey(key);
+      if (!normalizedKey) {
+        return res.status(400).json({
+          success: false,
+          error: true,
+          message: "کلید تگ نامعتبر است",
+        });
+      }
+      doc.key = normalizedKey;
+    }
+
+    if (isActive !== undefined) {
+      doc.isActive = !!isActive;
     }
 
     await doc.save();
-    return res.status(200).json({ success: true, message: "تگ بروزرسانی شد", data: doc });
+
+    return res.status(200).json({
+      success: true,
+      message: "تگ بروزرسانی شد",
+      data: doc,
+    });
   } catch (err) {
-    return next(err);
+    if (err?.code === 11000) {
+      return res.status(409).json({
+        success: false,
+        error: true,
+        message: "این کلید تگ قبلاً استفاده شده است",
+      });
+    }
+    return sendErr(res, err);
   }
 };
 
 // PATCH /api/admin/tag-catalogs/:id/toggle
-exports.toggleTagCatalog = async (req, res, next) => {
+exports.toggleTagCatalog = async (req, res) => {
   try {
     const doc = await TagCatalog.findById(req.params.id);
     if (!doc) {
-      return res.status(404).json({ success: false, error: true, message: "تگ یافت نشد" });
+      return res.status(404).json({
+        success: false,
+        error: true,
+        message: "تگ یافت نشد",
+      });
     }
-    if (req.body?.isActive !== undefined) {
-      doc.isActive = !!req.body.isActive;
+
+    if (req.body && typeof req.body.isActive === "boolean") {
+      doc.isActive = req.body.isActive;
     } else {
       doc.isActive = !doc.isActive;
     }
+
     await doc.save();
-    return res.status(200).json({ success: true, message: "وضعیت تگ تغییر کرد", data: doc });
+
+    return res.status(200).json({
+      success: true,
+      message: "وضعیت تگ بروزرسانی شد",
+      data: doc,
+    });
   } catch (err) {
-    return next(err);
+    return sendErr(res, err);
   }
 };
 
 // DELETE /api/admin/tag-catalogs/:id
-exports.deleteTagCatalog = async (req, res, next) => {
+exports.deleteTagCatalog = async (req, res) => {
   try {
     const doc = await TagCatalog.findById(req.params.id);
     if (!doc) {
-      return res.status(404).json({ success: false, error: true, message: "تگ یافت نشد" });
+      return res.status(404).json({
+        success: false,
+        error: true,
+        message: "تگ یافت نشد",
+      });
     }
 
     // Block delete if used in any product.tags
@@ -181,8 +272,12 @@ exports.deleteTagCatalog = async (req, res, next) => {
     }
 
     await TagCatalog.deleteOne({ _id: doc._id });
-    return res.status(200).json({ success: true, message: "تگ حذف شد" });
+
+    return res.status(200).json({
+      success: true,
+      message: "تگ حذف شد",
+    });
   } catch (err) {
-    return next(err);
+    return sendErr(res, err);
   }
 };

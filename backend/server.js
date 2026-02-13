@@ -21,8 +21,13 @@ app.use(
   }),
 );
 
+// Serve local uploaded files ONLY if explicitly enabled (disabled by default).
+if (String(process.env.SERVE_LOCAL_UPLOADS || "").toLowerCase() === "true") {
+  app.use("/uploads", express.static(path.join(__dirname, "uploads")));
+}
+
+
 // Serve uploaded files
-app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
 app.use(express.json());
 app.use(sanitizeMid);

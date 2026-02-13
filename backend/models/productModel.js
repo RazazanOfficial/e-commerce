@@ -72,6 +72,33 @@ const MediaVideoSchema = new Schema(
   { _id: false }
 );
 
+
+const UnifiedMediaSchema = new Schema(
+  {
+    type: {
+      type: String,
+      enum: ["image", "video", "gif", "embed"],
+      required: true,
+      trim: true,
+      lowercase: true,
+    },
+    // key in cloud storage (preferred)
+    key: { type: String, trim: true },
+    // external url / embed url (optional)
+    url: { type: String, trim: true },
+    // optional: poster for video/gif
+    posterKey: { type: String, trim: true },
+    posterUrl: { type: String, trim: true },
+
+    alt: { type: String, trim: true, maxlength: 120 },
+
+    isPrimary: { type: Boolean, default: false },
+    order: { type: Number, default: 0 },
+  },
+  { _id: false }
+);
+
+
 /* قیمت‌ها و اعداد صحیح */
 const isIntOrUndef = (v) => v == null || Number.isInteger(v);
 
@@ -173,7 +200,7 @@ const ProductSchema = new Schema(
       min: 0,
       validate: { validator: Number.isInteger },
     }, // تومان به صورت عدد صحیح
-    currency: { type: String, required: requiredIfActive, enum: ["IRT", "IRR", "USD"] },
+    currency: { type: String, required: requiredIfActive, trim: true, uppercase: true },
     compareAt: {
       type: Number,
       min: 0,
@@ -228,11 +255,35 @@ const ProductSchema = new Schema(
     ],
     variants: [VariantSchema],
 
-    images: {
+        media: {
+      type: [UnifiedMediaSchema],
+      default: undefined,
+      validate: {
+        validator(arr) {
+          if (arr == null) return true;
+          if (!Array.isArray(arr)) return false;
+          if (arr.length === 0) return true;
+
+          // primary rules: if ACTIVE and media exists -> exactly one primary
+          const primaryCount = arr.filter((m) => m && m.isPrimary === true).length;
+          if (this.status === "ACTIVE") {
+            return primaryCount === 1;
+          }
+          // Draft/Archived: 0 or 1 primary is acceptable
+          return primaryCount <= 1;
+        },
+        message: "برای محصول فعال، در media باید دقیقاً یک آیتم اصلی مشخص شود",
+      },
+    },
+
+images: {
       type: [MediaImageSchema],
       validate: {
         validator(arr) {
-          // Draft/Archived: تصاویر اختیاری هستند (اگر ارسال شدند باید یک primary داشته باشند)
+          const hasMedia =
+            Array.isArray(this.media) && this.media.length > 0;
+
+          // Draft/Archived: images optional (if provided, must have exactly one primary)
           if (this.status !== "ACTIVE") {
             if (arr == null) return true;
             if (!Array.isArray(arr)) return false;
@@ -240,11 +291,20 @@ const ProductSchema = new Schema(
             return arr.filter((i) => i && i.isPrimary === true).length === 1;
           }
 
-          // Active: حداقل یک تصویر + دقیقاً یک primary
+          // Active: if media exists, images are optional
+          if (hasMedia) {
+            if (arr == null) return true;
+            if (!Array.isArray(arr)) return false;
+            if (arr.length === 0) return true;
+            return arr.filter((i) => i && i.isPrimary === true).length === 1;
+          }
+
+          // Active legacy mode: require at least 1 image + exactly one primary
           if (!Array.isArray(arr) || arr.length === 0) return false;
           return arr.filter((i) => i && i.isPrimary === true).length === 1;
         },
-        message: "برای محصول فعال، حداقل یک تصویر و دقیقاً یک تصویر اصلی لازم است",
+        message:
+          "برای محصول فعال، حداقل یک تصویر (یا media) و دقیقاً یک تصویر اصلی لازم است",
       },
     },
     videos: [MediaVideoSchema],

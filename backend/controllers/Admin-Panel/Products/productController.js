@@ -1,7 +1,9 @@
 //? 🔵Required Modules
 const mongoose = require("mongoose");
 const { Product } = require("../../../models/productModel");
+const CurrencyCatalog = require("../../../models/currencyCatalogModel");
 const CategoryModel = require("../../../models/categoryModel");
+const { buildPublicUrl } = require("../../../utils/cloudSpace");
 
 //* 🟢 REQUIRED fields for create
 const REQUIRED = {
@@ -12,7 +14,6 @@ const REQUIRED = {
     categoryId: "شناسه دسته‌بندی الزامی است",
     price: "قیمت محصول الزامی است",
     currency: "واحد پول محصول الزامی است",
-    images: "حداقل یک تصویر برای محصول الزامی است",
   },
 };
 
@@ -40,6 +41,7 @@ const ALLOWED_UPDATE_FIELDS = new Set([
   "hasVariants",
   "options",
   "variants",
+  "media",
   "images",
   "videos",
   "attributes",
@@ -144,18 +146,34 @@ const parseIntegerField = (
 };
 
 //* validateCurrency Utils
-const ALLOWED_CURRENCIES = new Set(["IRT", "IRR", "USD"]);
+const ALLOWED_CURRENCIES_FALLBACK = new Set(["IRT", "IRR", "USD"]);
 
-const validateCurrency = (currency) => {
+const validateCurrency = async (currency) => {
   if (typeof currency !== "string") {
     throw new Error("واحد پول نامعتبر است");
   }
   const cleaned = currency.trim().toUpperCase();
-  if (!ALLOWED_CURRENCIES.has(cleaned)) {
+  if (!cleaned) {
+    throw new Error("واحد پول نامعتبر است");
+  }
+
+  // If admin has configured CurrencyCatalog, enforce it (active only).
+  const hasCatalog = await CurrencyCatalog.exists({});
+  if (hasCatalog) {
+    const ok = await CurrencyCatalog.exists({ code: cleaned, isActive: true });
+    if (!ok) {
+      throw new Error("واحد پول نامعتبر است");
+    }
+    return cleaned;
+  }
+
+  // Fallback mode (before CurrencyCatalog is configured)
+  if (!ALLOWED_CURRENCIES_FALLBACK.has(cleaned)) {
     throw new Error("واحد پول نامعتبر است");
   }
   return cleaned;
 };
+
 
 //* normalizeTags Utils (string | string[] → string[] lowercase)
 const normalizeTags = (tags) => {
@@ -235,7 +253,169 @@ const normalizeImages = (images, { required = false } = {}) => {
     throw new Error("باید دقیقاً یک تصویر اصلی داشته باشد");
   }
 
+  
+//* normalizeMedia Utils (unified: key-based)
+const normalizeMedia = (media, { required = false, isActive = false } = {}) => {
+  if (media === undefined) return undefined;
+  if (media === null) {
+    if (required) throw new Error("حداقل یک رسانه برای محصول الزامی است");
+    return [];
+  }
+  if (!Array.isArray(media)) {
+    throw new Error("ساختار media نامعتبر است");
+  }
+  if (media.length === 0) {
+    if (required) throw new Error("حداقل یک رسانه برای محصول الزامی است");
+    return [];
+  }
+
+  const allowedTypes = new Set(["image", "video", "gif", "embed"]);
+
+  const mapped = media.map((m, idx) => {
+    if (!m || typeof m !== "object") {
+      throw new Error("ساختار هر رسانه باید شیء باشد");
+    }
+    const typeRaw = m.type ?? m.mediaType;
+    const type = String(typeRaw || "").trim().toLowerCase();
+    if (!allowedTypes.has(type)) {
+      throw new Error("نوع رسانه نامعتبر است");
+    }
+
+    const key = m.key ? String(m.key).trim().replace(/^\/+/, "") : undefined;
+    const url = m.url ? String(m.url).trim() : undefined;
+
+    // For embed: url is required
+    if (type === "embed" && !url) {
+      throw new Error("برای embed، فیلد url الزامی است");
+    }
+
+    // For other types: prefer key; allow url for backward compatibility
+    if (type !== "embed" && !key && !url) {
+      throw new Error("برای رسانه، یکی از key یا url لازم است");
+    }
+
+    const posterKey = m.posterKey ? String(m.posterKey).trim().replace(/^\/+/, "") : undefined;
+    const posterUrl = m.posterUrl ? String(m.posterUrl).trim() : (m.poster ? String(m.poster).trim() : undefined);
+
+    const alt = m.alt ? String(m.alt).trim() : undefined;
+
+    const order =
+      m.order === undefined || m.order === null || m.order === ""
+        ? idx
+        : parseIntegerField(m.order, "order", { required: false, min: 0 });
+
+    return {
+      type,
+      key,
+      url,
+      posterKey,
+      posterUrl,
+      alt,
+      isPrimary: !!m.isPrimary,
+      order,
+    };
+  });
+
+  // primary rules
+  const primaryCount = mapped.filter((i) => i.isPrimary === true).length;
+  if (primaryCount > 1) {
+    throw new Error("در media فقط یک آیتم می‌تواند اصلی باشد");
+  }
+  if (isActive && primaryCount !== 1) {
+    throw new Error("برای محصول فعال، باید دقیقاً یک رسانه اصلی انتخاب شود");
+  }
+
+  // For ACTIVE: image/gif must have alt (SEO/accessibility)
+  if (isActive) {
+    for (const it of mapped) {
+      if ((it.type === "image" || it.type === "gif") && !it.alt) {
+        throw new Error("برای تصویر/گیف، فیلد alt الزامی است");
+      }
+    }
+  }
+
+  // sort by order (stable)
+  mapped.sort((a, b) => (a.order || 0) - (b.order || 0));
   return mapped;
+};
+
+const safeBuildPublicUrl = (key) => {
+  try {
+    return buildPublicUrl(key);
+  } catch (_) {
+    return undefined;
+  }
+};
+
+const buildUnifiedMediaForResponse = (p) => {
+  const srcMedia = Array.isArray(p.media) ? p.media : [];
+  if (srcMedia.length > 0) {
+    const mapped = srcMedia
+      .map((m, idx) => {
+        if (!m) return null;
+        const key = m.key ? String(m.key).trim() : undefined;
+        const posterKey = m.posterKey ? String(m.posterKey).trim() : undefined;
+
+        const url = key ? safeBuildPublicUrl(key) : (m.url ? String(m.url).trim() : undefined);
+        const posterUrl = posterKey ? safeBuildPublicUrl(posterKey) : (m.posterUrl ? String(m.posterUrl).trim() : undefined);
+
+        return {
+          type: m.type,
+          key,
+          url,
+          posterKey,
+          posterUrl,
+          alt: m.alt,
+          isPrimary: !!m.isPrimary,
+          order: m.order ?? idx,
+        };
+      })
+      .filter(Boolean)
+      .sort((a, b) => (a.order || 0) - (b.order || 0));
+
+    const primary = mapped.find((x) => x.isPrimary) || mapped[0];
+    return { media: mapped, primaryMediaUrl: primary?.url };
+  }
+
+  // Legacy fallback: images/videos (url-based)
+  const images = Array.isArray(p.images) ? p.images : [];
+  const videos = Array.isArray(p.videos) ? p.videos : [];
+  const mappedImages = images.map((img, idx) => ({
+    type: "image",
+    key: undefined,
+    url: img?.url,
+    posterKey: undefined,
+    posterUrl: img?.poster,
+    alt: img?.alt,
+    isPrimary: !!img?.isPrimary,
+    order: idx,
+  }));
+  const mappedVideos = videos.map((v, idx) => ({
+    type: "video",
+    key: undefined,
+    url: v?.url,
+    posterKey: undefined,
+    posterUrl: v?.poster,
+    alt: v?.title,
+    isPrimary: false,
+    order: mappedImages.length + idx,
+  }));
+
+  const combined = [...mappedImages, ...mappedVideos].filter((x) => x && x.url);
+  const primary = combined.find((x) => x.isPrimary) || combined[0];
+
+  return { media: combined, primaryMediaUrl: primary?.url };
+};
+
+const shapeProductForResponse = (p) => {
+  const { media, primaryMediaUrl } = buildUnifiedMediaForResponse(p);
+  return {
+    ...p,
+    media,
+    primaryMediaUrl,
+  };
+};
+return mapped;
 };
 
 //* validateEnum Utils
@@ -485,6 +665,7 @@ const createProduct = async (req, res) => {
       hasVariants,
       options,
       variants,
+      media,
       images,
       videos,
       attributes,
@@ -531,7 +712,6 @@ const createProduct = async (req, res) => {
         categoryId,
         price,
         currency,
-        images,
       });
       if (requiredErr) {
         return res
@@ -602,7 +782,7 @@ const createProduct = async (req, res) => {
     let normalizedCurrency;
     if (isActive || (currency !== undefined && currency !== null && currency !== "")) {
       try {
-        normalizedCurrency = validateCurrency(currency);
+        normalizedCurrency = await validateCurrency(currency);
       } catch (e) {
         return res
           .status(400)
@@ -623,17 +803,39 @@ const createProduct = async (req, res) => {
     // ۷) tags
     tags = normalizeTags(tags);
 
-    // ۸) images
-    let normalizedImages;
+    // ۸) media
+    let normalizedMedia;
     try {
-      normalizedImages = normalizeImages(images, { required: isActive });
+      normalizedMedia = normalizeMedia(media, { required: false, isActive });
     } catch (e) {
       return res
         .status(400)
         .json({ success: false, error: true, message: e.message });
     }
 
-    // ۹) publishAt
+    // ۹) images
+    let normalizedImages;
+    try {
+      normalizedImages = normalizeImages(images, { required: isActive && !(Array.isArray(normalizedMedia) && normalizedMedia.length > 0) });
+    } catch (e) {
+      return res
+        .status(400)
+        .json({ success: false, error: true, message: e.message });
+    }
+
+    if (isActive) {
+      const hasMedia = Array.isArray(normalizedMedia) && normalizedMedia.length > 0;
+      const hasImages = Array.isArray(normalizedImages) && normalizedImages.length > 0;
+      if (!hasMedia && !hasImages) {
+        return res.status(400).json({
+          success: false,
+          error: true,
+          message: "برای محصول فعال، حداقل یک رسانه یا تصویر لازم است",
+        });
+      }
+    }
+
+    // ۱۰) publishAt
     let publishAtDate;
     if (publishAt !== undefined && publishAt !== null && publishAt !== "") {
       const d = new Date(publishAt);
@@ -715,6 +917,7 @@ const createProduct = async (req, res) => {
 
     if (normalizedOptions !== undefined) payload.options = normalizedOptions;
     if (normalizedVariants !== undefined) payload.variants = normalizedVariants;
+    if (normalizedMedia !== undefined) payload.media = normalizedMedia;
     if (normalizedImages !== undefined) payload.images = normalizedImages;
 
     if (Array.isArray(videos)) payload.videos = videos;
@@ -733,10 +936,15 @@ const createProduct = async (req, res) => {
     // ۱۲) ایجاد محصول
     const doc = await Product.create(payload);
 
+    const full = await Product.findById(doc._id)
+      .select("+cost")
+      .populate("categoryId", "name slug")
+      .lean();
+
     return res.status(201).json({
       success: true,
       error: false,
-      data: doc,
+      data: shapeProductForResponse(full),
     });
   } catch (err) {
     if (err?.code === 11000) {
@@ -821,11 +1029,13 @@ const getAllProducts = async (req, res) => {
       Product.countDocuments(filter),
     ]);
 
+    const shapedItems = items.map(shapeProductForResponse);
+
     return res.status(200).json({
       success: true,
       error: false,
       data: {
-        items,
+        items: shapedItems,
         page,
         limit,
         total,
@@ -869,7 +1079,7 @@ const getProductById = async (req, res) => {
     return res.status(200).json({
       success: true,
       error: false,
-      data: doc,
+      data: shapeProductForResponse(doc),
     });
   } catch (err) {
     return res.status(500).json({
@@ -933,6 +1143,7 @@ const updateProduct = async (req, res) => {
       }
     }
 
+    const wasActive = prod.status === "ACTIVE";
     const isActive = effectiveStatus === "ACTIVE";
 
 
@@ -1041,7 +1252,7 @@ const updateProduct = async (req, res) => {
         normalizedCurrency = undefined;
       } else {
         try {
-          normalizedCurrency = validateCurrency(body.currency);
+          normalizedCurrency = await validateCurrency(body.currency);
         } catch (e) {
           return res
             .status(400)
@@ -1082,11 +1293,31 @@ const updateProduct = async (req, res) => {
       normalizedTags = normalizeTags(body.tags);
     }
 
+    // media
+    let normalizedMedia;
+    const hasMedia = Object.prototype.hasOwnProperty.call(body, "media");
+    if (hasMedia) {
+      try {
+        normalizedMedia = normalizeMedia(body.media, { required: false, isActive });
+      } catch (e) {
+        return res
+          .status(400)
+          .json({ success: false, error: true, message: e.message });
+      }
+    }
+
     // images
     let normalizedImages;
     if (Object.prototype.hasOwnProperty.call(body, "images")) {
       try {
-        normalizedImages = normalizeImages(body.images, { required: isActive });
+        const effectiveMediaAfter = hasMedia ? normalizedMedia : prod.media;
+        const requireImages = isActive && !(Array.isArray(effectiveMediaAfter) && effectiveMediaAfter.length > 0);
+        // allow clearing images with null in DRAFT/ARCHIVED
+        if (!requireImages && (body.images === null)) {
+          normalizedImages = [];
+        } else {
+          normalizedImages = normalizeImages(body.images, { required: requireImages });
+        }
       } catch (e) {
         return res
           .status(400)
@@ -1236,13 +1467,15 @@ const updateProduct = async (req, res) => {
     if (isActive) {
       if (hasVisible) {
         prod.visible = !!body.visible;
+      } else if (!wasActive) {
+        // transitioning to ACTIVE: default visible=true unless explicitly provided
+        prod.visible = false;
       }
     } else {
       prod.visible = false;
     }
 
-
-    if (hasPrice) {
+if (hasPrice) {
       if (priceInt === undefined && !isActive) {
         prod.price = undefined;
       } else if (priceInt !== undefined) {
@@ -1320,6 +1553,10 @@ const updateProduct = async (req, res) => {
       prod.variants = normalizedVariants;
     }
 
+    if (hasMedia) {
+      prod.media = normalizedMedia;
+    }
+
     if (normalizedImages !== undefined) {
       prod.images = normalizedImages;
     }
@@ -1378,12 +1615,30 @@ const updateProduct = async (req, res) => {
       prod.breadcrumbsCache = body.breadcrumbsCache;
     }
 
+    if (isActive) {
+      const finalMedia = Array.isArray(prod.media) ? prod.media : [];
+      const finalImages = Array.isArray(prod.images) ? prod.images : [];
+      if (finalMedia.length === 0 && finalImages.length === 0) {
+        return res.status(400).json({
+          success: false,
+          error: true,
+          message: "برای محصول فعال، باید حداقل یک رسانه یا تصویر داشته باشید",
+        });
+      }
+    }
+
     await prod.save();
+
+    const full = await Product.findById(prod._id)
+      .select("+cost")
+      .populate("categoryId", "name slug")
+      .lean();
 
     return res.json({
       success: true,
       error: false,
       message: "محصول بروزرسانی شد",
+      data: shapeProductForResponse(full),
     });
   } catch (err) {
     if (err?.code === 11000) {
@@ -1583,11 +1838,13 @@ const searchProducts = async (req, res) => {
       Product.countDocuments(filter),
     ]);
 
+    const shapedItems = items.map(shapeProductForResponse);
+
     return res.status(200).json({
       success: true,
       error: false,
       data: {
-        items,
+        items: shapedItems,
         page,
         limit,
         total,
@@ -1632,9 +1889,9 @@ const restoreProduct = async (req, res) => {
       });
     }
 
-    // تصمیم: وقتی برمی‌گردد، ACTIVE و قابل نمایش باشد
-    prod.status = "ACTIVE";
-    prod.visible = true;
+    // تصمیم: وقتی برمی‌گردد، به DRAFT برگردد تا دوباره بررسی/انتشار شود
+    prod.status = "DRAFT";
+    prod.visible = false;
 
     await prod.save();
 
