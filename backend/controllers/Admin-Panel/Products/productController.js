@@ -92,6 +92,7 @@ const validateAndNormalizeSlug = async (slug, currentId = null) => {
   if (exists) {
     const err = new Error("slug تکراری است");
     err.code = 409;
+    err.statusCode = 409;
     throw err;
   }
 
@@ -130,17 +131,23 @@ const parseIntegerField = (
 ) => {
   if (value === undefined || value === null || value === "") {
     if (required) {
-      throw new Error(`${label} الزامی است`);
+      const err = new Error(`${label} الزامی است`);
+      err.statusCode = 400;
+      throw err;
     }
     return undefined;
   }
 
   const num = Number(value);
   if (!Number.isInteger(num)) {
-    throw new Error(`${label} باید عدد صحیح باشد`);
+    const err = new Error(`${label} باید عدد صحیح باشد`);
+      err.statusCode = 400;
+      throw err;
   }
   if (num < min) {
-    throw new Error(`${label} نباید کمتر از ${min} باشد`);
+    const err = new Error(`${label} نباید کمتر از ${min} باشد`);
+      err.statusCode = 400;
+      throw err;
   }
   return num;
 };
@@ -150,11 +157,15 @@ const ALLOWED_CURRENCIES_FALLBACK = new Set(["IRT", "IRR", "USD"]);
 
 const validateCurrency = async (currency) => {
   if (typeof currency !== "string") {
-    throw new Error("واحد پول نامعتبر است");
+    const err = new Error("واحد پول نامعتبر است");
+      err.statusCode = 400;
+      throw err;
   }
   const cleaned = currency.trim().toUpperCase();
   if (!cleaned) {
-    throw new Error("واحد پول نامعتبر است");
+    const err = new Error("واحد پول نامعتبر است");
+      err.statusCode = 400;
+      throw err;
   }
 
   // If admin has configured CurrencyCatalog, enforce it (active only).
@@ -162,14 +173,18 @@ const validateCurrency = async (currency) => {
   if (hasCatalog) {
     const ok = await CurrencyCatalog.exists({ code: cleaned, isActive: true });
     if (!ok) {
-      throw new Error("واحد پول نامعتبر است");
+      const err = new Error("واحد پول نامعتبر است");
+      err.statusCode = 400;
+      throw err;
     }
     return cleaned;
   }
 
   // Fallback mode (before CurrencyCatalog is configured)
   if (!ALLOWED_CURRENCIES_FALLBACK.has(cleaned)) {
-    throw new Error("واحد پول نامعتبر است");
+    const err = new Error("واحد پول نامعتبر است");
+      err.statusCode = 400;
+      throw err;
   }
   return cleaned;
 };
@@ -216,29 +231,39 @@ const normalizeInventory = (inventory) => {
 const normalizeImages = (images, { required = false } = {}) => {
   if (images === undefined || images === null) {
     if (required) {
-      throw new Error("حداقل یک تصویر برای محصول الزامی است");
+      const err = new Error("حداقل یک تصویر برای محصول الزامی است");
+      err.statusCode = 400;
+      throw err;
     }
     return undefined;
   }
   if (!Array.isArray(images)) {
-    throw new Error("ساختار تصاویر نامعتبر است");
+    const err = new Error("ساختار تصاویر نامعتبر است");
+      err.statusCode = 400;
+      throw err;
   }
 
   if (images.length === 0) {
     if (required) {
-      throw new Error("حداقل یک تصویر برای محصول الزامی است");
+      const err = new Error("حداقل یک تصویر برای محصول الزامی است");
+      err.statusCode = 400;
+      throw err;
     }
     return [];
   }
 
   const mapped = images.map((img) => {
     if (!img || typeof img !== "object") {
-      throw new Error("ساختار هر تصویر باید شیء باشد");
+      const err = new Error("ساختار هر تصویر باید شیء باشد");
+      err.statusCode = 400;
+      throw err;
     }
     const url = img.url && String(img.url).trim();
     const alt = img.alt && String(img.alt).trim();
     if (!url || !alt) {
-      throw new Error("هر تصویر باید فیلدهای url و alt داشته باشد");
+      const err = new Error("هر تصویر باید فیلدهای url و alt داشته باشد");
+      err.statusCode = 400;
+      throw err;
     }
     return {
       url,
@@ -250,22 +275,38 @@ const normalizeImages = (images, { required = false } = {}) => {
 
   const primaryCount = mapped.filter((i) => i.isPrimary === true).length;
   if (primaryCount !== 1) {
-    throw new Error("باید دقیقاً یک تصویر اصلی داشته باشد");
+    const err = new Error("باید دقیقاً یک تصویر اصلی داشته باشد");
+      err.statusCode = 400;
+      throw err;
   }
 
   
+
+  return mapped;
+};
+
 //* normalizeMedia Utils (unified: key-based)
 const normalizeMedia = (media, { required = false, isActive = false } = {}) => {
   if (media === undefined) return undefined;
   if (media === null) {
-    if (required) throw new Error("حداقل یک رسانه برای محصول الزامی است");
+    if (required) {
+      const err = new Error("حداقل یک رسانه برای محصول الزامی است");
+      err.statusCode = 400;
+      throw err;
+    }
     return [];
   }
   if (!Array.isArray(media)) {
-    throw new Error("ساختار media نامعتبر است");
+    const err = new Error("ساختار media نامعتبر است");
+      err.statusCode = 400;
+      throw err;
   }
   if (media.length === 0) {
-    if (required) throw new Error("حداقل یک رسانه برای محصول الزامی است");
+    if (required) {
+      const err = new Error("حداقل یک رسانه برای محصول الزامی است");
+      err.statusCode = 400;
+      throw err;
+    }
     return [];
   }
 
@@ -273,12 +314,16 @@ const normalizeMedia = (media, { required = false, isActive = false } = {}) => {
 
   const mapped = media.map((m, idx) => {
     if (!m || typeof m !== "object") {
-      throw new Error("ساختار هر رسانه باید شیء باشد");
+      const err = new Error("ساختار هر رسانه باید شیء باشد");
+      err.statusCode = 400;
+      throw err;
     }
     const typeRaw = m.type ?? m.mediaType;
     const type = String(typeRaw || "").trim().toLowerCase();
     if (!allowedTypes.has(type)) {
-      throw new Error("نوع رسانه نامعتبر است");
+      const err = new Error("نوع رسانه نامعتبر است");
+      err.statusCode = 400;
+      throw err;
     }
 
     const key = m.key ? String(m.key).trim().replace(/^\/+/, "") : undefined;
@@ -286,12 +331,16 @@ const normalizeMedia = (media, { required = false, isActive = false } = {}) => {
 
     // For embed: url is required
     if (type === "embed" && !url) {
-      throw new Error("برای embed، فیلد url الزامی است");
+      const err = new Error("برای embed، فیلد url الزامی است");
+      err.statusCode = 400;
+      throw err;
     }
 
     // For other types: prefer key; allow url for backward compatibility
     if (type !== "embed" && !key && !url) {
-      throw new Error("برای رسانه، یکی از key یا url لازم است");
+      const err = new Error("برای رسانه، یکی از key یا url لازم است");
+      err.statusCode = 400;
+      throw err;
     }
 
     const posterKey = m.posterKey ? String(m.posterKey).trim().replace(/^\/+/, "") : undefined;
@@ -319,17 +368,23 @@ const normalizeMedia = (media, { required = false, isActive = false } = {}) => {
   // primary rules
   const primaryCount = mapped.filter((i) => i.isPrimary === true).length;
   if (primaryCount > 1) {
-    throw new Error("در media فقط یک آیتم می‌تواند اصلی باشد");
+    const err = new Error("در media فقط یک آیتم می‌تواند اصلی باشد");
+      err.statusCode = 400;
+      throw err;
   }
   if (isActive && primaryCount !== 1) {
-    throw new Error("برای محصول فعال، باید دقیقاً یک رسانه اصلی انتخاب شود");
+    const err = new Error("برای محصول فعال، باید دقیقاً یک رسانه اصلی انتخاب شود");
+      err.statusCode = 400;
+      throw err;
   }
 
   // For ACTIVE: image/gif must have alt (SEO/accessibility)
   if (isActive) {
     for (const it of mapped) {
       if ((it.type === "image" || it.type === "gif") && !it.alt) {
-        throw new Error("برای تصویر/گیف، فیلد alt الزامی است");
+        const err = new Error("برای تصویر/گیف، فیلد alt الزامی است");
+      err.statusCode = 400;
+      throw err;
       }
     }
   }
@@ -408,21 +463,22 @@ const buildUnifiedMediaForResponse = (p) => {
 };
 
 const shapeProductForResponse = (p) => {
-  const { media, primaryMediaUrl } = buildUnifiedMediaForResponse(p);
+  const base = p && typeof p.toObject === "function" ? p.toObject() : p;
+  const { media, primaryMediaUrl } = buildUnifiedMediaForResponse(base || {});
   return {
-    ...p,
+    ...(base || {}),
     media,
     primaryMediaUrl,
   };
-};
-return mapped;
 };
 
 //* validateEnum Utils
 const validateEnumIfProvided = (value, label, allowed) => {
   if (value === undefined || value === null || value === "") return undefined;
   if (!allowed.includes(value)) {
-    throw new Error(`${label} نامعتبر است`);
+    const err = new Error(`${label} نامعتبر است`);
+      err.statusCode = 400;
+      throw err;
   }
   return value;
 };
@@ -431,7 +487,9 @@ const validateEnumIfProvided = (value, label, allowed) => {
 const validateOptionalObjectId = (value, label) => {
   if (value === undefined || value === null || value === "") return undefined;
   if (!mongoose.Types.ObjectId.isValid(value)) {
-    throw new Error(`${label} نامعتبر است`);
+    const err = new Error(`${label} نامعتبر است`);
+      err.statusCode = 400;
+      throw err;
   }
   return value;
 };
@@ -947,12 +1005,30 @@ const createProduct = async (req, res) => {
       data: shapeProductForResponse(full),
     });
   } catch (err) {
-    if (err?.code === 11000) {
-      const field = Object.keys(err.keyValue || {})[0];
-      return res.status(409).json({
+    // Client-side errors we intentionally throw (validation)
+    const sc = Number(err?.statusCode || err?.code);
+    if (sc && sc >= 400 && sc < 500) {
+      return res.status(sc).json({
         success: false,
         error: true,
-        message: `${field} تکراری است`,
+        message: err?.message || "درخواست نامعتبر است",
+      });
+    }
+
+    if (err?.name === "CastError") {
+      return res.status(400).json({
+        success: false,
+        error: true,
+        message: "داده ارسالی نامعتبر است",
+      });
+    }
+
+    if (err?.code === 11000) {
+      const which = Object.keys(err.keyPattern || {}).join(", ");
+      return res.status(400).json({
+        success: false,
+        error: true,
+        message: which ? `مقدار تکراری برای: ${which}` : "کلید تکراری",
       });
     }
 
@@ -968,10 +1044,17 @@ const createProduct = async (req, res) => {
       });
     }
 
+    // Server-side unexpected errors
+    console.error("createProduct error:", err);
+    const msg =
+      process.env.NODE_ENV === "production"
+        ? "خطای داخلی سرور در ایجاد محصول"
+        : err?.message || "خطای داخلی سرور در ایجاد محصول";
+
     return res.status(500).json({
       success: false,
       error: true,
-      message: "خطای داخلی سرور در ایجاد محصول",
+      message: msg,
     });
   }
 };
@@ -987,6 +1070,7 @@ const getAllProducts = async (req, res) => {
       categoryId,
       visible,
       search,
+      q,
     } = req.query || {};
 
     page = Number(page) || 1;
@@ -997,10 +1081,7 @@ const getAllProducts = async (req, res) => {
 
     const filter = {};
 
-    if (
-      status &&
-      ["DRAFT", "ACTIVE", "ARCHIVED"].includes(String(status).trim())
-    ) {
+    if (status && ["DRAFT", "ACTIVE", "ARCHIVED"].includes(String(status).trim())) {
       filter.status = String(status).trim();
     }
 
@@ -1012,8 +1093,9 @@ const getAllProducts = async (req, res) => {
       filter.categoryId = categoryId;
     }
 
-    if (search && String(search).trim()) {
-      filter.$text = { $search: String(search).trim() };
+    const searchText = (search ?? q);
+    if (searchText && String(searchText).trim()) {
+      filter.$text = { $search: String(searchText).trim() };
     }
 
     const skip = (page - 1) * limit;
@@ -1094,7 +1176,6 @@ const getProductById = async (req, res) => {
 const updateProduct = async (req, res) => {
   try {
     const { id } = req.params;
-    const body = req.body || {};
 
     if (!mongoose.Types.ObjectId.isValid(id)) {
       return res.status(400).json({
@@ -1104,124 +1185,41 @@ const updateProduct = async (req, res) => {
       });
     }
 
-    const unknownKeys = Object.keys(body).filter(
-      (k) => !ALLOWED_UPDATE_FIELDS.has(k)
-    );
-    if (unknownKeys.length) {
-      return res.status(400).json({
-        success: false,
-        error: true,
-        message: `فیلد(های) نامعتبر: ${unknownKeys.join(", ")}`,
-      });
-    }
-
-    const prod = await Product.findById(id);
-    if (!prod) {
+    const existingDoc = await Product.findById(id).select("+cost");
+    if (!existingDoc) {
       return res.status(404).json({
         success: false,
         error: true,
         message: "محصول یافت نشد",
       });
     }
-    // وضعیت مؤثر بعد از بروزرسانی (برای ولیدیشن شرطی)
-    const incomingStatus = Object.prototype.hasOwnProperty.call(body, "status")
-      ? body.status
-      : undefined;
 
-    let effectiveStatus = prod.status;
-    if (incomingStatus !== undefined) {
-      try {
-        effectiveStatus = validateEnumIfProvided(incomingStatus, "وضعیت محصول", [
-          "DRAFT",
-          "ACTIVE",
-          "ARCHIVED",
-        ]);
-      } catch (e) {
-        return res
-          .status(400)
-          .json({ success: false, error: true, message: e.message });
-      }
+    // Only allow known fields (ignore everything else)
+    const rawBody = req.body || {};
+    const body = {};
+    for (const k of Object.keys(rawBody)) {
+      if (ALLOWED_UPDATE_FIELDS.has(k)) body[k] = rawBody[k];
     }
 
-    const wasActive = prod.status === "ACTIVE";
-    const isActive = effectiveStatus === "ACTIVE";
-
-
-    // slug
-    let normalizedSlug;
-    if (Object.prototype.hasOwnProperty.call(body, "slug")) {
-      const rawSlug = body.slug;
-      // برای DRAFT/ARCHIVED می‌توان slug را خالی فرستاد تا دوباره تولید شود
-      if (!isActive && (rawSlug === "" || rawSlug === null)) {
-        normalizedSlug = undefined;
-      } else {
-        try {
-          normalizedSlug = await validateAndNormalizeSlug(rawSlug, prod._id);
-        } catch (e) {
-          const statusCode = e.code === 409 ? 409 : 400;
-          return res
-            .status(statusCode)
-            .json({ success: false, error: true, message: e.message });
-        }
-      }
-    }
-    // categoryId
-    let newCategoryId;
-    const hasCategoryId = Object.prototype.hasOwnProperty.call(body, "categoryId");
-    if (hasCategoryId) {
-      const rawCat = body.categoryId;
-      if (!isActive && (rawCat === "" || rawCat === null)) {
-        newCategoryId = undefined;
-      } else {
-        try {
-          newCategoryId = await validateCategoryId(rawCat);
-        } catch (e) {
-          return res
-            .status(400)
-            .json({ success: false, error: true, message: e.message });
-        }
-      }
-    }
-    // قیمت‌ها
-    let priceInt;
-    let compareAtInt;
-    let costInt;
-    let lowStockThreshInt;
-    const hasPrice = Object.prototype.hasOwnProperty.call(body, "price");
-    const hasCompareAt = Object.prototype.hasOwnProperty.call(
-      body,
-      "compareAt"
-    );
-    const hasCost = Object.prototype.hasOwnProperty.call(body, "cost");
-    const hasLowStock = Object.prototype.hasOwnProperty.call(
-      body,
-      "lowStockThreshold"
-    );
+    // ۰) وضعیت نهایی
+    let effectiveStatus = existingDoc.status || "DRAFT";
+    let normalizedStockStatus;
 
     try {
-      if (hasPrice) {
-        priceInt = parseIntegerField(body.price, "قیمت", {
-          required: isActive,
-          min: 0,
-        });
+      if (Object.prototype.hasOwnProperty.call(body, "status")) {
+        effectiveStatus =
+          validateEnumIfProvided(body.status, "وضعیت محصول", [
+            "DRAFT",
+            "ACTIVE",
+            "ARCHIVED",
+          ]) || effectiveStatus;
       }
-      if (hasCompareAt) {
-        compareAtInt = parseIntegerField(body.compareAt, "compareAt", {
-          required: false,
-          min: 0,
-        });
-      }
-      if (hasCost) {
-        costInt = parseIntegerField(body.cost, "cost", {
-          required: false,
-          min: 0,
-        });
-      }
-      if (hasLowStock) {
-        lowStockThreshInt = parseIntegerField(
-          body.lowStockThreshold,
-          "آستانه موجودی کم",
-          { required: false, min: 0 }
+
+      if (Object.prototype.hasOwnProperty.call(body, "stockStatus")) {
+        normalizedStockStatus = validateEnumIfProvided(
+          body.stockStatus,
+          "وضعیت موجودی",
+          ["IN_STOCK", "OUT_OF_STOCK", "PREORDER"]
         );
       }
     } catch (e) {
@@ -1230,93 +1228,221 @@ const updateProduct = async (req, res) => {
         .json({ success: false, error: true, message: e.message });
     }
 
-    // بررسی نسبت compareAt و price فقط اگر compareAt ارسال شده
-    if (hasCompareAt && compareAtInt !== undefined && compareAtInt !== null) {
-      const effectivePrice =
-        priceInt !== undefined && priceInt !== null
-          ? priceInt
-          : prod.price;
-      if (effectivePrice != null && compareAtInt < effectivePrice) {
+    const isActive = effectiveStatus === "ACTIVE";
+
+    // ۱) مقدارهای موثر (برای چک required وقتی ACTIVE می‌شود)
+    const effectiveTitle =
+      Object.prototype.hasOwnProperty.call(body, "title")
+        ? body.title
+        : existingDoc.title;
+
+    const effectiveSlug =
+      Object.prototype.hasOwnProperty.call(body, "slug")
+        ? body.slug
+        : existingDoc.slug;
+
+    const effectiveShortDescription =
+      Object.prototype.hasOwnProperty.call(body, "shortDescription")
+        ? body.shortDescription
+        : existingDoc.shortDescription;
+
+    const effectiveCategoryId =
+      Object.prototype.hasOwnProperty.call(body, "categoryId")
+        ? body.categoryId
+        : existingDoc.categoryId;
+
+    const effectivePrice =
+      Object.prototype.hasOwnProperty.call(body, "price")
+        ? body.price
+        : existingDoc.price;
+
+    const effectiveCurrency =
+      Object.prototype.hasOwnProperty.call(body, "currency")
+        ? body.currency
+        : existingDoc.currency;
+
+    if (isActive) {
+      const requiredErr = validateRequired(REQUIRED.create, {
+        title: effectiveTitle,
+        slug: effectiveSlug,
+        shortDescription: effectiveShortDescription,
+        categoryId: effectiveCategoryId,
+        price: effectivePrice,
+        currency: effectiveCurrency,
+      });
+      if (requiredErr) {
+        return res
+          .status(400)
+          .json({ success: false, error: true, message: requiredErr });
+      }
+    }
+
+    // ۲) slug validation (if provided or needed)
+    let normalizedSlug;
+    if (
+      Object.prototype.hasOwnProperty.call(body, "slug") ||
+      (isActive && (!existingDoc.slug || !String(existingDoc.slug).trim()))
+    ) {
+      try {
+        normalizedSlug = await validateAndNormalizeSlug(effectiveSlug, id);
+      } catch (e) {
+        const statusCode = e.code === 409 ? 409 : 400;
+        return res
+          .status(statusCode)
+          .json({ success: false, error: true, message: e.message });
+      }
+    }
+
+    // ۳) category validation (if provided or needed)
+    if (
+      Object.prototype.hasOwnProperty.call(body, "categoryId") ||
+      (isActive && !existingDoc.categoryId)
+    ) {
+      try {
+        await validateCategoryId(effectiveCategoryId);
+      } catch (e) {
+        return res
+          .status(400)
+          .json({ success: false, error: true, message: e.message });
+      }
+    }
+
+    // ۴) قیمت‌ها
+    let priceInt, compareAtInt, costInt, lowStockThreshInt;
+    try {
+      priceInt = parseIntegerField(effectivePrice, "قیمت", {
+        required: isActive,
+        min: 0,
+      });
+
+      const effectiveCompareAt =
+        Object.prototype.hasOwnProperty.call(body, "compareAt")
+          ? body.compareAt
+          : existingDoc.compareAt;
+
+      const effectiveCost =
+        Object.prototype.hasOwnProperty.call(body, "cost")
+          ? body.cost
+          : existingDoc.cost;
+
+      const effectiveLowStock =
+        Object.prototype.hasOwnProperty.call(body, "lowStockThreshold")
+          ? body.lowStockThreshold
+          : existingDoc.lowStockThreshold;
+
+      compareAtInt = parseIntegerField(effectiveCompareAt, "compareAt", {
+        required: false,
+        min: 0,
+      });
+      costInt = parseIntegerField(effectiveCost, "cost", {
+        required: false,
+        min: 0,
+      });
+      lowStockThreshInt = parseIntegerField(
+        effectiveLowStock,
+        "آستانه موجودی کم",
+        { required: false, min: 0 }
+      );
+    } catch (e) {
+      return res
+        .status(400)
+        .json({ success: false, error: true, message: e.message });
+    }
+
+    if (
+      compareAtInt !== undefined &&
+      compareAtInt !== null &&
+      priceInt !== undefined &&
+      priceInt !== null &&
+      compareAtInt < priceInt
+    ) {
+      return res.status(400).json({
+        success: false,
+        error: true,
+        message: "compareAt باید بزرگ‌تر یا مساوی price باشد",
+      });
+    }
+
+    // ۵) currency validation (if provided or needed)
+    let normalizedCurrency;
+    if (
+      Object.prototype.hasOwnProperty.call(body, "currency") ||
+      (isActive && (!existingDoc.currency || !String(existingDoc.currency).trim()))
+    ) {
+      try {
+        normalizedCurrency = await validateCurrency(effectiveCurrency);
+      } catch (e) {
+        return res
+          .status(400)
+          .json({ success: false, error: true, message: e.message });
+      }
+    }
+
+    // ۶) inventory
+    let normalizedInventory;
+    try {
+      if (Object.prototype.hasOwnProperty.call(body, "inventory")) {
+        normalizedInventory = normalizeInventory(body.inventory);
+      }
+    } catch (e) {
+      return res
+        .status(400)
+        .json({ success: false, error: true, message: e.message });
+    }
+
+    // ۷) tags
+    const normalizedTags = Object.prototype.hasOwnProperty.call(body, "tags")
+      ? normalizeTags(body.tags)
+      : undefined;
+
+    // ۸) media/images
+    let normalizedMedia;
+    let normalizedImages;
+
+    try {
+      if (Object.prototype.hasOwnProperty.call(body, "media")) {
+        normalizedMedia = normalizeMedia(body.media, { required: false, isActive });
+      }
+
+      if (Object.prototype.hasOwnProperty.call(body, "images")) {
+        // images primary rule is enforced inside normalizeImages
+        normalizedImages = normalizeImages(body.images, { required: false });
+      }
+    } catch (e) {
+      return res
+        .status(400)
+        .json({ success: false, error: true, message: e.message });
+    }
+
+    // Validate existing media/images when product becomes ACTIVE but client didn't re-send them
+    const finalMedia = Object.prototype.hasOwnProperty.call(body, "media")
+      ? normalizedMedia
+      : existingDoc.media;
+
+    const finalImages = Object.prototype.hasOwnProperty.call(body, "images")
+      ? normalizedImages
+      : existingDoc.images;
+
+    if (isActive) {
+      const hasMedia = Array.isArray(finalMedia) && finalMedia.length > 0;
+      const hasImages = Array.isArray(finalImages) && finalImages.length > 0;
+
+      if (!hasMedia && !hasImages) {
         return res.status(400).json({
           success: false,
           error: true,
-          message: "compareAt باید بزرگ‌تر یا مساوی price باشد",
+          message: "برای محصول فعال، حداقل یک رسانه یا تصویر لازم است",
         });
       }
-    }
 
-    // currency
-    let normalizedCurrency;
-    if (Object.prototype.hasOwnProperty.call(body, "currency")) {
-      if (!isActive && (body.currency === "" || body.currency === null)) {
-        normalizedCurrency = undefined;
-      } else {
-        try {
-          normalizedCurrency = await validateCurrency(body.currency);
-        } catch (e) {
-          return res
-            .status(400)
-            .json({ success: false, error: true, message: e.message });
+      // If images/media were not provided in this request, still validate stored values.
+      try {
+        if (!Object.prototype.hasOwnProperty.call(body, "media") && hasMedia) {
+          // will throw if invalid for ACTIVE
+          normalizeMedia(finalMedia, { required: false, isActive: true });
         }
-      }
-    }
-    // status (قبلاً برای تعیین وضعیت مؤثر validate شد)
-    if (Object.prototype.hasOwnProperty.call(body, "stockStatus")) {
-      try {
-        body.stockStatus = validateEnumIfProvided(
-          body.stockStatus,
-          "وضعیت موجودی",
-          ["IN_STOCK", "OUT_OF_STOCK", "PREORDER"]
-        );
-      } catch (e) {
-        return res
-          .status(400)
-          .json({ success: false, error: true, message: e.message });
-      }
-    }
-
-    // inventory
-    let normalizedInventory;
-    if (Object.prototype.hasOwnProperty.call(body, "inventory")) {
-      try {
-        normalizedInventory = normalizeInventory(body.inventory);
-      } catch (e) {
-        return res
-          .status(400)
-          .json({ success: false, error: true, message: e.message });
-      }
-    }
-
-    // tags
-    let normalizedTags;
-    if (Object.prototype.hasOwnProperty.call(body, "tags")) {
-      normalizedTags = normalizeTags(body.tags);
-    }
-
-    // media
-    let normalizedMedia;
-    const hasMedia = Object.prototype.hasOwnProperty.call(body, "media");
-    if (hasMedia) {
-      try {
-        normalizedMedia = normalizeMedia(body.media, { required: false, isActive });
-      } catch (e) {
-        return res
-          .status(400)
-          .json({ success: false, error: true, message: e.message });
-      }
-    }
-
-    // images
-    let normalizedImages;
-    if (Object.prototype.hasOwnProperty.call(body, "images")) {
-      try {
-        const effectiveMediaAfter = hasMedia ? normalizedMedia : prod.media;
-        const requireImages = isActive && !(Array.isArray(effectiveMediaAfter) && effectiveMediaAfter.length > 0);
-        // allow clearing images with null in DRAFT/ARCHIVED
-        if (!requireImages && (body.images === null)) {
-          normalizedImages = [];
-        } else {
-          normalizedImages = normalizeImages(body.images, { required: requireImages });
+        if (!Object.prototype.hasOwnProperty.call(body, "images") && hasImages) {
+          normalizeImages(finalImages, { required: false });
         }
       } catch (e) {
         return res
@@ -1324,15 +1450,12 @@ const updateProduct = async (req, res) => {
           .json({ success: false, error: true, message: e.message });
       }
     }
-    // publishAt
+
+    // ۹) publishAt
     let publishAtDate;
     if (Object.prototype.hasOwnProperty.call(body, "publishAt")) {
-      if (
-        body.publishAt === undefined ||
-        body.publishAt === null ||
-        body.publishAt === ""
-      ) {
-        publishAtDate = undefined;
+      if (body.publishAt === null || body.publishAt === "") {
+        publishAtDate = null;
       } else {
         const d = new Date(body.publishAt);
         if (Number.isNaN(d.getTime())) {
@@ -1346,301 +1469,128 @@ const updateProduct = async (req, res) => {
       }
     }
 
-    // سایر نرمال‌سازی‌ها
-    const hasVisible = Object.prototype.hasOwnProperty.call(body, "visible");
-    const hasAllowBackorder = Object.prototype.hasOwnProperty.call(
-      body,
-      "allowBackorder"
-    );
-    const hasRestockNotifyEnabled = Object.prototype.hasOwnProperty.call(
-      body,
-      "restockNotifyEnabled"
-    );
-    const hasHasVariants = Object.prototype.hasOwnProperty.call(
-      body,
-      "hasVariants"
-    );
+    // ۱۰) سایر نرمال‌سازی‌ها (فقط اگر ارسال شده)
+    const payload = {
+      status: effectiveStatus,
+      // visible policy
+      visible: isActive
+        ? (typeof body.visible === "boolean" ? body.visible : (typeof existingDoc.visible === "boolean" ? existingDoc.visible : true))
+        : false,
+    };
 
-    const normalizedOptions = Object.prototype.hasOwnProperty.call(
-      body,
-      "options"
-    )
-      ? normalizeOptions(body.options)
-      : undefined;
-    const normalizedVariants = Object.prototype.hasOwnProperty.call(
-      body,
-      "variants"
-    )
-      ? normalizeVariants(body.variants)
-      : undefined;
-    const normalizedTechSpecs = Object.prototype.hasOwnProperty.call(
-      body,
-      "techSpecs"
-    )
-      ? normalizeTechSpecs(body.techSpecs)
-      : undefined;
-    const normalizedFaqs = Object.prototype.hasOwnProperty.call(body, "faqs")
-      ? normalizeFaqs(body.faqs)
-      : undefined;
-    const normalizedAttributes = Object.prototype.hasOwnProperty.call(
-      body,
-      "attributes"
-    )
-      ? normalizeAttributes(body.attributes)
-      : undefined;
-    const normalizedSeo = Object.prototype.hasOwnProperty.call(body, "seo")
-      ? normalizeSeo(body.seo)
-      : undefined;
-    const normalizedShipping = Object.prototype.hasOwnProperty.call(
-      body,
-      "shipping"
-    )
-      ? normalizeShipping(body.shipping)
-      : undefined;
-    const normalizedRelated = Object.prototype.hasOwnProperty.call(
-      body,
-      "related"
-    )
-      ? normalizeRelated(body.related)
-      : undefined;
-    const normalizedReturnPolicy = Object.prototype.hasOwnProperty.call(
-      body,
-      "returnPolicy"
-    )
-      ? normalizeTemplateOrCustom(body.returnPolicy, "قوانین مرجوعی")
-      : undefined;
-    const normalizedHandlingTime = Object.prototype.hasOwnProperty.call(
-      body,
-      "handlingTime"
-    )
-      ? normalizeTemplateOrCustom(body.handlingTime, "زمان آماده‌سازی")
-      : undefined;
-
-    // اعمال تغییرات روی Document
     if (Object.prototype.hasOwnProperty.call(body, "title")) {
-      prod.title =
-        typeof body.title === "string" ? body.title.trim() : prod.title;
+      payload.title = typeof body.title === "string" ? body.title.trim() : body.title;
     }
 
-    if (Object.prototype.hasOwnProperty.call(body, "slug")) {
-      if (normalizedSlug === undefined && !isActive) {
-        prod.slug = undefined;
-      } else if (normalizedSlug !== undefined) {
-        prod.slug = normalizedSlug;
-      }
-    }
+    if (normalizedSlug !== undefined) payload.slug = normalizedSlug;
 
     if (Object.prototype.hasOwnProperty.call(body, "shortDescription")) {
-      prod.shortDescription =
+      payload.shortDescription =
         typeof body.shortDescription === "string"
           ? body.shortDescription.trim()
-          : prod.shortDescription;
+          : body.shortDescription;
     }
 
     if (Object.prototype.hasOwnProperty.call(body, "overviewHtml")) {
-      prod.overviewHtml =
-        typeof body.overviewHtml === "string" ? body.overviewHtml : "";
+      payload.overviewHtml = typeof body.overviewHtml === "string" ? body.overviewHtml : "";
     }
 
-    if (hasCategoryId) {
-      if (newCategoryId === undefined && !isActive) {
-        prod.categoryId = undefined;
-      } else if (newCategoryId) {
-        prod.categoryId = newCategoryId;
-      }
+    if (Object.prototype.hasOwnProperty.call(body, "categoryId")) {
+      payload.categoryId = body.categoryId;
     }
 
     if (Object.prototype.hasOwnProperty.call(body, "brandId")) {
-      const bid = validateOptionalObjectId(body.brandId, "شناسه برند");
-      prod.brandId = bid;
+      payload.brandId = validateOptionalObjectId(body.brandId, "شناسه برند");
     }
 
-    if (normalizedTags !== undefined) {
-      prod.tags = normalizedTags;
+    if (normalizedTags !== undefined) payload.tags = normalizedTags;
+
+    if (priceInt !== undefined) payload.price = priceInt;
+    if (normalizedCurrency !== undefined) payload.currency = normalizedCurrency;
+    if (Object.prototype.hasOwnProperty.call(body, "compareAt")) payload.compareAt = compareAtInt;
+    if (Object.prototype.hasOwnProperty.call(body, "cost")) payload.cost = costInt;
+
+    if (normalizedInventory !== undefined) payload.inventory = normalizedInventory;
+    if (normalizedStockStatus) payload.stockStatus = normalizedStockStatus;
+    if (Object.prototype.hasOwnProperty.call(body, "lowStockThreshold")) payload.lowStockThreshold = lowStockThreshInt;
+
+    if (Object.prototype.hasOwnProperty.call(body, "allowBackorder")) {
+      payload.allowBackorder = typeof body.allowBackorder === "boolean" ? body.allowBackorder : false;
     }
 
-    if (Object.prototype.hasOwnProperty.call(body, "status") && effectiveStatus) {
-      prod.status = effectiveStatus;
+    if (Object.prototype.hasOwnProperty.call(body, "restockNotifyEnabled")) {
+      payload.restockNotifyEnabled = typeof body.restockNotifyEnabled === "boolean" ? body.restockNotifyEnabled : true;
     }
 
-    // visible فقط برای ACTIVE معنی دارد، در غیر اینصورت همیشه false
-    if (isActive) {
-      if (hasVisible) {
-        prod.visible = !!body.visible;
-      } else if (!wasActive) {
-        // transitioning to ACTIVE: default visible=true unless explicitly provided
-        prod.visible = false;
-      }
-    } else {
-      prod.visible = false;
+    if (Object.prototype.hasOwnProperty.call(body, "hasVariants")) {
+      payload.hasVariants = typeof body.hasVariants === "boolean" ? body.hasVariants : false;
     }
 
-if (hasPrice) {
-      if (priceInt === undefined && !isActive) {
-        prod.price = undefined;
-      } else if (priceInt !== undefined) {
-        prod.price = priceInt;
-      }
+    if (Object.prototype.hasOwnProperty.call(body, "options")) payload.options = normalizeOptions(body.options);
+    if (Object.prototype.hasOwnProperty.call(body, "variants")) payload.variants = normalizeVariants(body.variants);
+    if (Object.prototype.hasOwnProperty.call(body, "media")) payload.media = normalizedMedia;
+    if (Object.prototype.hasOwnProperty.call(body, "images")) payload.images = normalizedImages;
+
+    if (Object.prototype.hasOwnProperty.call(body, "videos") && Array.isArray(body.videos)) payload.videos = body.videos;
+    if (Object.prototype.hasOwnProperty.call(body, "attributes")) payload.attributes = normalizeAttributes(body.attributes);
+    if (Object.prototype.hasOwnProperty.call(body, "techSpecs")) payload.techSpecs = normalizeTechSpecs(body.techSpecs);
+    if (Object.prototype.hasOwnProperty.call(body, "faqs")) payload.faqs = normalizeFaqs(body.faqs);
+    if (Object.prototype.hasOwnProperty.call(body, "seo")) payload.seo = normalizeSeo(body.seo);
+    if (Object.prototype.hasOwnProperty.call(body, "shipping")) payload.shipping = normalizeShipping(body.shipping);
+
+    if (Object.prototype.hasOwnProperty.call(body, "warranty")) payload.warranty = String(body.warranty);
+
+    if (Object.prototype.hasOwnProperty.call(body, "returnPolicy")) {
+      payload.returnPolicy = normalizeTemplateOrCustom(body.returnPolicy, "قوانین مرجوعی");
     }
 
-    if (Object.prototype.hasOwnProperty.call(body, "currency")) {
-      if (normalizedCurrency === undefined && !isActive) {
-        prod.currency = undefined;
-      } else if (normalizedCurrency !== undefined) {
-        prod.currency = normalizedCurrency;
-      }
+    if (Object.prototype.hasOwnProperty.call(body, "handlingTime")) {
+      payload.handlingTime = normalizeTemplateOrCustom(body.handlingTime, "زمان آماده‌سازی");
     }
 
-    if (hasCompareAt) {
-      if (compareAtInt === undefined) {
-        prod.compareAt = undefined;
-      } else {
-        prod.compareAt = compareAtInt;
-      }
+    if (Object.prototype.hasOwnProperty.call(body, "related")) payload.related = normalizeRelated(body.related);
+
+    if (Object.prototype.hasOwnProperty.call(body, "breadcrumbsCache") && Array.isArray(body.breadcrumbsCache)) {
+      payload.breadcrumbsCache = body.breadcrumbsCache;
     }
 
-    if (hasCost) {
-      if (costInt === undefined) {
-        prod.cost = undefined;
-      } else {
-        prod.cost = costInt;
-      }
+    if (Object.prototype.hasOwnProperty.call(body, "publishAt")) payload.publishAt = publishAtDate;
+
+    // Apply payload
+    for (const [k, v] of Object.entries(payload)) {
+      existingDoc[k] = v;
     }
 
-    if (normalizedInventory !== undefined) {
-      if (!prod.inventory) prod.inventory = {};
-      if (Object.prototype.hasOwnProperty.call(normalizedInventory, "manage")) {
-        prod.inventory.manage = normalizedInventory.manage;
-      }
-      if (Object.prototype.hasOwnProperty.call(normalizedInventory, "qty")) {
-        prod.inventory.qty = normalizedInventory.qty;
-      }
-    }
+    await existingDoc.save();
 
-    if (
-      Object.prototype.hasOwnProperty.call(body, "stockStatus") &&
-      body.stockStatus
-    ) {
-      prod.stockStatus = body.stockStatus;
-    }
-
-    if (hasLowStock) {
-      prod.lowStockThreshold =
-        lowStockThreshInt === undefined ? undefined : lowStockThreshInt;
-    }
-
-    if (Object.prototype.hasOwnProperty.call(body, "publishAt")) {
-      prod.publishAt = publishAtDate;
-    }
-
-    if (hasAllowBackorder) {
-      prod.allowBackorder = !!body.allowBackorder;
-    }
-
-    if (hasRestockNotifyEnabled) {
-      prod.restockNotifyEnabled = !!body.restockNotifyEnabled;
-    }
-
-    if (hasHasVariants) {
-      prod.hasVariants = !!body.hasVariants;
-    }
-
-    if (normalizedOptions !== undefined) {
-      prod.options = normalizedOptions;
-    }
-
-    if (normalizedVariants !== undefined) {
-      prod.variants = normalizedVariants;
-    }
-
-    if (hasMedia) {
-      prod.media = normalizedMedia;
-    }
-
-    if (normalizedImages !== undefined) {
-      prod.images = normalizedImages;
-    }
-
-    if (Object.prototype.hasOwnProperty.call(body, "videos")) {
-      if (Array.isArray(body.videos)) {
-        prod.videos = body.videos;
-      } else if (body.videos == null) {
-        prod.videos = [];
-      }
-    }
-
-    if (normalizedAttributes !== undefined) {
-      prod.attributes = normalizedAttributes;
-    }
-
-    if (normalizedTechSpecs !== undefined) {
-      prod.techSpecs = normalizedTechSpecs;
-    }
-
-    if (normalizedFaqs !== undefined) {
-      prod.faqs = normalizedFaqs;
-    }
-
-    if (normalizedSeo !== undefined) {
-      prod.seo = normalizedSeo;
-    }
-
-    if (normalizedShipping !== undefined) {
-      prod.shipping = normalizedShipping;
-    }
-
-    if (Object.prototype.hasOwnProperty.call(body, "warranty")) {
-      prod.warranty =
-        body.warranty === undefined || body.warranty === null
-          ? undefined
-          : String(body.warranty);
-    }
-
-    if (normalizedReturnPolicy !== undefined) {
-      prod.returnPolicy = normalizedReturnPolicy;
-    }
-
-    if (normalizedHandlingTime !== undefined) {
-      prod.handlingTime = normalizedHandlingTime;
-    }
-
-    if (normalizedRelated !== undefined) {
-      prod.related = normalizedRelated;
-    }
-
-    if (
-      Object.prototype.hasOwnProperty.call(body, "breadcrumbsCache") &&
-      Array.isArray(body.breadcrumbsCache)
-    ) {
-      prod.breadcrumbsCache = body.breadcrumbsCache;
-    }
-
-    if (isActive) {
-      const finalMedia = Array.isArray(prod.media) ? prod.media : [];
-      const finalImages = Array.isArray(prod.images) ? prod.images : [];
-      if (finalMedia.length === 0 && finalImages.length === 0) {
-        return res.status(400).json({
-          success: false,
-          error: true,
-          message: "برای محصول فعال، باید حداقل یک رسانه یا تصویر داشته باشید",
-        });
-      }
-    }
-
-    await prod.save();
-
-    const full = await Product.findById(prod._id)
+    const full = await Product.findById(existingDoc._id)
       .select("+cost")
       .populate("categoryId", "name slug")
       .lean();
 
-    return res.json({
+    return res.status(200).json({
       success: true,
       error: false,
-      message: "محصول بروزرسانی شد",
       data: shapeProductForResponse(full),
     });
   } catch (err) {
+    const sc = Number(err?.statusCode || err?.code);
+    if (sc && sc >= 400 && sc < 500) {
+      return res.status(sc).json({
+        success: false,
+        error: true,
+        message: err?.message || "درخواست نامعتبر است",
+      });
+    }
+
+    if (err?.name === "CastError") {
+      return res.status(400).json({
+        success: false,
+        error: true,
+        message: "داده ارسالی نامعتبر است",
+      });
+    }
+
     if (err?.code === 11000) {
       const which = Object.keys(err.keyPattern || {}).join(", ");
       return res.status(400).json({
@@ -1662,13 +1612,20 @@ if (hasPrice) {
       });
     }
 
+    console.error("updateProduct error:", err);
+    const msg =
+      process.env.NODE_ENV === "production"
+        ? "خطای غیرمنتظره در بروزرسانی محصول"
+        : err?.message || "خطای غیرمنتظره در بروزرسانی محصول";
+
     return res.status(500).json({
       success: false,
       error: true,
-      message: "خطای غیرمنتظره در بروزرسانی محصول",
+      message: msg,
     });
   }
 };
+
 
 //* 🟢 Archive Product (soft delete)
 const archiveProduct = async (req, res) => {

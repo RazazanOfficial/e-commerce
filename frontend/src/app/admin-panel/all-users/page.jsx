@@ -5,7 +5,7 @@ import usePaginatedFetchHook from "@/hooks/usePaginatedFetchHook";
 import backApis from "@/common/inedx";
 import { Search, Eye, Edit, Trash2, ArrowLeft, ArrowRight } from "lucide-react";
 import SearchModal from "@/components/Admin-Panel/SearchModal";
-import axios from "axios";
+import apiClient from "@/common/apiClient";
 import UserModal from "@/components/Admin-Panel/UserModal";
 import {
   AdminBadge,
@@ -39,9 +39,8 @@ export default function AllUsersPage() {
 
   const handleSearch = async () => {
     try {
-      const { data } = await axios.get(
-        `${backApis.searchUsers.url}?q=${searchTerm}`,
-        { withCredentials: true }
+      const { data } = await apiClient.get(
+        `${backApis.searchUsers.url}?q=${searchTerm}`
       );
       setSearchResults(data.data);
       setIsModalOpen(true);
@@ -59,11 +58,10 @@ export default function AllUsersPage() {
   const handleUpdateUser = async (updatedUser) => {
     try {
       const { url, method } = backApis.updateUser(updatedUser._id);
-      await axios({
+      await apiClient({
         method,
         url,
         data: updatedUser,
-        withCredentials: true,
       });
 
       refreshData();
@@ -76,7 +74,7 @@ export default function AllUsersPage() {
   const handleDeleteUser = async (userId) => {
     try {
       const { url, method } = backApis.deleteUser(userId);
-      await axios({ method, url, withCredentials: true });
+      await apiClient({ method, url });
 
       refreshData();
       setUserModalOpen(false);

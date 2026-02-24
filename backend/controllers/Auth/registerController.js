@@ -74,7 +74,9 @@ const registerController = async (req, res) => {
 
     //* 🟢Create New User Object
     const payload = {
-      ...req.body,
+      name: String(name).trim(),
+      phone: String(phone).trim(),
+      email: String(email).trim().toLowerCase(),
       password: hash,
       role: "user",
     };
@@ -84,8 +86,16 @@ const registerController = async (req, res) => {
     const saveUser = await userData.save();
 
     //* 🟢Send Success Response
+        const safeUser = {
+      _id: saveUser._id,
+      name: saveUser.name,
+      phone: saveUser.phone,
+      email: saveUser.email,
+      role: saveUser.role,
+    };
+
     res.status(201).json({
-      data: saveUser,
+      data: safeUser,
       success: true,
       error: false,
       message: "ثبت نام با موفقیت انجام شد",

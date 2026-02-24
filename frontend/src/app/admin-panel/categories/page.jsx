@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import axios from "axios";
+import apiClient from "@/common/apiClient";
 import backApis from "@/common/inedx";
 import { toast } from "react-toastify";
 import Spinner from "@/components/Spinner";
@@ -704,9 +704,7 @@ export default function CategoriesPage() {
   const fetchAll = async () => {
     try {
       setLoading(true);
-      const { data } = await axios.get(backApis.getAllCategories.url, {
-        withCredentials: true,
-      });
+      const { data } = await apiClient.get(backApis.getAllCategories.url);
       setRaw(data?.data || []);
     } catch {
       toast.error("خطا در دریافت دسته‌ها");
@@ -810,9 +808,7 @@ export default function CategoriesPage() {
 
   const handleCreate = async (payload) => {
     try {
-      await axios.post(backApis.createCategory.url, payload, {
-        withCredentials: true,
-      });
+      await apiClient.post(backApis.createCategory.url, payload);
       toast.success("دسته‌بندی ایجاد شد");
       setCreateOpen(false);
       fetchAll();
@@ -847,7 +843,7 @@ export default function CategoriesPage() {
       }, {});
 
       const { url, method } = backApis.updateCategory(id);
-      await axios({ url, method, data, withCredentials: true });
+      await apiClient({ url, method, data });
 
       toast.success("تغییرات ذخیره شد");
       setEditCat(null);
@@ -862,7 +858,7 @@ export default function CategoriesPage() {
     setEditLoading(true);
     try {
       const { url } = backApis.updateCategory(node._id);
-      const { data } = await axios.get(url, { withCredentials: true });
+      const { data } = await apiClient.get(url);
       setEditCat(data?.data || node);
     } catch (e) {
       toast.error(e?.response?.data?.message || "خطا در دریافت جزییات دسته");
@@ -874,7 +870,7 @@ export default function CategoriesPage() {
   const handleDelete = async () => {
     try {
       const { url, method } = backApis.deleteCategory(deleteCat._id);
-      await axios({ url, method, withCredentials: true });
+      await apiClient({ url, method });
       toast.success("دسته حذف شد");
       setDeleteCat(null);
       fetchAll();
@@ -886,11 +882,10 @@ export default function CategoriesPage() {
   const handleToggleActive = async (node) => {
     try {
       const { url, method } = backApis.updateCategory(node._id);
-      await axios({
+      await apiClient({
         url,
         method,
         data: { isActive: !node.isActive },
-        withCredentials: true,
       });
       setRaw((prev) =>
         prev.map((c) =>
@@ -915,11 +910,10 @@ export default function CategoriesPage() {
     if (!target) return;
     try {
       const { url, method } = backApis.updateCategory(node._id);
-      await axios({
+      await apiClient({
         url,
         method,
         data: { sortOrder: target.sortOrder },
-        withCredentials: true,
       });
       fetchAll();
     } catch {

@@ -7,7 +7,7 @@ import Image from "next/image";
 import logo from "@/assets/images/logo.png";
 import { useDispatch, useSelector } from "react-redux";
 import { toast } from "react-toastify";
-import axios from "axios";
+import apiClient from "@/common/apiClient";
 import backApis from "@/common/inedx";
 import { clearUser } from "@/redux/userSlice";
 
@@ -20,9 +20,7 @@ const Header = () => {
     if (!user?.name) return;
 
     try {
-      const response = await axios.get(backApis.logOut.url, {
-        withCredentials: true,
-      });
+      const response = await apiClient.get(backApis.logOut.url);
 
       toast.success(response.data.message);
       dispatch(clearUser());

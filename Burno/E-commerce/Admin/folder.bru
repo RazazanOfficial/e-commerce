@@ -1,8 +1,11 @@
 meta {
   name: Admin
-  seq: 2
 }
 
 auth {
   mode: inherit
+}
+
+vars:pre-request {
+  baseURL: http://localhost:9999
 }

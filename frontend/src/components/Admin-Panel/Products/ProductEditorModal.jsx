@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import axios from "axios";
+import apiClient from "@/common/apiClient";
 import { toast } from "react-toastify";
 import {
   AdminButton,
@@ -128,7 +128,7 @@ export default function ProductEditorModal({
       try {
         setFetching(true);
         const { url } = backApis.getSingleProduct(productId);
-        const res = await axios.get(url, { withCredentials: true });
+        const res = await apiClient.get(url);
         const p = res?.data?.data || res?.data?.data?.data || res?.data?.data;
 
         const tagsStr = Array.isArray(p?.tags) ? p.tags.join(", ") : "";
@@ -311,11 +311,11 @@ export default function ProductEditorModal({
 
       if (isEdit) {
         const { url, method } = backApis.updateProduct(productId);
-        await axios({ method, url, data: payload, withCredentials: true });
+        await apiClient({ method, url, data: payload });
         toast.success("محصول بروزرسانی شد");
       } else {
         const { url, method } = backApis.createProduct;
-        await axios({ method, url, data: payload, withCredentials: true });
+        await apiClient({ method, url, data: payload });
         toast.success("محصول ایجاد شد");
       }
 

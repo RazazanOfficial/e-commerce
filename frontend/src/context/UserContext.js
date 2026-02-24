@@ -1,6 +1,6 @@
 "use client";
 import { createContext, useState, useEffect } from "react";
-import axios from "axios";
+import apiClient from "@/common/apiClient";
 import backApis from "@/common/inedx";
 import { useDispatch } from "react-redux";
 import { setUserDetails } from "@/redux/userSlice";
@@ -13,9 +13,7 @@ export const UserProvider = ({ children }) => {
 
   const fetchUserDetails = async () => {
     try {
-      const response = await axios.get(backApis.getUserInfo.url, {
-        withCredentials: true,
-      });
+      const response = await apiClient.get(backApis.getUserInfo.url);
       if (response.data.success) {
         setUser(response.data.data);
         dispatch(setUserDetails(response.data.data))

@@ -5,7 +5,7 @@ import usePaginatedFetchHook from "@/hooks/usePaginatedFetchHook";
 import backApis from "@/common/inedx";
 import { Search, Eye, Edit, Trash2, ArrowLeft, ArrowRight } from "lucide-react";
 import SearchModal from "@/components/Admin-Panel/SearchModal";
-import axios from "axios";
+import apiClient from "@/common/apiClient";
 import UserModal from "@/components/Admin-Panel/UserModal";
 
 const AllUsersPage = () => {
@@ -30,9 +30,8 @@ const AllUsersPage = () => {
   // Handle search input change
   const handleSearch = async () => {
     try {
-      const { data } = await axios.get(
-        `${backApis.searchUsers.url}?q=${searchTerm}`,
-        { withCredentials: true }
+      const { data } = await apiClient.get(
+        `${backApis.searchUsers.url}?q=${searchTerm}`
       );
       setSearchResults(data.data);
       setIsModalOpen(true);
@@ -52,11 +51,10 @@ const AllUsersPage = () => {
 const handleUpdateUser = async (updatedUser) => {
   try {
     const { url, method } = backApis.updateUser(updatedUser._id);
-    const response = await axios({
+    const response = await apiClient({
       method,
       url,
       data: updatedUser,
-      withCredentials: true,
     });
 
     console.log("✅ کاربر با موفقیت آپدیت شد", response.data);
@@ -71,7 +69,7 @@ const handleUpdateUser = async (updatedUser) => {
 const handleDeleteUser = async (userId) => {
   try {
     const { url, method } = backApis.deleteUser(userId);
-    const response = await axios({ method, url, withCredentials: true });
+    const response = await apiClient({ method, url });
 
     console.log("✅ کاربر حذف شد", response.data);
     refreshData();

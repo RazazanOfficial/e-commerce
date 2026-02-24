@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import Image from "next/image";
 import Logo from "@/assets/images/Logo.png";
 import { StarsIcon } from "lucide-react";
-import axios from "axios";
+import apiClient from "@/common/apiClient";
 import { useRouter } from "next/navigation";
 import { toast } from "react-toastify";
 import backApis from "@/common/inedx";
@@ -99,9 +99,7 @@ const AuthPage = () => {
     setIsSubmitting(true);
 
     try {
-      const res = await axios.post(backApis.login.url, signInData, {
-        withCredentials: true,
-      });
+      const res = await apiClient.post(backApis.login.url, signInData);
       toast.success("ورود با موفقیت انجام شد");
       setTimeout(() => {
         router.push("/");
@@ -149,7 +147,7 @@ const AuthPage = () => {
     }
 
     try {
-      const res = await axios.post(backApis.register.url, formData);
+      const res = await apiClient.post(backApis.register.url, formData);
       toast.success("ثبت نام با موفقیت انجام شد");
       setIsSubmitting(false);
       setTimeout(() => {

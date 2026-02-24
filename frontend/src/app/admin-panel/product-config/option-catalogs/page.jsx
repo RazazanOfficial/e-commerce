@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import axios from "axios";
+import apiClient from "@/common/apiClient";
 import { toast } from "react-toastify";
 import Link from "next/link";
 import { Plus, Search, Pencil, Trash2, ToggleLeft, ToggleRight, ArrowRight } from "lucide-react";
@@ -82,11 +82,10 @@ export default function OptionCatalogsPage() {
       if (q) params.q = q;
       if (isActive !== "all") params.isActive = isActive;
 
-      const res = await axios({
+      const res = await apiClient({
         url,
         method,
         params,
-        withCredentials: true,
       });
 
       const data = safeGetItems(res.data);
@@ -119,20 +118,18 @@ export default function OptionCatalogsPage() {
     try {
       if (editing?._id) {
         const { url, method } = backApis.updateOptionCatalog(editing._id);
-        await axios({
+        await apiClient({
           url,
           method,
           data: payload,
-          withCredentials: true,
         });
         toast.success("گزینه محصول با موفقیت ویرایش شد");
       } else {
         const { url, method } = backApis.createOptionCatalog;
-        await axios({
+        await apiClient({
           url,
           method,
           data: payload,
-          withCredentials: true,
         });
         toast.success("گزینه محصول با موفقیت ایجاد شد");
       }
@@ -153,11 +150,10 @@ export default function OptionCatalogsPage() {
   const toggleActive = async (row) => {
     try {
       const { url, method } = backApis.toggleOptionCatalog(row._id);
-      await axios({
+      await apiClient({
         url,
         method,
         data: { isActive: !row.isActive },
-        withCredentials: true,
       });
       toast.success(row.isActive ? "غیرفعال شد" : "فعال شد");
       fetchItems();
@@ -176,7 +172,7 @@ export default function OptionCatalogsPage() {
     setConfirmLoading(true);
     try {
       const { url, method } = backApis.deleteOptionCatalog(pendingDelete._id);
-      await axios({ url, method, withCredentials: true });
+      await apiClient({ url, method });
       toast.success("حذف شد");
       setConfirmOpen(false);
       setPendingDelete(null);

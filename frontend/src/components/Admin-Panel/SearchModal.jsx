@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Eye, Edit, Trash2 } from "lucide-react";
 import backApis from "@/common/inedx";
-import axios from "axios";
+import apiClient from "@/common/apiClient";
 import UserModal from "./UserModal";
 import { cn } from "@/lib/utils";
 import {
@@ -48,11 +48,10 @@ export default function SearchModal({
   const handleUpdateUser = async (updatedUser) => {
     try {
       const { url, method } = backApis.updateUser(updatedUser._id);
-      const response = await axios({
+      const response = await apiClient({
         method,
         url,
         data: updatedUser,
-        withCredentials: true,
       });
 
       const updated = response.data?.data;
@@ -72,7 +71,7 @@ export default function SearchModal({
   const handleDeleteUser = async (userId) => {
     try {
       const { url, method } = backApis.deleteUser(userId);
-      await axios({ method, url, withCredentials: true });
+      await apiClient({ method, url });
 
       setSearchResults((prev) => prev.filter((u) => u._id !== userId));
       onUserDelete?.(userId);

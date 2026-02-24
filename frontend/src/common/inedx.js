@@ -1,4 +1,6 @@
-const backDomin = "http://localhost:9999";
+// Backend base URL (configure in .env.local)
+// Example: NEXT_PUBLIC_BACKEND_URL=http://localhost:9999
+const backDomin = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:9999";
 
 const backApis = {
   register: { url: `${backDomin}/api/register`, method: "POST" },
@@ -77,6 +79,86 @@ const backApis = {
     url: `${backDomin}/api/admin/products/${id}/hard`,
     method: "DELETE",
   }),
+
+  // --- Product Config: OptionCatalog
+  getOptionCatalogs: {
+    url: `${backDomin}/api/admin/option-catalogs`,
+    method: "GET",
+  },
+  createOptionCatalog: {
+    url: `${backDomin}/api/admin/option-catalogs`,
+    method: "POST",
+  },
+  updateOptionCatalog: (id) => ({
+    url: `${backDomin}/api/admin/option-catalogs/${id}`,
+    method: "PUT",
+  }),
+  toggleOptionCatalog: (id) => ({
+    url: `${backDomin}/api/admin/option-catalogs/${id}/toggle`,
+    method: "PATCH",
+  }),
+  deleteOptionCatalog: (id) => ({
+    url: `${backDomin}/api/admin/option-catalogs/${id}`,
+    method: "DELETE",
+  }),
+
+  // --- Product Config: TagCatalog
+  getTagCatalogs: {
+    url: `${backDomin}/api/admin/tag-catalogs`,
+    method: "GET",
+  },
+  createTagCatalog: {
+    url: `${backDomin}/api/admin/tag-catalogs`,
+    method: "POST",
+  },
+  suggestTagCatalogs: {
+    url: `${backDomin}/api/admin/tag-catalogs/suggest`,
+    method: "GET",
+  },
+  updateTagCatalog: (id) => ({
+    url: `${backDomin}/api/admin/tag-catalogs/${id}`,
+    method: "PUT",
+  }),
+  toggleTagCatalog: (id) => ({
+    url: `${backDomin}/api/admin/tag-catalogs/${id}/toggle`,
+    method: "PATCH",
+  }),
+  deleteTagCatalog: (id) => ({
+    url: `${backDomin}/api/admin/tag-catalogs/${id}`,
+    method: "DELETE",
+  }),
+
+  // --- Product Config: CurrencyCatalog
+  getCurrencyCatalogs: {
+    url: `${backDomin}/api/admin/currency-catalogs`,
+    method: "GET",
+  },
+  createCurrencyCatalog: {
+    url: `${backDomin}/api/admin/currency-catalogs`,
+    method: "POST",
+  },
+  updateCurrencyCatalog: (id) => ({
+    url: `${backDomin}/api/admin/currency-catalogs/${id}`,
+    method: "PUT",
+  }),
+  toggleCurrencyCatalog: (id) => ({
+    url: `${backDomin}/api/admin/currency-catalogs/${id}/toggle`,
+    method: "PATCH",
+  }),
+  deleteCurrencyCatalog: (id) => ({
+    url: `${backDomin}/api/admin/currency-catalogs/${id}`,
+    method: "DELETE",
+  }),
+
+  // --- Media: Direct Upload (Presign -> PUT to ParsPack -> Commit)
+  mediaPresign: {
+    url: `${backDomin}/api/admin/media/presign`,
+    method: "POST",
+  },
+  mediaCommit: {
+    url: `${backDomin}/api/admin/media/commit`,
+    method: "POST",
+  },
 };
 
 export default backApis;

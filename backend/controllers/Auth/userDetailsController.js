@@ -4,7 +4,7 @@ const UserModel = require("../../models/userModel");
 //* 🟢UserDetails Controller
 const userDetailsController = async (req, res) => {
   try {
-    const user = await UserModel.findById(req.user.id);
+        const user = await UserModel.findById(req.user.id).select("-password");
     res.status(200).json({
       data: user,
       success: true,

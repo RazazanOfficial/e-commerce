@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback } from "react";
-import axios from "axios";
+import apiClient from "@/common/apiClient";
 
 const usePaginatedFetch = (url) => {
   const [data, setData] = useState([]);
@@ -13,9 +13,8 @@ const usePaginatedFetch = (url) => {
     const start = Date.now();
 
     try {
-      const res = await axios.get(url, {
+      const res = await apiClient.get(url, {
         params: { page, limit: 10 },
-        withCredentials: true,
       });
 
       setData(res.data.data || []);
@@ -34,7 +33,17 @@ const usePaginatedFetch = (url) => {
     fetchData();
   }, [fetchData]);
 
-  return { data, loading, page, setPage, totalPages, totalCount, refreshData: fetchData };
+  return {
+    data,
+    loading,
+    // backward compatible alias
+    isLoading: loading,
+    page,
+    setPage,
+    totalPages,
+    totalCount,
+    refreshData: fetchData,
+  };
 };
 
 export default usePaginatedFetch;

@@ -1,6 +1,7 @@
 "use client";
 import { useTheme } from "next-themes";
-import axios from "axios";
+import apiClient from "@/common/apiClient";
+import backApis from "@/common/inedx";
 import Link from "next/link";
 import { toast } from "react-toastify";
 import Spinner from "@/components/Spinner";
@@ -223,8 +224,9 @@ export default function AdminPanelLayout({ children }) {
                   className="w-full flex items-center gap-2 sm:gap-3 px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl text-[var(--adm-error)] hover:bg-[var(--adm-error-soft)] transition-colors text-sm sm:text-base"
                   onClick={async () => {
                     try {
-                      await axios.post("/api/logout");
-                      router.push("/login");
+                      const { url, method } = backApis.logOut;
+                      await apiClient({ url, method });
+                      router.push("/auth");
                     } catch {
                       toast.error("خروج ناموفق بود");
                     }

@@ -164,7 +164,6 @@ const ProductSchema = new Schema(
     slug: {
       type: String,
       required: requiredIfActive,
-      index: true,
       lowercase: true,
       trim: true,
     },

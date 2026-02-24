@@ -1,0 +1,23 @@
+meta {
+  name: Upload List GET
+  type: http
+  seq: 4
+}
+
+get {
+  url: {{baseURL}}/api/admin/media?page=1&limit=30&kind=image&q=png
+  body: none
+  auth: inherit
+}
+
+params:query {
+  page: 1
+  limit: 30
+  kind: image
+  q: png
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

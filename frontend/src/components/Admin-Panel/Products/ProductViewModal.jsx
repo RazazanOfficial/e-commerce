@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import axios from "axios";
+import apiClient from "@/common/apiClient";
 import { toast } from "react-toastify";
 import {
   AdminBadge,
@@ -34,7 +34,7 @@ export default function ProductViewModal({ open, onClose, productId }) {
       try {
         setLoading(true);
         const { url } = backApis.getSingleProduct(productId);
-        const res = await axios.get(url, { withCredentials: true });
+        const res = await apiClient.get(url);
         setProduct(res?.data?.data || null);
       } catch (err) {
         console.error(err);

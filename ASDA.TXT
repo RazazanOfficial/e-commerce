@@ -1,0 +1,14 @@
+من دارم دقیق تست نویسی رو انجام میدم:
+1- برای put با burno نمیشد اما اینطوری شد:
+  $url = "https://c321151.parspack.net/c321151/1771610599944-c6761357.png?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=nz93v4DTIUOD8sDj%2F20260220%2Fus-west-2%2Fs3%2Faws4_request&X-Amz-Date=20260220T180319Z&X-Amz-Expires=300&X-Amz-Signature=36abcbe8bae38bacd9cdcb4765c4116e99272b2de88b369c6168574d15ea4a58&X-Amz-SignedHeaders=host"
+     0.024s                      GwynDolin / DESKTOP-51QM8RR  9:33:31 PM 
+  curl.exe -X PUT `
+>   -H "Content-Type: image/png" `
+>   -H "Cache-Control: public, max-age=31536000, immutable" `
+>   -H "Expect:" `
+>   --upload-file "C:\Users\GwynDolin\Pictures\Capture.PNG" `
+>   "$url"
+اگر داخل مرورگر هم مشکلی پیش نیاد عیبی نداره توی burno کار نکنه
+
+مورد بعدی اینکه در commit فهمیدم orginalName رو من هرچی میتونم بنویسم. مثلا من نوشتم Capture2.PNG و دیدم در دیتابیس هم ذخیره شد و TRUE بود بعد کردم Capture.PNG و دوباره ارسال کردم دیدم دیتابیس همون رکورد شد Capture.PNG انگار که اپدیت شده باشه. کلا برام سوال شد چرا این orginalName میتونه هرچی باشه و اگر اینطوریه چرا اینطوریه؟ ایا مثلا از خود put نمیشه مقدار orginalName رو بگیره؟ چون بهرحال توی فرانت عملیات presign و put و  commit هر3تا باید اوتومات پشت سر هم انجام بشن و ادمین فقط باید یک فایل اپلود کنه و این 3 عملیات پشت سر هم اتفاق بیوفتن
+

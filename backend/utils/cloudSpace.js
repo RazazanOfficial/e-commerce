@@ -10,7 +10,8 @@ const AWS = require("aws-sdk");
  */
 
 function mustEnv(name) {
-  const v = process.env[name];
+  const raw = process.env[name];
+  const v = raw === undefined || raw === null ? "" : String(raw).trim();
   if (!v) {
     const err = new Error(`Missing env: ${name}`);
     err.statusCode = 500;
@@ -126,6 +127,7 @@ function createPresignedPut({
   expiresInSec = 300,
   cacheControl,
   signContentType = false,
+  signCacheControl = false,
 }) {
   const bucket = mustEnv("CLOUD_SPACE_BUCKET");
   const s3 = getS3Client();
@@ -137,7 +139,9 @@ function createPresignedPut({
   };
 
   if (signContentType && mimeType) params.ContentType = mimeType;
-  if (cacheControl) params.CacheControl = cacheControl;
+  // IMPORTANT: Do not sign Cache-Control unless explicitly requested.
+  // Some tools/proxies rewrite this header and cause signed requests to fail on S3-compatible gateways.
+  if (signCacheControl && cacheControl) params.CacheControl = cacheControl;
   if (process.env.CLOUD_SPACE_OBJECT_ACL) params.ACL = process.env.CLOUD_SPACE_OBJECT_ACL;
 
   return new Promise((resolve, reject) => {
@@ -170,9 +174,80 @@ async function headObject({ key }) {
   }
 }
 
+
+
+/**
+ * Delete an object from bucket (idempotent).
+ * S3-compatible gateways usually return success even if object does not exist.
+ */
+async function deleteObject({ key }) {
+  const bucket = mustEnv("CLOUD_SPACE_BUCKET");
+  const s3 = getS3Client();
+
+  try {
+    await s3.deleteObject({ Bucket: bucket, Key: key }).promise();
+    return { ok: true };
+  } catch (err) {
+    const code = err?.code || err?.name;
+    if (code === "NotFound" || code === "NoSuchKey" || err?.statusCode === 404) {
+      return { ok: true, notFound: true };
+    }
+    throw err;
+  }
+}
+
+/**
+ * List objects in bucket (for admin gallery / orphan cleanup).
+ * Supports pagination via ContinuationToken.
+ */
+async function listObjects({
+  prefix = "",
+  continuationToken,
+  startAfter,
+  maxKeys = 200,
+} = {}) {
+  const bucket = mustEnv("CLOUD_SPACE_BUCKET");
+  const s3 = getS3Client();
+
+  const mk = Number(maxKeys);
+  const MaxKeys = Number.isFinite(mk) ? Math.max(1, Math.min(1000, mk)) : 200;
+
+  const prefixClean = prefix ? String(prefix).replace(/^\/+/, "") : undefined;
+
+  const params = {
+    Bucket: bucket,
+    MaxKeys,
+  };
+  if (prefixClean) params.Prefix = prefixClean;
+  if (continuationToken) params.ContinuationToken = String(continuationToken);
+  if (startAfter) params.StartAfter = String(startAfter);
+
+  const resp = await s3.listObjectsV2(params).promise();
+
+  const items = Array.isArray(resp?.Contents)
+    ? resp.Contents.map((o) => ({
+        key: o.Key,
+        size: o.Size,
+        lastModified: o.LastModified,
+        eTag: o.ETag,
+        storageClass: o.StorageClass,
+      }))
+    : [];
+
+  return {
+    prefix: params.Prefix || "",
+    maxKeys: MaxKeys,
+    isTruncated: !!resp?.IsTruncated,
+    nextContinuationToken: resp?.NextContinuationToken,
+    items,
+  };
+}
+
 module.exports = {
   generateObjectKey,
   buildPublicUrl,
   createPresignedPut,
   headObject,
+  deleteObject,
+  listObjects,
 };

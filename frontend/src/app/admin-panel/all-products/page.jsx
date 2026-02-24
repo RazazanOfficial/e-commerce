@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import axios from "axios";
+import apiClient from "@/common/apiClient";
 import { toast } from "react-toastify";
 import { Plus, Search, ArrowLeft, ArrowRight } from "lucide-react";
 import backApis from "@/common/inedx";
@@ -71,7 +71,7 @@ export default function AllProductsPage() {
       try {
         setCategoriesLoading(true);
         const { url } = backApis.getAllCategories;
-        const res = await axios.get(url, { withCredentials: true });
+        const res = await apiClient.get(url);
         setCategories(Array.isArray(res?.data?.data) ? res.data.data : []);
       } catch (err) {
         console.error(err);
@@ -95,10 +95,7 @@ export default function AllProductsPage() {
         ...(search ? { search } : {}),
       };
 
-      const res = await axios.get(url, {
-        params,
-        withCredentials: true,
-      });
+      const res = await apiClient.get(url, { params });
 
       const data = res?.data?.data;
       const items = data?.items || [];
@@ -150,19 +147,19 @@ export default function AllProductsPage() {
 
       if (confirmAction === "archive") {
         const { url, method } = backApis.archiveProduct(id);
-        await axios({ method, url, withCredentials: true });
+        await apiClient({ method, url });
         toast.success("محصول آرشیو شد");
       }
 
       if (confirmAction === "restore") {
         const { url, method } = backApis.restoreProduct(id);
-        await axios({ method, url, withCredentials: true });
+        await apiClient({ method, url });
         toast.success("محصول بازگردانی شد");
       }
 
       if (confirmAction === "hard") {
         const { url, method } = backApis.deleteProductHard(id);
-        await axios({ method, url, withCredentials: true });
+        await apiClient({ method, url });
         toast.success("محصول حذف شد");
       }
 
