@@ -5,15 +5,16 @@ meta {
 }
 
 get {
-  url: {{baseURL}}/api/admin/search-users?q=معر
+  url: {{baseURL}}/api/admin/search-users?q=اصغر
   body: json
   auth: inherit
 }
 
 params:query {
-  q: معر
+  q: اصغر
 }
 
 settings {
   encodeUrl: true
+  timeout: 0
 }
