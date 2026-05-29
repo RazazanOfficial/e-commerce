@@ -1,7 +1,7 @@
-//? 🔵Required Modules
+//? 🔵 Required Modules
 const { cookieOptions } = require("../../config/coockieOptions");
 
-//* 🟢User Logout Controller
+//* 🟢 User Logout Controller
 const logoutController = async (req, res) => {
   try {
     res.clearCookie("token",cookieOptions);
@@ -21,5 +21,5 @@ const logoutController = async (req, res) => {
   }
 };
 
-//? 🔵Export Controller
+//? 🔵 Export Controller
 module.exports = logoutController;

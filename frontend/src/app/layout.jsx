@@ -7,7 +7,7 @@ import LayoutWrapper from "@/components/LayoutWrapper";
 
 const inter = Inter({
   subsets: ["latin"],
-  weight: ["400", "700"], 
+  weight: ["400", "700"],
   variable: "--font-inter",
   display: "swap",
 });
@@ -24,8 +24,9 @@ export default function RootLayout({ children }) {
       <body className="antialiased bg-slate-100 min-h-screen">
         <ReduxProvider>
           <UserProvider>
-            <LayoutWrapper />
-            {children}
+            <LayoutWrapper>
+              {children}
+            </LayoutWrapper>
             <ToastContainer />
           </UserProvider>
         </ReduxProvider>

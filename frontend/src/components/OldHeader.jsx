@@ -8,7 +8,7 @@ import logo from "@/assets/images/logo.png";
 import { useDispatch, useSelector } from "react-redux";
 import { toast } from "react-toastify";
 import apiClient from "@/common/apiClient";
-import backApis from "@/common/inedx";
+import backApis from "@/common";
 import { clearUser } from "@/redux/userSlice";
 
 const Header = () => {
@@ -53,7 +53,7 @@ const Header = () => {
   return (
     <header className="backdrop-blur-md bg-gradient-to-r from-emerald-200/50 to-emerald-500/40 shadow-lg sticky top-0 z-50 rounded-b-2xl">
       <div className="max-w-7xl mx-auto px-4 py-3 flex flex-wrap justify-between items-center gap-4">
-        {/* Logo */}
+
         <Link href="/" className="flex items-center gap-2">
           <Image
             src={logo}
@@ -65,7 +65,7 @@ const Header = () => {
           />
         </Link>
 
-        {/* Desktop Search */}
+
         <div className="hidden md:flex flex-1 max-w-xl w-full">
           <div className="relative w-full">
             <input
@@ -79,7 +79,7 @@ const Header = () => {
           </div>
         </div>
 
-        {/* User + Search Icon + Cart + Login */}
+
         <div className="flex items-center gap-4">
           <button
             className="block md:hidden text-emerald-600 hover:text-emerald-800 transition"
@@ -133,7 +133,7 @@ const Header = () => {
         </div>
       </div>
 
-      {/* Search Modal for Mobile/Tablet */}
+
       {isSearchOpen && (
         <div
           className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-start justify-center pt-[10vh] z-[1000] animate-fadeIn"

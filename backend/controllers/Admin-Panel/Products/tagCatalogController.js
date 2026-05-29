@@ -1,6 +1,8 @@
+//? 🔵 Required Modules
 const TagCatalog = require("../../../models/tagCatalogModel");
 const { Product } = require("../../../models/productModel");
 
+//* 🟢 normalizeKey Utility
 function normalizeKey(input) {
   return String(input || "")
     .trim()
@@ -12,10 +14,12 @@ function normalizeKey(input) {
     .replace(/^-+|-+$/g, "");
 }
 
+//* 🟢 escapeRegExp Utility
 function escapeRegExp(str) {
   return String(str || "").replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
+//! 🔴 Error Response Utility
 function sendErr(res, err, fallbackMessage = "خطای داخلی سرور") {
   // eslint-disable-next-line no-console
   console.error(err);
@@ -26,7 +30,8 @@ function sendErr(res, err, fallbackMessage = "خطای داخلی سرور") {
   });
 }
 
-// POST /api/admin/tag-catalogs
+
+//* 🟢 Create Tag Catalog Controller
 exports.createTagCatalog = async (req, res) => {
   try {
     const label = req.body?.label ?? req.body?.name ?? req.body?.title;
@@ -62,7 +67,7 @@ exports.createTagCatalog = async (req, res) => {
       data: doc,
     });
   } catch (err) {
-    // Duplicate key (Mongo)
+
     if (err?.code === 11000) {
       return res.status(409).json({
         success: false,
@@ -74,7 +79,8 @@ exports.createTagCatalog = async (req, res) => {
   }
 };
 
-// GET /api/admin/tag-catalogs
+
+//* 🟢 Get All Tag Catalogs Controller
 exports.getAllTagCatalogs = async (req, res) => {
   try {
     const page = Math.max(parseInt(req.query?.page || "1", 10), 1);
@@ -114,7 +120,8 @@ exports.getAllTagCatalogs = async (req, res) => {
   }
 };
 
-// GET /api/admin/tag-catalogs/suggest?q=...
+
+//* 🟢 Suggest Tags Controller
 exports.suggestTags = async (req, res) => {
   try {
     const q = String(req.query?.q || "").trim();
@@ -140,7 +147,8 @@ exports.suggestTags = async (req, res) => {
   }
 };
 
-// GET /api/admin/tag-catalogs/:id
+
+//* 🟢 Get Tag Catalog By ID Controller
 exports.getTagCatalogById = async (req, res) => {
   try {
     const doc = await TagCatalog.findById(req.params.id);
@@ -157,7 +165,8 @@ exports.getTagCatalogById = async (req, res) => {
   }
 };
 
-// PUT /api/admin/tag-catalogs/:id
+
+//* 🟢 Update Tag Catalog Controller
 exports.updateTagCatalog = async (req, res) => {
   try {
     const label = req.body?.label ?? req.body?.name ?? req.body?.title;
@@ -219,7 +228,8 @@ exports.updateTagCatalog = async (req, res) => {
   }
 };
 
-// PATCH /api/admin/tag-catalogs/:id/toggle
+
+//* 🟢 Toggle Tag Catalog Controller
 exports.toggleTagCatalog = async (req, res) => {
   try {
     const doc = await TagCatalog.findById(req.params.id);
@@ -249,7 +259,8 @@ exports.toggleTagCatalog = async (req, res) => {
   }
 };
 
-// DELETE /api/admin/tag-catalogs/:id
+
+//* 🟢 Delete Tag Catalog Controller
 exports.deleteTagCatalog = async (req, res) => {
   try {
     const doc = await TagCatalog.findById(req.params.id);
@@ -261,7 +272,7 @@ exports.deleteTagCatalog = async (req, res) => {
       });
     }
 
-    // Block delete if used in any product.tags
+
     const used = await Product.countDocuments({ tags: { $in: [doc.key, doc.label] } });
     if (used > 0) {
       return res.status(409).json({

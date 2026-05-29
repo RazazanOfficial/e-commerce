@@ -1,9 +1,5 @@
 const mongoose = require("mongoose");
 
-/**
- * Tag catalog: used for tag suggestions/autocomplete in admin panel.
- * Products store tags as array of strings (keys).
- */
 
 const TagCatalogSchema = new mongoose.Schema(
   {
@@ -29,7 +25,7 @@ const TagCatalogSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-// Normalize key/label safely (sync middleware; no `next()` usage to avoid runtime mismatch)
+
 TagCatalogSchema.pre("validate", function () {
   if (!this.label) return;
 
@@ -39,7 +35,7 @@ TagCatalogSchema.pre("validate", function () {
     this.key = this.label;
   }
 
-  // normalize key: lowercase, whitespace/_ -> -, allow [a-z0-9-]
+
   this.key = String(this.key)
     .trim()
     .toLowerCase()

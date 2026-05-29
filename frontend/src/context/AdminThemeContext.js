@@ -10,36 +10,36 @@ export const AdminThemeContext = createContext(null);
 export function AdminThemeProvider({ children, defaultPalette = "paletteA" }) {
   const [paletteKey, setPaletteKey] = useState(defaultPalette);
 
-  // Load saved palette.
+
   useEffect(() => {
     try {
       const saved = localStorage.getItem(STORAGE_KEY);
       if (saved && ADMIN_PALETTES[saved]) setPaletteKey(saved);
     } catch {
-      // ignore
+
     }
   }, []);
 
-  // Mark admin scope for CSS tokens.
+
   useEffect(() => {
     const root = document.documentElement;
     root.dataset.scope = "admin";
 
     return () => {
-      // Cleanup when leaving /admin-panel routes
+
       delete root.dataset.scope;
       delete root.dataset.palette;
     };
   }, []);
 
-  // Apply palette.
+
   useEffect(() => {
     const root = document.documentElement;
     root.dataset.palette = paletteKey;
     try {
       localStorage.setItem(STORAGE_KEY, paletteKey);
     } catch {
-      // ignore
+
     }
   }, [paletteKey]);
 

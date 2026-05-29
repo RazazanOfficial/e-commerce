@@ -6,7 +6,7 @@ const usePaginatedFetch = (url) => {
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
-  const [totalCount, setTotalCount] = useState(0); 
+  const [totalCount, setTotalCount] = useState(0);
 
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -19,7 +19,7 @@ const usePaginatedFetch = (url) => {
 
       setData(res.data.data || []);
       setTotalPages(res.data.totalPages || 1);
-      setTotalCount(res.data.totalCount || 0); 
+      setTotalCount(res.data.totalCount || 0);
     } catch (err) {
       console.error("خطا در گرفتن داده‌ها:", err);
     } finally {
@@ -36,7 +36,7 @@ const usePaginatedFetch = (url) => {
   return {
     data,
     loading,
-    // backward compatible alias
+
     isLoading: loading,
     page,
     setPage,

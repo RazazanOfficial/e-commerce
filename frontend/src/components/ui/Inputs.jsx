@@ -26,7 +26,7 @@ const InputField = ({
         value={value}
         onChange={onChange}
         placeholder=" "
-        className={`peer w-full p-3 border-2 rounded-2xl outline-none bg-transparent text-right transition-all duration-300 
+        className={`peer w-full p-3 border-2 rounded-2xl outline-none bg-transparent text-right transition-all duration-300
         focus:border-blue-500 ${error ? "border-red-400" : "border-gray-300"} ${className}`}
       />
       <label

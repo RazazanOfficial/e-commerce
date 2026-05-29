@@ -7,6 +7,7 @@ import {
   AdminField,
   AdminInput,
   AdminModal,
+  AdminSelect,
 } from "@/components/admin-ui";
 
 const FIELDS = [
@@ -122,6 +123,18 @@ export default function UserModal({ isOpen, onClose, mode, user, onUpdate, onDel
               />
             </AdminField>
           ))}
+          <AdminField label="نقش کاربر">
+            <AdminSelect
+              name="role"
+              value={formData.role || "user"}
+              onChange={handleChange}
+              disabled={mode === "view"}
+            >
+              <option value="user">کاربر</option>
+              <option value="admin">مدیر</option>
+              <option value="developer">توسعه‌دهنده</option>
+            </AdminSelect>
+          </AdminField>
         </div>
       )}
 

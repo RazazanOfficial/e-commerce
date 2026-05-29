@@ -1,24 +1,34 @@
-//? 🔵Required Modules
+//? 🔵 Required Modules
 const UserModel = require("../../../models/userModel");
+const { USER_PUBLIC_FIELDS } = require("../../../utils/userSecurity");
 
-//* 🟢All Users List Controller
+//* 🟢 All Users List Controller
 const allUsersController = async (req, res) => {
   try {
-    const page = parseInt(req.query.page) || 1;
-    const limit = parseInt(req.query.limit) || 10;
+    const page = Math.max(1, parseInt(req.query.page, 10) || 1);
+    const limit = Math.max(1, Math.min(100, parseInt(req.query.limit, 10) || 10));
     const skip = (page - 1) * limit;
 
-    const totalUsers = await UserModel.countDocuments();
-    const users = await UserModel.find({}, "-password").skip(skip).limit(limit);
+    const [totalUsers, users] = await Promise.all([
+      UserModel.countDocuments(),
+      UserModel.find({})
+        .select(USER_PUBLIC_FIELDS)
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit)
+        .lean(),
+    ]);
 
     return res.json({
       data: users,
+      page,
+      limit,
       totalPages: Math.ceil(totalUsers / limit),
       totalCount: totalUsers,
       success: true,
     });
   } catch (error) {
-    //! 🔴Handle Errors
+    //! 🔴 Handle Errors
     return res.status(500).json({
       data: null,
       success: false,
@@ -28,5 +38,5 @@ const allUsersController = async (req, res) => {
   }
 };
 
-//? 🔵Export Controller
+//? 🔵 Export Controller
 module.exports = allUsersController;

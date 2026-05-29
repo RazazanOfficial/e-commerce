@@ -1,10 +1,10 @@
-//? 🔵Required Modules
+//? 🔵 Required Modules
 const UserModel = require("../models/userModel");
+const { isAdminRole } = require("../utils/userSecurity");
 
-//* 🟢AdminOnly Middleware
+//* 🟢 Admin Only Middleware
 const adminOnlyMid = async (req, res, next) => {
   try {
-    // console.log("adminOnlyMid -> req.user:", req.user);
     if (!req.user?.id) {
       return res.status(401).json({
         data: null,
@@ -14,10 +14,9 @@ const adminOnlyMid = async (req, res, next) => {
       });
     }
 
-    const user = await UserModel.findById(req.user.id);
-    // console.log("current user:", user);
+    const user = await UserModel.findById(req.user.id).select("role").lean();
 
-    if (!user || user.role !== "admin") {
+    if (!user || !isAdminRole(user.role)) {
       return res.status(403).json({
         data: null,
         success: false,
@@ -26,10 +25,10 @@ const adminOnlyMid = async (req, res, next) => {
       });
     }
 
+    req.user.role = user.role;
     next();
   } catch (error) {
-    //! 🔴Handle Errors
-    // console.log("adminOnly error : ", error);
+    //! 🔴 Handle Errors
     return res.status(500).json({
       data: null,
       success: false,
@@ -39,5 +38,5 @@ const adminOnlyMid = async (req, res, next) => {
   }
 };
 
-//? 🔵Export Controller
+//? 🔵 Export Controller
 module.exports = adminOnlyMid;

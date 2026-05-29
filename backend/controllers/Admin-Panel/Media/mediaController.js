@@ -1,3 +1,4 @@
+//? 🔵 Required Modules
 const MediaAsset = require("../../../models/mediaAssetModel");
 const { Product } = require("../../../models/productModel");
 const {
@@ -9,7 +10,8 @@ const {
   listObjects,
 } = require("../../../utils/cloudSpace");
 
-// Allowed MIME types for direct upload
+
+//* 🟢 Media Constants
 const allowedMime = new Set([
   "image/jpeg",
   "image/jpg",
@@ -21,6 +23,7 @@ const allowedMime = new Set([
   "video/quicktime",
 ]);
 
+//* 🟢 Validation Utilities
 function assertMime(mimeType) {
   if (!mimeType || typeof mimeType !== "string") {
     const err = new Error("mimeType is required");
@@ -58,14 +61,14 @@ function assertKeyLoose(key) {
     throw err;
   }
 
-  // Basic hardening against path tricks
+
   if (cleaned.includes("..") || cleaned.includes("\\") || cleaned.includes("%2e")) {
     const err = new Error("key is invalid");
     err.statusCode = 400;
     throw err;
   }
 
-  // Enforce prefix if configured
+
   const prefix = String(process.env.CLOUD_SPACE_KEY_PREFIX || "").replace(/^\/+|\/+$/g, "");
   if (prefix && !cleaned.startsWith(prefix + "/")) {
     const err = new Error("key خارج از مسیر مجاز است");
@@ -79,7 +82,7 @@ function assertKeyLoose(key) {
 function assertKeyStrict(key) {
   const cleaned = assertKeyLoose(key);
 
-  // Enforce that key shape looks like our generated keys
+
   const base = cleaned.split("/").pop() || "";
   const okShape = /^\d{13}-[0-9a-f]{8}\.[a-z0-9]{2,5}$/i.test(base);
   if (!okShape) {
@@ -92,21 +95,13 @@ function assertKeyStrict(key) {
 }
 
 
-/**
- * 1) Presign (recommended for production)
- * POST /api/admin/media/presign
- * body: { fileName?, mimeType, expiresInSec? }
- *
- * NOTE:
- * - We generate the key on server and never trust client extension.
- * - Client uploads DIRECTLY to ParsPack using PUT (no VPS bandwidth).
- */
+//* 🟢 Presign Upload Controller
 const presignPut = async (req, res, next) => {
   try {
     const { mimeType, expiresInSec } = req.body || {};
     const mt = assertMime(mimeType);
 
-    // Clamp expiry to sane bounds to reduce abuse window
+
     const expRaw = Number(expiresInSec);
     const exp = Number.isFinite(expRaw) ? Math.max(60, Math.min(3600, expRaw)) : 300;
 
@@ -117,18 +112,16 @@ const presignPut = async (req, res, next) => {
 
     const cacheControl = "public, max-age=31536000, immutable";
 
-    // NOTE: We intentionally do NOT include Cache-Control in the presigned URL signature
-    // (some clients/proxies/tooling can subtly alter headers/encoding and break signed requests).
-    // Client may still send Cache-Control header; it won't be part of the signature.
+
     const url = await createPresignedPut({
       key,
       mimeType: mt,
       expiresInSec: exp,
-      // IMPORTANT: do NOT sign content-type by default (prevents mismatch in tools)
+
       signContentType: false,
     });
 
-    // Headers client SHOULD send
+
     const headers = {
       "Content-Type": mt,
       "Cache-Control": cacheControl,
@@ -154,21 +147,14 @@ const presignPut = async (req, res, next) => {
   }
 };
 
-/**
- * 1-b) Commit metadata after successful direct PUT upload
- * POST /api/admin/media/commit
- * body: { key }
- *
- * Security:
- * - We verify the object exists on cloud (HEAD) and store trusted metadata.
- * - Client-provided mimeType/size are optional hints; the server trusts HEAD result.
- */
+
+//* 🟢 Commit Media Controller
 const commitMedia = async (req, res, next) => {
   try {
     const { key, originalName, kind } = req.body || {};
     const cleanedKey = assertKeyStrict(key);
 
-    // Verify object exists & get trusted metadata
+
     const meta = await headObject({ key: cleanedKey });
 
     const ct = meta?.ContentType ? String(meta.ContentType).toLowerCase() : "";
@@ -191,7 +177,7 @@ const commitMedia = async (req, res, next) => {
           size: trustedSize,
           originalName: originalName ? String(originalName).trim() : undefined,
           kind: kind ? String(kind).trim() : inferKind(trustedMime),
-          // uploadedBy: req.user?.id, // optional
+
         },
       },
       { upsert: true, new: true, setDefaultsOnInsert: true }
@@ -211,11 +197,7 @@ const commitMedia = async (req, res, next) => {
 };
 
 
-/**
- * List uploaded media (admin)
- * GET /api/admin/media
- * query: page, limit, q, kind
- */
+//* 🟢 List Media Controller
 const listMedia = async (req, res, next) => {
   try {
     const { page = 1, limit = 30, q, kind } = req.query || {};
@@ -267,19 +249,7 @@ const listMedia = async (req, res, next) => {
 };
 
 
-
-/**
- * Delete a media asset (admin)
- * - Deletes object from cloud storage
- * - Deletes DB record (if exists)
- *
- * DELETE /api/admin/media?key=...
- * query: key (required), force (optional boolean)
- *
- * Notes:
- * - If the asset is referenced by any product, returns 409 unless force=true.
- * - If the DB record does not exist, we still attempt to delete the object from cloud (useful for orphan cleanup).
- */
+//* 🟢 Delete Media By Key Controller
 const deleteMediaByKey = async (req, res, next) => {
   try {
     const keyInput = (req.query && req.query.key) || (req.body && req.body.key);
@@ -292,7 +262,7 @@ const deleteMediaByKey = async (req, res, next) => {
 
     const publicUrl = buildPublicUrl(cleanedKey);
 
-    // Guard against deleting media that is still used by products
+
     const inUseQuery = {
       $or: [
         { "media.key": cleanedKey },
@@ -334,10 +304,10 @@ const deleteMediaByKey = async (req, res, next) => {
       });
     }
 
-    // Delete from cloud (idempotent)
+
     const cloud = await deleteObject({ key: cleanedKey });
 
-    // Delete DB record if exists
+
     const dbDoc = await MediaAsset.findOneAndDelete({ key: cleanedKey }).lean();
 
     return res.status(200).json({
@@ -356,10 +326,8 @@ const deleteMediaByKey = async (req, res, next) => {
   }
 };
 
-/**
- * Delete by Mongo _id (admin)
- * DELETE /api/admin/media/:id
- */
+
+//* 🟢 Delete Media By ID Controller
 const deleteMediaById = async (req, res, next) => {
   try {
     const { id } = req.params || {};
@@ -376,7 +344,7 @@ const deleteMediaById = async (req, res, next) => {
       throw err;
     }
 
-    // Delegate to delete-by-key logic (keeps in-use protection)
+
     req.query = { ...(req.query || {}), key: doc.key, force: req.query?.force };
     return deleteMediaByKey(req, res, next);
   } catch (e) {
@@ -384,13 +352,8 @@ const deleteMediaById = async (req, res, next) => {
   }
 };
 
-/**
- * List bucket objects directly (admin) — optional for gallery/maintenance
- * GET /api/admin/media/bucket
- * query: prefix?, continuationToken?, limit?, kind?
- *
- * kind filter is best-effort based on file extension (no HEAD calls).
- */
+
+//* 🟢 List Bucket Media Controller
 const listBucketMedia = async (req, res, next) => {
   try {
     const allowedPrefix = String(process.env.CLOUD_SPACE_KEY_PREFIX || "").replace(/^\/+|\/+$/g, "");
@@ -448,6 +411,7 @@ const listBucketMedia = async (req, res, next) => {
 };
 
 
+//? 🔵 Export Controllers
 module.exports = {
   presignPut,
   commitMedia,

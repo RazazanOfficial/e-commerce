@@ -1,11 +1,11 @@
-//? 🔵Required Modules
+//? 🔵 Required Modules
 const UserModel = require("../../models/userModel");
 const bcrypt = require("bcryptjs");
 
-//* 🟢User Registration Controller
+//* 🟢 User Registration Controller
 const registerController = async (req, res) => {
   try {
-    //* 🟢Validate Request Body
+    //* 🟢 Validate Request Body
     const { name, phone, email, password, confirmPassword } = req.body;
 
     if (!name || !phone || !email || !password || !confirmPassword) {
@@ -16,8 +16,8 @@ const registerController = async (req, res) => {
         message: `لطفا تمامی فیلدها را پر کنید`,
       });
     }
-    
-    //* 🟢Validation Patterns
+
+    //* 🟢 Validation Patterns
     const namePattern = /^[\u0600-\u06FF\s]+$/;
     const phonePattern = /^09[0-9]{9}$/;
     const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -34,14 +34,14 @@ const registerController = async (req, res) => {
       return res.status(400).json({ message: "ایمیل نامعتبر است" });
     }
 
-    // * 🟢🟢Validation the password
+
     if (password.length < 6) {
       return res.status(400).json({
         message: "پسورد باید حداقل ۶ کاراکتر باشد.",
       });
     }
 
-    //* 🟢Check Password Confirmation
+    //* 🟢 Check Password Confirmation
     if (password !== confirmPassword) {
       return res.status(400).json({
         data: null,
@@ -51,7 +51,7 @@ const registerController = async (req, res) => {
       });
     }
 
-    //* 🟢Check for Existing User (Phone or Email)
+    //* 🟢 Check for Existing User (Phone or Email)
     const existingUser = await UserModel.findOne({
       $or: [{ email }, { phone }],
     });
@@ -68,11 +68,11 @@ const registerController = async (req, res) => {
       });
     }
 
-    // * 🟢Hash Password (Sensitive Operation)
+
     const salt = await bcrypt.genSalt(12);
     const hash = await bcrypt.hash(password, salt);
 
-    //* 🟢Create New User Object
+    //* 🟢 Create New User Object
     const payload = {
       name: String(name).trim(),
       phone: String(phone).trim(),
@@ -81,11 +81,11 @@ const registerController = async (req, res) => {
       role: "user",
     };
 
-    //* 🟢Save User to Database
+    //* 🟢 Save User to Database
     const userData = new UserModel(payload);
     const saveUser = await userData.save();
 
-    //* 🟢Send Success Response
+    //* 🟢 Send Success Response
         const safeUser = {
       _id: saveUser._id,
       name: saveUser.name,
@@ -101,7 +101,7 @@ const registerController = async (req, res) => {
       message: "ثبت نام با موفقیت انجام شد",
     });
   } catch (error) {
-    //! 🔴Handle Errors
+    //! 🔴 Handle Errors
     res.status(500).json({
       data: null,
       success: false,
@@ -111,5 +111,5 @@ const registerController = async (req, res) => {
   }
 };
 
-//? 🔵Export Controller
+//? 🔵 Export Controller
 module.exports = registerController;

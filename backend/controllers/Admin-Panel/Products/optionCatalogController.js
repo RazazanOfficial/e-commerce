@@ -1,8 +1,8 @@
-//? 🔵Required Modules
+//? 🔵 Required Modules
 const mongoose = require("mongoose");
 const { OptionCatalog, Product } = require("../../../models/productModel");
 
-//* 🟢 REQUIRED fields for create
+//* 🟢 Create Required Fields
 const REQUIRED = {
   create: {
     name: "نام آپشن الزامی است",
@@ -10,10 +10,10 @@ const REQUIRED = {
   },
 };
 
-//* 🟢 Fields allowed for update
+//* 🟢 Allowed Update Fields
 const ALLOWED_UPDATE_FIELDS = new Set(["name", "code", "values", "isActive"]);
 
-//* validateRequired Utils
+//* 🟢 validateRequired Utility
 const validateRequired = (schema, payload) => {
   for (const [field, message] of Object.entries(schema)) {
     const v = payload?.[field];
@@ -24,7 +24,7 @@ const validateRequired = (schema, payload) => {
   return null;
 };
 
-//* normalizeValues: string | string[] -> string[]
+//* 🟢 normalizeValues Utility
 const normalizeValues = (values) => {
   if (values === undefined) return undefined;
   if (values === null) return [];
@@ -40,7 +40,7 @@ const normalizeValues = (values) => {
     return [];
   }
 
-  // Unique + stable order
+
   const seen = new Set();
   const uniq = [];
   for (const v of arr) {
@@ -53,7 +53,7 @@ const normalizeValues = (values) => {
   return uniq;
 };
 
-//* validateAndNormalizeCode Utils
+//* 🟢 validateAndNormalizeCode Utility
 const validateAndNormalizeCode = async (code, currentId = null) => {
   if (code === undefined) return undefined;
   const cleaned = String(code).trim().toLowerCase();
@@ -76,7 +76,7 @@ const validateAndNormalizeCode = async (code, currentId = null) => {
   return cleaned;
 };
 
-//* validateUniqueName Utils
+//* 🟢 validateUniqueName Utility
 const validateUniqueName = async (name, currentId = null) => {
   if (name === undefined) return undefined;
   const cleaned = String(name).trim();
@@ -97,7 +97,7 @@ const validateUniqueName = async (name, currentId = null) => {
   return cleaned;
 };
 
-//* GET /admin/option-catalogs
+//* 🟢 Get All Option Catalogs Controller
 const getAllOptionCatalogs = async (req, res) => {
   try {
     const {
@@ -161,7 +161,7 @@ const getAllOptionCatalogs = async (req, res) => {
   }
 };
 
-//* POST /admin/option-catalogs
+//* 🟢 Create Option Catalog Controller
 const createOptionCatalog = async (req, res) => {
   try {
     let { name, code, values, isActive } = req.body || {};
@@ -197,7 +197,7 @@ const createOptionCatalog = async (req, res) => {
   }
 };
 
-//* GET /admin/option-catalogs/:id
+//* 🟢 Get All Option Catalogs Controller/:id
 const getOptionCatalogById = async (req, res) => {
   try {
     const { id } = req.params;
@@ -214,7 +214,7 @@ const getOptionCatalogById = async (req, res) => {
   }
 };
 
-//* PUT /admin/option-catalogs/:id
+//* 🟢 Update Option Catalog Controller
 const updateOptionCatalog = async (req, res) => {
   try {
     const { id } = req.params;
@@ -236,22 +236,22 @@ const updateOptionCatalog = async (req, res) => {
       return res.status(404).json({ success: false, error: true, message: "آپشن پیدا نشد" });
     }
 
-    // name
+
     if (Object.prototype.hasOwnProperty.call(req.body, "name")) {
       doc.name = await validateUniqueName(req.body.name, id);
     }
 
-    // code
+
     if (Object.prototype.hasOwnProperty.call(req.body, "code")) {
       doc.code = await validateAndNormalizeCode(req.body.code, id);
     }
 
-    // values
+
     if (Object.prototype.hasOwnProperty.call(req.body, "values")) {
       doc.values = normalizeValues(req.body.values) ?? [];
     }
 
-    // isActive
+
     if (Object.prototype.hasOwnProperty.call(req.body, "isActive")) {
       doc.isActive = !!req.body.isActive;
     }
@@ -268,7 +268,7 @@ const updateOptionCatalog = async (req, res) => {
   }
 };
 
-//* PATCH /admin/option-catalogs/:id/toggle
+//* 🟢 Toggle Option Catalog Controller
 const toggleOptionCatalogActive = async (req, res) => {
   try {
     const { id } = req.params;
@@ -287,7 +287,7 @@ const toggleOptionCatalogActive = async (req, res) => {
   }
 };
 
-//* DELETE /admin/option-catalogs/:id
+//* 🟢 Delete Option Catalog Controller
 const deleteOptionCatalog = async (req, res) => {
   try {
     const { id } = req.params;

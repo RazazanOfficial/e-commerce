@@ -1,6 +1,9 @@
 "use client";
 
+//? 🔵 Required Modules
+
 import { useEffect, useMemo, useState } from "react";
+import axios from "axios";
 import apiClient from "@/common/apiClient";
 import { toast } from "react-toastify";
 import {
@@ -11,9 +14,11 @@ import {
   AdminSelect,
   AdminTextarea,
 } from "@/components/admin-ui";
-import backApis from "@/common/inedx";
+import backApis from "@/common";
 import { cn } from "@/lib/utils";
+import ProductMediaEditor from "./ProductMediaEditor";
 
+//* 🟢 Editor Constants
 const TABS = [
   { id: "basic", label: "عمومی" },
   { id: "pricing", label: "قیمت‌گذاری" },
@@ -22,6 +27,7 @@ const TABS = [
   { id: "seo", label: "سئو" },
 ];
 
+//* 🟢 Form Defaults
 const emptyProduct = () => ({
   title: "",
   slug: "",
@@ -46,6 +52,7 @@ const emptyProduct = () => ({
   images: [],
 });
 
+//* 🟢 Form Utilities
 const toIntOrEmpty = (v) => {
   if (v === "" || v === undefined || v === null) return "";
   const n = Number(v);
@@ -64,6 +71,7 @@ const slugify = (value) => {
   return s;
 };
 
+//* 🟢 Tab Button
 function TabButton({ active, children, ...props }) {
   return (
     <button
@@ -81,14 +89,16 @@ function TabButton({ active, children, ...props }) {
   );
 }
 
+//* 🟢 Product Editor Modal
 export default function ProductEditorModal({
   open,
   onClose,
-  mode = "create", // create | edit
+  mode = "create",
   productId,
   categories = [],
   onSaved,
 }) {
+  //* 🟢 Editor State
   const isEdit = mode === "edit";
   const [activeTab, setActiveTab] = useState("basic");
   const [loading, setLoading] = useState(false);
@@ -97,10 +107,13 @@ export default function ProductEditorModal({
   const [form, setForm] = useState(emptyProduct);
   const [errors, setErrors] = useState({});
 
-  // Media tab helper state
+
+  //* 🟢 Media State
   const [imgUrl, setImgUrl] = useState("");
   const [imgAlt, setImgAlt] = useState("");
   const [editingImgIndex, setEditingImgIndex] = useState(null);
+  const [uploadingImage, setUploadingImage] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
 
   const titleText = isEdit ? "ویرایش محصول" : "ایجاد محصول";
 
@@ -109,6 +122,7 @@ export default function ProductEditorModal({
     return [...list].sort((a, b) => String(a?.name || "").localeCompare(String(b?.name || ""), "fa"));
   }, [categories]);
 
+  //* 🟢 Product Hydration
   useEffect(() => {
     if (!open) return;
     setActiveTab("basic");
@@ -119,6 +133,8 @@ export default function ProductEditorModal({
       setImgUrl("");
       setImgAlt("");
       setEditingImgIndex(null);
+      setUploadingImage(false);
+      setUploadProgress(0);
       return;
     }
 
@@ -160,10 +176,12 @@ export default function ProductEditorModal({
           images: Array.isArray(p?.images) ? p.images : [],
         }));
 
-        // reset media editor
+
         setImgUrl("");
         setImgAlt("");
         setEditingImgIndex(null);
+        setUploadingImage(false);
+        setUploadProgress(0);
       } catch (err) {
         console.error(err);
         toast.error("خطا در دریافت اطلاعات محصول");
@@ -173,7 +191,8 @@ export default function ProductEditorModal({
     })();
   }, [open, isEdit, productId]);
 
-  // auto-slug (only when user hasn't typed slug)
+
+  //* 🟢 Slug Automation
   useEffect(() => {
     if (!open) return;
     if (isEdit) return;
@@ -185,11 +204,13 @@ export default function ProductEditorModal({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [form.title]);
 
+  //* 🟢 Form Actions
   const setField = (key, value) => {
     setForm((prev) => ({ ...prev, [key]: value }));
     setErrors((prev) => ({ ...prev, [key]: undefined }));
   };
 
+  //* 🟢 Form Validation
   const validate = () => {
     const e = {};
 
@@ -224,7 +245,7 @@ export default function ProductEditorModal({
       }
     }
 
-    // Optional integers
+
     const optionalInts = [
       ["compareAt", "compareAt"],
       ["cost", "cost"],
@@ -268,7 +289,7 @@ export default function ProductEditorModal({
         isPrimary: !!i.isPrimary,
       })),
 
-      // Optional
+
       compareAt: form.compareAt === "" ? undefined : Number(form.compareAt),
       cost: form.cost === "" ? undefined : Number(form.cost),
       inventory: {
@@ -286,7 +307,7 @@ export default function ProductEditorModal({
       },
     };
 
-    // Cleanup empty seo
+
     if (!payload.seo.title && !payload.seo.description && !payload.seo.canonicalUrl) {
       delete payload.seo;
     }
@@ -330,7 +351,63 @@ export default function ProductEditorModal({
     }
   };
 
-  // Media tab operations
+
+  const handleImageFileUpload = async (event) => {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+    if (!file) return;
+
+    if (!file.type?.startsWith("image/")) {
+      toast.error("فقط فایل تصویر مجاز است");
+      return;
+    }
+
+    try {
+      setUploadingImage(true);
+      setUploadProgress(0);
+
+      const presignRes = await apiClient.post(backApis.mediaPresign.url, {
+        mimeType: file.type,
+        fileName: file.name,
+      });
+
+      const presigned = presignRes?.data;
+      const upload = presigned?.upload;
+      if (!upload?.url || !upload?.method) {
+        throw new Error("پاسخ presign نامعتبر است");
+      }
+
+      await axios({
+        method: upload.method,
+        url: upload.url,
+        data: file,
+        headers: upload.headers || { "Content-Type": file.type },
+        onUploadProgress: (progressEvent) => {
+          if (!progressEvent.total) return;
+          setUploadProgress(Math.round((progressEvent.loaded * 100) / progressEvent.total));
+        },
+      });
+
+      const commitRes = await apiClient.post(backApis.mediaCommit.url, {
+        key: presigned.key,
+        originalName: file.name,
+        kind: "image",
+      });
+
+      const publicUrl = commitRes?.data?.data?.publicUrl || presigned.publicUrl;
+      if (!publicUrl) throw new Error("آدرس عمومی فایل دریافت نشد");
+
+      setImgUrl(publicUrl);
+      setImgAlt((prev) => prev || form.title || file.name.replace(/\.[^.]+$/, ""));
+      toast.success("تصویر آپلود شد؛ حالا می‌توانید آن را به گالری اضافه کنید");
+    } catch (err) {
+      console.error(err);
+      toast.error(err?.response?.data?.message || err?.message || "آپلود تصویر ناموفق بود");
+    } finally {
+      setUploadingImage(false);
+    }
+  };
+
   const addOrUpdateImage = () => {
     const url = String(imgUrl || "").trim();
     const alt = String(imgAlt || "").trim();
@@ -351,7 +428,7 @@ export default function ProductEditorModal({
         imgs.push({ url, alt, isPrimary: willBePrimary });
       }
 
-      // Enforce one primary
+
       const primaryCount = imgs.filter((i) => i.isPrimary).length;
       if (primaryCount === 0 && imgs.length) imgs[0].isPrimary = true;
       if (primaryCount > 1) {
@@ -646,117 +723,23 @@ export default function ProductEditorModal({
           ) : null}
 
           {activeTab === "media" ? (
-            <div className="space-y-4">
-              <div className="rounded-2xl border border-[color:var(--adm-border)] bg-[var(--adm-surface-2)] p-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                  <AdminField label="آدرس تصویر (url)" required>
-                    <AdminInput
-                      value={imgUrl}
-                      onChange={(e) => setImgUrl(e.target.value)}
-                      placeholder="https://..."
-                    />
-                  </AdminField>
-                  <AdminField label="متن جایگزین (alt)" required>
-                    <AdminInput
-                      value={imgAlt}
-                      onChange={(e) => setImgAlt(e.target.value)}
-                      placeholder="مثلاً: نمای جلوی محصول"
-                    />
-                  </AdminField>
-                </div>
-
-                <div className="mt-3 flex items-center justify-end gap-2">
-                  {editingImgIndex !== null ? (
-                    <AdminButton variant="secondary" onClick={cancelEditImage}>
-                      لغو
-                    </AdminButton>
-                  ) : null}
-                  <AdminButton variant="primary" onClick={addOrUpdateImage}>
-                    {editingImgIndex !== null ? "ذخیره تغییرات" : "افزودن تصویر"}
-                  </AdminButton>
-                </div>
-
-                {errors.images ? (
-                  <p className="mt-3 text-xs text-[var(--adm-error)]">{errors.images}</p>
-                ) : null}
-              </div>
-
-              <AdminField
-                label={`گالری تصاویر (${form.images.length})`}
-                required
-                error={errors.images}
-              >
-                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
-                  {form.images.map((img, idx) => {
-                    const isPrimary = !!img.isPrimary;
-                    return (
-                      <div
-                        key={`${img.url}-${idx}`}
-                        className={cn(
-                          "rounded-2xl overflow-hidden border bg-[var(--adm-surface)]",
-                          isPrimary
-                            ? "border-[color:var(--adm-primary)]"
-                            : "border-[color:var(--adm-border)]"
-                        )}
-                      >
-                        <div className="aspect-square bg-[var(--adm-surface-2)]">
-                          {/* eslint-disable-next-line @next/next/no-img-element */}
-                          <img
-                            src={img.url}
-                            alt={img.alt}
-                            className="w-full h-full object-cover"
-                            loading="lazy"
-                          />
-                        </div>
-
-                        <div className="p-3">
-                          <div className="text-xs text-[var(--adm-text)] line-clamp-2 min-h-[32px]">
-                            {img.alt}
-                          </div>
-
-                          <div className="mt-2 grid grid-cols-3 gap-2">
-                            <button
-                              type="button"
-                              onClick={() => setPrimary(idx)}
-                              className={cn(
-                                "h-9 rounded-xl text-xs font-semibold border transition",
-                                isPrimary
-                                  ? "bg-[var(--adm-primary)] text-[var(--adm-on-primary)] border-[color:var(--adm-primary)]"
-                                  : "bg-[var(--adm-surface)] text-[var(--adm-text)] border-[color:var(--adm-border)] hover:bg-[var(--adm-surface-2)]"
-                              )}
-                            >
-                              {isPrimary ? "اصلی" : "اصلی کن"}
-                            </button>
-
-                            <button
-                              type="button"
-                              onClick={() => startEditImage(idx)}
-                              className="h-9 rounded-xl text-xs font-semibold border border-[color:var(--adm-border)] bg-[var(--adm-surface)] text-[var(--adm-text)] hover:bg-[var(--adm-surface-2)] transition"
-                            >
-                              ویرایش
-                            </button>
-
-                            <button
-                              type="button"
-                              onClick={() => removeImage(idx)}
-                              className="h-9 rounded-xl text-xs font-semibold border border-[color:var(--adm-border)] bg-[var(--adm-error-soft)] text-[var(--adm-error)] hover:opacity-90 transition"
-                            >
-                              حذف
-                            </button>
-                          </div>
-                        </div>
-                      </div>
-                    );
-                  })}
-
-                  {form.images.length === 0 ? (
-                    <div className="col-span-full p-6 rounded-2xl border border-dashed border-[color:var(--adm-border)] text-center text-sm text-[var(--adm-text-muted)]">
-                      هنوز تصویری اضافه نشده است.
-                    </div>
-                  ) : null}
-                </div>
-              </AdminField>
-            </div>
+            <ProductMediaEditor
+              images={form.images}
+              imgUrl={imgUrl}
+              imgAlt={imgAlt}
+              editingImgIndex={editingImgIndex}
+              uploadingImage={uploadingImage}
+              uploadProgress={uploadProgress}
+              error={errors.images}
+              onUploadFile={handleImageFileUpload}
+              onChangeUrl={setImgUrl}
+              onChangeAlt={setImgAlt}
+              onCancelEdit={cancelEditImage}
+              onAddOrUpdate={addOrUpdateImage}
+              onSetPrimary={setPrimary}
+              onStartEdit={startEditImage}
+              onRemove={removeImage}
+            />
           ) : null}
 
           {activeTab === "seo" ? (

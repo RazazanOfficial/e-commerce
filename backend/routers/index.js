@@ -11,24 +11,28 @@ const optionCatalogRouters = require("./Admin-Panel/products/optionCatalogRouter
 const tagCatalogRouters = require("./Admin-Panel/products/tagCatalogRouters");
 const currencyCatalogRouters = require("./Admin-Panel/products/currencyCatalogRouters");
 const mediaRouters = require("./Admin-Panel/media/mediaRouters");
+const publicProductRouters = require("./Storefront/productRouters");
 
-//! Auth
+//! 🔴 Auth Routes
 router.use("", authRouters);
 
-//! Panel Admin Routes
-//? All-Users
+//! 🔴 Storefront Routes
+router.use("/products", publicProductRouters);
+
+//! 🔴 Admin Panel Routes
+//? 🔵 User Routes
 router.use("/admin/all-users", allUsers);
 router.use("/admin/user", user);
 router.use("/admin/search-users", searchUsers);
 
-//? Products
+//? 🔵 Product Routes
 router.use("/admin/categories", categoryRouters);
 router.use("/admin/products", productRouters);
 router.use("/admin/option-catalogs", optionCatalogRouters);
 router.use("/admin/tag-catalogs", tagCatalogRouters);
 router.use("/admin/currency-catalogs", currencyCatalogRouters);
 
-//? Media (Parspack Cloud Space)
+//? 🔵 Media Routes
 router.use("/admin/media", mediaRouters);
 
 module.exports = router;

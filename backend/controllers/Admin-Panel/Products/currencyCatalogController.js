@@ -1,9 +1,9 @@
-//? 🔵Required Modules
+//? 🔵 Required Modules
 const mongoose = require("mongoose");
 const CurrencyCatalog = require("../../../models/currencyCatalogModel");
 const { Product } = require("../../../models/productModel");
 
-//* 🟢 REQUIRED fields for create
+//* 🟢 Create Required Fields
 const REQUIRED = {
   create: {
     nameFa: "نام فارسی واحد پول الزامی است",
@@ -11,10 +11,10 @@ const REQUIRED = {
   },
 };
 
-//* 🟢 Fields allowed for update
+//* 🟢 Allowed Update Fields
 const ALLOWED_UPDATE_FIELDS = new Set(["nameFa", "code", "symbol", "isActive", "sortOrder"]);
 
-//* validateRequired Utils
+//* 🟢 validateRequired Utility
 const validateRequired = (schema, payload) => {
   for (const [field, message] of Object.entries(schema)) {
     const v = payload?.[field];
@@ -25,6 +25,7 @@ const validateRequired = (schema, payload) => {
   return null;
 };
 
+//* 🟢 normalizeCode Utility
 function normalizeCode(code) {
   if (typeof code !== "string") throw new Error("کد واحد پول نامعتبر است");
   const cleaned = code.trim().toUpperCase();
@@ -34,6 +35,7 @@ function normalizeCode(code) {
   return cleaned;
 }
 
+//* 🟢 normalizeSortOrder Utility
 function normalizeSortOrder(v) {
   if (v === undefined || v === null || v === "") return undefined;
   const n = Number(v);
@@ -41,7 +43,8 @@ function normalizeSortOrder(v) {
   return n;
 }
 
-// POST /api/admin/currency-catalogs
+
+//* 🟢 Create Currency Catalog Controller
 exports.createCurrencyCatalog = async (req, res, next) => {
   try {
     const requiredErr = validateRequired(REQUIRED.create, req.body || {});
@@ -75,7 +78,8 @@ exports.createCurrencyCatalog = async (req, res, next) => {
   }
 };
 
-// GET /api/admin/currency-catalogs
+
+//* 🟢 Get All Currency Catalogs Controller
 exports.getAllCurrencyCatalogs = async (req, res, next) => {
   try {
     const q = String(req.query.q || "").trim();
@@ -102,7 +106,8 @@ exports.getAllCurrencyCatalogs = async (req, res, next) => {
   }
 };
 
-// GET /api/admin/currency-catalogs/:id
+
+//* 🟢 Get Currency Catalog By ID Controller
 exports.getCurrencyCatalogById = async (req, res, next) => {
   try {
     const { id } = req.params;
@@ -119,7 +124,8 @@ exports.getCurrencyCatalogById = async (req, res, next) => {
   }
 };
 
-// PUT /api/admin/currency-catalogs/:id
+
+//* 🟢 Update Currency Catalog Controller
 exports.updateCurrencyCatalog = async (req, res, next) => {
   try {
     const { id } = req.params;
@@ -143,7 +149,7 @@ exports.updateCurrencyCatalog = async (req, res, next) => {
       return res.status(404).json({ success: false, error: true, message: "یافت نشد" });
     }
 
-    // If code changes, prevent change when used by products
+
     if (Object.prototype.hasOwnProperty.call(body, "code")) {
       const newCode =
         body.code === "" || body.code === null ? undefined : normalizeCode(body.code);
@@ -202,7 +208,8 @@ exports.updateCurrencyCatalog = async (req, res, next) => {
   }
 };
 
-// PATCH /api/admin/currency-catalogs/:id/toggle
+
+//* 🟢 Toggle Currency Catalog Controller
 exports.toggleCurrencyCatalog = async (req, res, next) => {
   try {
     const { id } = req.params;
@@ -223,7 +230,8 @@ exports.toggleCurrencyCatalog = async (req, res, next) => {
   }
 };
 
-// DELETE /api/admin/currency-catalogs/:id
+
+//* 🟢 Delete Currency Catalog Controller
 exports.deleteCurrencyCatalog = async (req, res, next) => {
   try {
     const { id } = req.params;

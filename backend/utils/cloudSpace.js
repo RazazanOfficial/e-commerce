@@ -1,14 +1,10 @@
+//? 🔵 Required Modules
 const crypto = require("crypto");
 const path = require("path");
 const AWS = require("aws-sdk");
 
-/**
- * ParsPack Cloud Storage is S3-compatible.
- * This helper wraps aws-sdk v2 S3 for:
- * - direct upload with Presigned PUT URL (recommended)
- * - reading object metadata (HEAD) to verify existence on commit
- */
 
+//* 🟢 Environment Utilities
 function mustEnv(name) {
   const raw = process.env[name];
   const v = raw === undefined || raw === null ? "" : String(raw).trim();
@@ -20,6 +16,7 @@ function mustEnv(name) {
   return v;
 }
 
+//* 🟢 URL Utilities
 function cleanBaseUrl(url) {
   return String(url || "").replace(/\/+$/, "");
 }
@@ -37,6 +34,7 @@ function normalizeEndpointUrl(raw) {
   return `https://${s}`;
 }
 
+//* 🟢 S3 Client
 function getS3Client() {
   const endpointRaw = mustEnv("CLOUD_SPACE_END_POINT_URL");
   const accessKeyId = mustEnv("CLOUD_SPACE_ACCESS_KEY");
@@ -49,10 +47,10 @@ function getS3Client() {
     endpoint,
     accessKeyId,
     secretAccessKey,
-    // ParsPack examples often use us-west-2; keep configurable but stable default.
+
     region: process.env.CLOUD_SPACE_REGION || "us-west-2",
     signatureVersion: "v4",
-    // ParsPack/MinIO style works best with path-style endpoint in most setups.
+
     s3ForcePathStyle: parseBoolEnv("CLOUD_SPACE_FORCE_PATH_STYLE", true),
   });
 }
@@ -64,11 +62,8 @@ function encodeKeyPreservingSlashes(key) {
     .join("/");
 }
 
-/**
- * Build public URL for an object key.
- * - If CLOUD_SPACE_PUBLIC_BASE_URL already points to bucket (subdomain or path), don't duplicate bucket.
- * - Keep "/" in keys (do not encode as %2F).
- */
+
+//* 🟢 Public URL Builder
 function buildPublicUrl(key) {
   const base = cleanBaseUrl(mustEnv("CLOUD_SPACE_PUBLIC_BASE_URL"));
   const bucket = mustEnv("CLOUD_SPACE_BUCKET");
@@ -84,11 +79,12 @@ function buildPublicUrl(key) {
     }
     return `${base}/${bucket}/${encodedKey}`;
   } catch (_) {
-    // If base is not a valid URL, fallback to simple join.
+
     return `${base}/${bucket}/${encodedKey}`;
   }
 }
 
+//* 🟢 Object Key Utilities
 function extFromMime(mimeType) {
   const map = {
     "image/jpeg": "jpg",
@@ -103,9 +99,7 @@ function extFromMime(mimeType) {
   return map[String(mimeType || "").toLowerCase()] || "bin";
 }
 
-/**
- * Generate an object key controlled by server (do NOT trust client extension).
- */
+
 function generateObjectKey({ mimeType, prefix = "" }) {
   const ts = Date.now();
   const rand = crypto.randomBytes(4).toString("hex");
@@ -116,11 +110,8 @@ function generateObjectKey({ mimeType, prefix = "" }) {
   return safePrefix ? `${safePrefix}/${base}` : base;
 }
 
-/**
- * Create Presigned PUT URL.
- * IMPORTANT: Avoid signing Content-Type by default to prevent signature mismatch
- * caused by small header variations from browsers/tools.
- */
+
+//* 🟢 Presigned Upload Utility
 function createPresignedPut({
   key,
   mimeType,
@@ -139,8 +130,8 @@ function createPresignedPut({
   };
 
   if (signContentType && mimeType) params.ContentType = mimeType;
-  // IMPORTANT: Do not sign Cache-Control unless explicitly requested.
-  // Some tools/proxies rewrite this header and cause signed requests to fail on S3-compatible gateways.
+
+
   if (signCacheControl && cacheControl) params.CacheControl = cacheControl;
   if (process.env.CLOUD_SPACE_OBJECT_ACL) params.ACL = process.env.CLOUD_SPACE_OBJECT_ACL;
 
@@ -152,9 +143,8 @@ function createPresignedPut({
   });
 }
 
-/**
- * Head object to verify it exists (used by /commit).
- */
+
+//* 🟢 Cloud Object Operations
 async function headObject({ key }) {
   const bucket = mustEnv("CLOUD_SPACE_BUCKET");
   const s3 = getS3Client();
@@ -163,7 +153,7 @@ async function headObject({ key }) {
     const meta = await s3.headObject({ Bucket: bucket, Key: key }).promise();
     return meta;
   } catch (err) {
-    // Normalize common "not found" cases
+
     const code = err?.code || err?.name;
     if (code === "NotFound" || code === "NoSuchKey" || err?.statusCode === 404) {
       const e = new Error("فایل روی فضای ابری یافت نشد (upload انجام نشده یا key اشتباه است)");
@@ -175,11 +165,6 @@ async function headObject({ key }) {
 }
 
 
-
-/**
- * Delete an object from bucket (idempotent).
- * S3-compatible gateways usually return success even if object does not exist.
- */
 async function deleteObject({ key }) {
   const bucket = mustEnv("CLOUD_SPACE_BUCKET");
   const s3 = getS3Client();
@@ -196,10 +181,7 @@ async function deleteObject({ key }) {
   }
 }
 
-/**
- * List objects in bucket (for admin gallery / orphan cleanup).
- * Supports pagination via ContinuationToken.
- */
+
 async function listObjects({
   prefix = "",
   continuationToken,
@@ -243,6 +225,7 @@ async function listObjects({
   };
 }
 
+//? 🔵 Export Utilities
 module.exports = {
   generateObjectKey,
   buildPublicUrl,

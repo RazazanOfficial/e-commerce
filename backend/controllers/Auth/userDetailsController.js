@@ -1,20 +1,30 @@
-//? 🔵Required Modules
+//? 🔵 Required Modules
 const UserModel = require("../../models/userModel");
+const { USER_PUBLIC_FIELDS } = require("../../utils/userSecurity");
 
-//* 🟢UserDetails Controller
+//* 🟢 UserDetails Controller
 const userDetailsController = async (req, res) => {
   try {
-        const user = await UserModel.findById(req.user.id).select("-password");
+    const user = await UserModel.findById(req.user.id).select(USER_PUBLIC_FIELDS).lean();
+
+    if (!user) {
+      return res.status(404).json({
+        data: null,
+        success: false,
+        error: true,
+        message: "کاربر پیدا نشد",
+      });
+    }
+
     res.status(200).json({
       data: user,
       success: true,
       error: false,
       message: "مشخصات کاربر",
     });
-    // console.log("userId:", user);
   } catch (error) {
-    //! 🔴Handle Errors
-    console.error("Login error:", error);
+    //! 🔴 Handle Errors
+    console.error("userDetails error:", error);
     return res.status(500).json({
       data: null,
       success: false,
@@ -24,5 +34,5 @@ const userDetailsController = async (req, res) => {
   }
 };
 
-//? 🔵Export Controller
+//? 🔵 Export Controller
 module.exports = userDetailsController;

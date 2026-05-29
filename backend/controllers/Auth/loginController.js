@@ -1,19 +1,34 @@
-//? 🔵Required Modules
+//? 🔵 Required Modules
 const UserModel = require("../../models/userModel");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const { cookieOptions } = require("../../config/coockieOptions");
-//* 🟢User Logination Controller
+const { normalizeEmail, normalizePhone, toPublicUser } = require("../../utils/userSecurity");
+
+//* 🟢 User Login Controller
 const loginController = async (req, res) => {
   try {
+    //* 🟢 Validate Request Body
+    const { phoneOrEmail, password } = req.body || {};
+    const identifier = String(phoneOrEmail || "").trim();
 
-    //* 🟢Validate Request Body
-    const { phoneOrEmail, password } = req.body;
-    
-    //* 🟢Validation User Exist
+    if (!identifier || !password) {
+      return res.status(400).json({
+        data: null,
+        success: false,
+        error: true,
+        message: "نام کاربری و رمز عبور الزامی است",
+      });
+    }
+
+    const normalizedEmail = normalizeEmail(identifier);
+    const normalizedPhone = normalizePhone(identifier);
+
+    //* 🟢 Validation User Exist
     const user = await UserModel.findOne({
-      $or: [{ email: phoneOrEmail }, { phone: phoneOrEmail }],
-    });
+      $or: [{ email: normalizedEmail }, { phone: normalizedPhone }],
+    }).select("+password");
+
     if (!user) {
       return res.status(400).json({
         data: null,
@@ -23,8 +38,8 @@ const loginController = async (req, res) => {
       });
     }
 
-    //* 🟢Validation Password
-    const isMatch = await bcrypt.compare(password, user.password);
+    //* 🟢 Validation Password
+    const isMatch = await bcrypt.compare(String(password), user.password);
     if (!isMatch) {
       return res.status(400).json({
         data: null,
@@ -34,7 +49,7 @@ const loginController = async (req, res) => {
       });
     }
 
-    //* 🟢Generate JWT Token
+    //* 🟢 Generate JWT Token
     if (!process.env.JWT_SECRET) {
       throw new Error("Server Error");
     }
@@ -43,17 +58,19 @@ const loginController = async (req, res) => {
       process.env.JWT_SECRET,
       { expiresIn: "7d" }
     );
+
     res.cookie("token", token, cookieOptions);
-//* 🟢Send Success Response
+
+    //* 🟢 Send Success Response
     return res.status(200).json({
-      data: { token, userId: user._id },
+      data: { user: toPublicUser(user) },
       success: true,
       error: false,
       message: "ورود با موفقیت انجام شد",
     });
   } catch (error) {
-    //! 🔴Handle Errors
-    console.error("Login derror:", error);
+    //! 🔴 Handle Errors
+    console.error("Login error:", error);
     return res.status(500).json({
       data: null,
       success: false,
@@ -63,5 +80,5 @@ const loginController = async (req, res) => {
   }
 };
 
-//? 🔵Export Controller
+//? 🔵 Export Controller
 module.exports = loginController;

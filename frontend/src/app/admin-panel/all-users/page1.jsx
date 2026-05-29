@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import usePaginatedFetchHook from "@/hooks/usePaginatedFetchHook";
-import backApis from "@/common/inedx";
+import backApis from "@/common";
 import { Search, Eye, Edit, Trash2, ArrowLeft, ArrowRight } from "lucide-react";
 import SearchModal from "@/components/Admin-Panel/SearchModal";
 import apiClient from "@/common/apiClient";
@@ -25,9 +25,9 @@ const AllUsersPage = () => {
 
   const [selectedUser, setSelectedUser] = useState(null);
   const [userModalOpen, setUserModalOpen] = useState(false);
-  const [modalMode, setModalMode] = useState("view"); // "view" | "edit" | "delete"
+  const [modalMode, setModalMode] = useState("view");
 
-  // Handle search input change
+
   const handleSearch = async () => {
     try {
       const { data } = await apiClient.get(
@@ -40,14 +40,14 @@ const AllUsersPage = () => {
     }
   };
 
-  // Handle read user modal
+
   const handleOpenModal = (user, mode) => {
     setSelectedUser(user);
     setModalMode(mode);
     setUserModalOpen(true);
   };
 
-// Handle user modal update
+
 const handleUpdateUser = async (updatedUser) => {
   try {
     const { url, method } = backApis.updateUser(updatedUser._id);
@@ -65,7 +65,7 @@ const handleUpdateUser = async (updatedUser) => {
   }
 };
 
-// Handle user modal delete
+
 const handleDeleteUser = async (userId) => {
   try {
     const { url, method } = backApis.deleteUser(userId);
@@ -79,7 +79,7 @@ const handleDeleteUser = async (userId) => {
   }
 };
 
-  // Generate colors for user avatars based on their names
+
   const getUserAvatarColor = (name) => {
     const colors = [
       "bg-primary-100 text-primary-700",
@@ -92,14 +92,14 @@ const handleDeleteUser = async (userId) => {
       "bg-green-100 text-green-700",
     ];
 
-    // Simple hash function to get deterministic color
+
     const hash = name
       .split("")
       .reduce((acc, char) => acc + char.charCodeAt(0), 0);
     return colors[hash % colors.length];
   };
 
-  // Get role badge variant
+
   const getRoleBadgeVariant = (role) => {
     switch (role?.toLowerCase()) {
       case "admin":
@@ -113,7 +113,7 @@ const handleDeleteUser = async (userId) => {
 
   return (
     <div>
-      {/* Page header */}
+
       <div className="mb-8 flex flex-col md:flex-row md:items-center md:justify-between">
         <div>
           <h1 className="text-2xl md:text-3xl font-bold text-emerald-800">
@@ -148,7 +148,7 @@ const handleDeleteUser = async (userId) => {
         </div>
       </div>
 
-      {/* Modal */}
+
       {isModalOpen && (
         <SearchModal
           isOpen={isModalOpen}
@@ -161,7 +161,7 @@ const handleDeleteUser = async (userId) => {
         />
       )}
 
-      {/* Users table container */}
+
       <div className="bg-white/20 backdrop-blur-md border border-white/30 rounded-2xl shadow-xl overflow-hidden transition-all duration-300 mb-6 relative">
         {isLoading && (
           <div className="absolute inset-0 bg-white/30 backdrop-blur-[5px] flex items-center justify-center z-10">
@@ -179,7 +179,7 @@ const handleDeleteUser = async (userId) => {
           </div>
         )}
 
-        {/* Table header with stats */}
+
         <div className="bg-gradient-to-l from-emerald-600 to-emerald-700 text-white p-4 sm:p-6">
           <div className="flex flex-wrap justify-between items-center">
             <div>
@@ -198,7 +198,7 @@ const handleDeleteUser = async (userId) => {
           </div>
         </div>
 
-        {/* Table */}
+
         <div className="overflow-x-auto custom-scrollbar">
           <table className="w-full text-right">
             <thead>
@@ -269,7 +269,7 @@ const handleDeleteUser = async (userId) => {
         </div>
       </div>
 
-      {/* Pagination section */}
+
       <div className="bg-white/20 backdrop-blur-md border border-white/30 p-4 rounded-xl flex flex-col sm:flex-row items-center justify-between">
         <div className="text-gray-600 mb-4 sm:mb-0">
           نمایش{" "}
@@ -301,7 +301,7 @@ const handleDeleteUser = async (userId) => {
                   ? (totalPages || 1) - 4 + idx
                   : page - 2 + idx;
 
-              // Ensure we don't render page numbers beyond total pages
+
               if (pageNum > (totalPages || 1)) return null;
 
               return (

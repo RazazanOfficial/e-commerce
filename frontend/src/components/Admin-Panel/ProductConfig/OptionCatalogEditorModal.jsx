@@ -10,7 +10,7 @@ function toLinesArray(text) {
     .split("\n")
     .map((s) => s.trim())
     .filter(Boolean);
-  // unique while preserving order
+
   const seen = new Set();
   const out = [];
   for (const v of arr) {

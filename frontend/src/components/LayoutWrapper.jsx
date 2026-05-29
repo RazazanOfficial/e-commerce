@@ -5,15 +5,16 @@ import OfferHeader from "@/components/OfferHeader";
 
 export default function LayoutWrapper({ children }) {
   const pathname = usePathname();
+  const showPublicHeader = !pathname.startsWith("/admin-panel");
 
   return (
     <>
-      {!pathname.startsWith("/admin-panel") && (
+      {showPublicHeader ? (
         <>
           <OfferHeader />
           <Header />
         </>
-      )}
+      ) : null}
       {children}
     </>
   );

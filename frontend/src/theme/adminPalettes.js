@@ -1,5 +1,5 @@
-// Central source of truth for Admin palette tokens.
-// UI-only: safe to ship with frontend.
+
+
 
 export const ADMIN_PALETTES = {
   paletteA: {

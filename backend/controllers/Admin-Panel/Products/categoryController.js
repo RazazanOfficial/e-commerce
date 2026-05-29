@@ -1,9 +1,9 @@
-//? 🔵Required Modules
+//? 🔵 Required Modules
 const mongoose = require("mongoose");
 const CategoryModel = require("../../../models/categoryModel");
 const { Product } = require("../../../models/productModel");
 
-//* 🟢REQUIRED Utils
+//* 🟢 Required Utilities
 const REQUIRED = {
   create: {
     name: "نام دسته‌بندی الزامی است",
@@ -12,7 +12,7 @@ const REQUIRED = {
   update: {},
 };
 
-//* validateRequired Utils
+//* 🟢 validateRequired Utility
 const validateRequired = (schema, payload) => {
   for (const [field, message] of Object.entries(schema)) {
     const v = payload?.[field];
@@ -23,7 +23,7 @@ const validateRequired = (schema, payload) => {
   return null;
 };
 
-//* normalizeKeywords Utils
+//* 🟢 normalizeKeywords Utility
 const normalizeKeywords = (keywords) => {
   if (keywords === undefined) return undefined;
   if (Array.isArray(keywords))
@@ -36,7 +36,7 @@ const normalizeKeywords = (keywords) => {
   return [];
 };
 
-//* resolveParentId Utils
+//* 🟢 resolveParentId Utility
 const resolveParentId = async (parent) => {
   if (parent === undefined || parent === null || parent === "") return null;
   if (mongoose.Types.ObjectId.isValid(parent)) {
@@ -52,7 +52,7 @@ const resolveParentId = async (parent) => {
   return null;
 };
 
-//* willCreateCycle Utils
+//* 🟢 willCreateCycle Utility
 const willCreateCycle = async (categoryId, targetParentId) => {
   if (!targetParentId) return false;
   let cursor = targetParentId;
@@ -65,7 +65,7 @@ const willCreateCycle = async (categoryId, targetParentId) => {
   return false;
 };
 
-//* validateAndNormalizeSlug Utils
+//* 🟢 validateAndNormalizeSlug Utility
 const validateAndNormalizeSlug = async (slug, currentId = null) => {
   if (typeof slug === "undefined") return null;
   const cleaned = String(slug).trim().toLowerCase();
@@ -85,7 +85,7 @@ const validateAndNormalizeSlug = async (slug, currentId = null) => {
   return cleaned;
 };
 
-//* ALLOWED_UPDATE_FIELDS Utils
+//* 🟢 Allowed Update Fields
 const ALLOWED_UPDATE_FIELDS = new Set([
   "name",
   "slug",
@@ -100,7 +100,7 @@ const ALLOWED_UPDATE_FIELDS = new Set([
   "metaDescription",
 ]);
 
-//* Get All Categories Controller
+//* 🟢 Get All Categories Controller
 const getAllCategories = async (_req, res) => {
   try {
     const list = await CategoryModel.find({})
@@ -116,7 +116,7 @@ const getAllCategories = async (_req, res) => {
   }
 };
 
-//* Create Category Controller
+//* 🟢 Create Category Controller
 const createCategory = async (req, res) => {
   try {
     let {
@@ -197,7 +197,7 @@ const createCategory = async (req, res) => {
   }
 };
 
-//* Update Category Controller
+//* 🟢 Update Category Controller
 const updateCategory = async (req, res) => {
   try {
     const { id } = req.params;
@@ -394,7 +394,7 @@ const updateCategory = async (req, res) => {
   }
 };
 
-//* Delete Category Controller
+//* 🟢 Delete Category Controller
 const deleteCategory = async (req, res) => {
   try {
     const { id } = req.params;
@@ -448,7 +448,7 @@ const deleteCategory = async (req, res) => {
   }
 };
 
-//? 🔵Export Controller
+//? 🔵 Export Controller
 module.exports = {
   createCategory,
   getAllCategories,

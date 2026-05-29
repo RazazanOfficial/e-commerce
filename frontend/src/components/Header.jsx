@@ -1,11 +1,11 @@
 "use client";
+
 import Logo from "@/assets/images/Logo.png";
 import { Heart, Search, ShoppingCart, Menu, X, User } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
-import { useEffect, useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
-import Cookies from "js-cookie";
+import { useState } from "react";
+import { motion, AnimatePresence } from "motion/react";
 import { useSelector } from "react-redux";
 
 const navItems = [
@@ -15,15 +15,24 @@ const navItems = [
   { href: "/contact", label: "تماس با ما" },
 ];
 
-const Header = () => {
-  const { user } = useSelector((state) => state.user);
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [token, setToken] = useState(null);
+const ADMIN_ROLES = new Set(["admin", "developer"]);
 
-  useEffect(() => {
-    const t = Cookies.get("token");
-    setToken(t);
-  }, []);
+const getAccountLink = (user) => {
+  if (!user) {
+    return { href: "/auth", label: "ورود / ثبت‌نام" };
+  }
+
+  if (ADMIN_ROLES.has(user.role)) {
+    return { href: "/admin-panel", label: "پنل ادمین" };
+  }
+
+  return { href: "/user-account", label: "پنل کاربری" };
+};
+
+const Header = () => {
+  const { user, isAuthResolved } = useSelector((state) => state.user);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const accountLink = getAccountLink(isAuthResolved ? user : null);
 
   const NavLink = ({ href, label, onClick, className }) => (
     <Link
@@ -34,7 +43,18 @@ const Header = () => {
       <span className="transition-colors duration-300 group-hover:text-blue-600">
         {label}
       </span>
-      <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-blue-600 transition-all duration-300 group-hover:w-full"></span>
+      <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-blue-600 transition-all duration-300 group-hover:w-full" />
+    </Link>
+  );
+
+  const AccountButton = ({ className = "" }) => (
+    <Link
+      href={accountLink.href}
+      onClick={() => setMobileMenuOpen(false)}
+      className={`px-3 py-1.5 bg-white text-gray-900 border-2 border-black hover:border-blue-800 hover:text-white rounded-lg text-sm hover:bg-blue-700 transition-colors flex items-center justify-center gap-2 ${className}`}
+    >
+      <span>{accountLink.label}</span>
+      <User width={20} height={20} />
     </Link>
   );
 
@@ -63,33 +83,7 @@ const Header = () => {
       </nav>
 
       <div className="flex items-center gap-4">
-        {token ? (
-          user?.role === "admin" || "developer" ? (
-            <Link
-              href="/admin-panel"
-              className="px-3 py-1.5 bg-white text-gray-900 border-2 border-black hover:border-blue-800 hover:text-white rounded-lg text-sm hover:bg-blue-700 transition-colors flex items-center justify-center gap-2"
-            >
-              <span>پنل ادمین</span>
-              <User width={20} height={20} />
-            </Link>
-          ) : (
-            <Link
-              href="/user-account"
-              className="px-3 py-1.5 bg-white text-gray-900 border-2 border-black hover:border-blue-800 hover:text-white rounded-lg text-sm hover:bg-blue-700 transition-colors flex items-center justify-center gap-2"
-            >
-              <span>پنل کاربری</span>
-              <User width={20} height={20} />
-            </Link>
-          )
-        ) : (
-          <Link
-            href="/auth"
-            className="px-3 py-1.5 bg-white text-gray-900 border-2 border-black hover:border-blue-800 hover:text-white rounded-lg text-sm hover:bg-blue-700 transition-colors flex items-center justify-center gap-2"
-          >
-            <span>ورود / ثبت‌نام</span>
-            <User width={20} height={20} />
-          </Link>
-        )}
+        <AccountButton />
 
         <p className="font-extrabold text-xl text-gray-900 hidden lg:block">
           سرزمین دیتا
@@ -141,18 +135,11 @@ const Header = () => {
                   key={item.href}
                   href={item.href}
                   label={item.label}
-                  className={`w-full h-12`}
+                  className="w-full h-12"
                   onClick={() => setMobileMenuOpen(false)}
                 />
               ))}
-              <Link
-                href="/auth"
-                onClick={() => setMobileMenuOpen(false)}
-                className="flex px-3 py-2 bg-white text-gray-900 border-2 border-black hover:border-blue-800 hover:text-white rounded-lg text-sm hover:bg-blue-700 transition-colors items-center justify-center gap-2"
-              >
-                <span>ورود / ثبت‌نام</span>
-                <User width={20} height={20} />
-              </Link>
+              <AccountButton className="py-2" />
             </motion.div>
           </>
         )}

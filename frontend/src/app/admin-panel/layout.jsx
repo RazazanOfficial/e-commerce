@@ -1,11 +1,9 @@
 "use client";
+
+//? 🔵 Required Modules
 import { useTheme } from "next-themes";
-import apiClient from "@/common/apiClient";
-import backApis from "@/common/inedx";
 import Link from "next/link";
-import { toast } from "react-toastify";
 import Spinner from "@/components/Spinner";
-import { notFound } from "next/navigation";
 import { UserContext } from "@/context/UserContext";
 import { AdminThemeProvider } from "@/context/AdminThemeContext";
 import ThemeProvider from "@/components/theme-provider";
@@ -22,12 +20,11 @@ import {
   Sun,
   Monitor,
   Moon,
-  Search,
-  Bell,
   Folder,
 } from "lucide-react";
 
-// --- Theme toggle
+
+//* 🟢 Theme Toggle
 function ThemeToggle() {
   const { theme, setTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
@@ -68,7 +65,8 @@ function ThemeToggle() {
   );
 }
 
-// --- Sidebar Item
+
+//* 🟢 Navigation Item
 function NavItem({ href, icon, label, active, onClick }) {
   const base =
     "group flex items-center gap-2 sm:gap-3 px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl transition-colors " +
@@ -89,15 +87,16 @@ function NavItem({ href, icon, label, active, onClick }) {
   );
 }
 
+//* 🟢 Admin Panel Layout
 export default function AdminPanelLayout({ children }) {
+  //* 🟢 Layout State
   const pathname = usePathname();
   const router = useRouter();
-  const { user } = useContext(UserContext);
+  const { user, isAuthResolved, logout } = useContext(UserContext);
 
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [timeoutReached, setTimeoutReached] = useState(false);
-  const [shouldRedirect, setShouldRedirect] = useState(false);
 
+  //* 🟢 Sidebar Links
   const links = useMemo(
     () => [
       { href: "/admin-panel", label: "داشبورد", icon: <Home size={16} /> },
@@ -129,28 +128,22 @@ export default function AdminPanelLayout({ children }) {
   const [activeHref, setActiveHref] = useState(pathname);
   useEffect(() => setActiveHref(pathname), [pathname]);
 
-  useEffect(() => {
-    const timer = setTimeout(() => setTimeoutReached(true), 5000);
-    return () => clearTimeout(timer);
-  }, []);
+  const isAdmin = user?.role === "admin" || user?.role === "developer";
 
+  //* 🟢 Access Guard
   useEffect(() => {
-    if (timeoutReached && !user) {
-      toast.error("برای دسترسی به پنل ادمین، وارد شوید");
-      setShouldRedirect(true);
+    if (!isAuthResolved) return;
+    if (!user) {
+      router.replace("/auth");
+      return;
     }
-    if (user && user.role !== "admin" && user.role !== "developer") {
-      notFound();
+    if (!isAdmin) {
+      router.replace("/");
     }
-  }, [timeoutReached, user]);
+  }, [isAuthResolved, isAdmin, router, user]);
 
-  useEffect(() => {
-    if (shouldRedirect) router.push("/auth");
-  }, [shouldRedirect, router]);
-
-  if (user === null && !timeoutReached) return <Spinner />;
-  if (!user || (user.role !== "admin" && user.role !== "developer"))
-    return null;
+  if (!isAuthResolved) return <Spinner />;
+  if (!user || !isAdmin) return null;
 
   return (
     <ThemeProvider>
@@ -158,7 +151,7 @@ export default function AdminPanelLayout({ children }) {
       <div className="min-h-screen bg-[var(--adm-bg)] text-[var(--adm-text)]">
         <div className="min-h-screen flex flex-col">
           <div className="flex flex-1">
-            {/* Sidebar toggle (mobile) */}
+
             <button
               className="xl:hidden fixed top-3 right-3 z-50 p-2 rounded-full bg-[var(--adm-primary)] text-[var(--adm-on-primary)] shadow-[0_10px_30px_var(--adm-shadow)]"
               onClick={() => setSidebarOpen((s) => !s)}
@@ -170,11 +163,11 @@ export default function AdminPanelLayout({ children }) {
               )}
             </button>
 
-            {/* Sidebar */}
+
             <aside
               className={`${
                 sidebarOpen ? "flex" : "hidden"
-              } xl:flex xl:w-64 lg:w-60 flex-col fixed inset-y-0 right-0 transition duration-300 ease-in-out z-30 h-full 
+              } xl:flex xl:w-64 lg:w-60 flex-col fixed inset-y-0 right-0 transition duration-300 ease-in-out z-30 h-full
               bg-[var(--adm-surface)] border-l border-[color:var(--adm-border)] shadow-[0_20px_60px_var(--adm-shadow)]`}
             >
               <div className="p-4 sm:p-5 pt-14 sm:pt-16">
@@ -223,13 +216,8 @@ export default function AdminPanelLayout({ children }) {
                 <button
                   className="w-full flex items-center gap-2 sm:gap-3 px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl text-[var(--adm-error)] hover:bg-[var(--adm-error-soft)] transition-colors text-sm sm:text-base"
                   onClick={async () => {
-                    try {
-                      const { url, method } = backApis.logOut;
-                      await apiClient({ url, method });
-                      router.push("/auth");
-                    } catch {
-                      toast.error("خروج ناموفق بود");
-                    }
+                    await logout();
+                    router.push("/auth");
                   }}
                 >
                   <LogOut size={16} />
@@ -238,7 +226,7 @@ export default function AdminPanelLayout({ children }) {
               </div>
             </aside>
 
-            {/* Main content */}
+
             <main className="flex-1 xl:mr-64 mr-0 transition-all duration-300 py-10">
               <div className="animate-[fadeIn_0.5s_ease_forwards] md:px-8 px-4">
                 {children}

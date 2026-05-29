@@ -1,10 +1,12 @@
 "use client";
 
+//? 🔵 Required Modules
+
 import { useEffect, useMemo, useState } from "react";
 import apiClient from "@/common/apiClient";
 import { toast } from "react-toastify";
 import { Plus, Search, ArrowLeft, ArrowRight } from "lucide-react";
-import backApis from "@/common/inedx";
+import backApis from "@/common";
 import {
   AdminButton,
   AdminCard,
@@ -20,9 +22,12 @@ import ProductCard from "@/components/Admin-Panel/Products/ProductCard";
 import ProductEditorModal from "@/components/Admin-Panel/Products/ProductEditorModal";
 import ProductViewModal from "@/components/Admin-Panel/Products/ProductViewModal";
 
+//* 🟢 Page Constants
 const LIMIT = 20;
 
+//* 🟢 All Products Page
 export default function AllProductsPage() {
+  //* 🟢 Table State
   const [products, setProducts] = useState([]);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
@@ -31,14 +36,16 @@ export default function AllProductsPage() {
   const [categories, setCategories] = useState([]);
   const [categoriesLoading, setCategoriesLoading] = useState(false);
 
-  // Filters
+
+  //* 🟢 Filter State
   const [searchInput, setSearchInput] = useState("");
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState("");
   const [visible, setVisible] = useState("");
   const [categoryId, setCategoryId] = useState("");
 
-  // Modals
+
+  //* 🟢 Modal State
   const [editorOpen, setEditorOpen] = useState(false);
   const [editorMode, setEditorMode] = useState("create");
   const [editorId, setEditorId] = useState(null);
@@ -48,7 +55,7 @@ export default function AllProductsPage() {
 
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [confirmLoading, setConfirmLoading] = useState(false);
-  const [confirmAction, setConfirmAction] = useState(null); // archive | restore | hard
+  const [confirmAction, setConfirmAction] = useState(null);
   const [confirmProduct, setConfirmProduct] = useState(null);
 
   const totalPages = useMemo(() => {
@@ -56,7 +63,8 @@ export default function AllProductsPage() {
     return Math.max(1, Math.ceil(t / LIMIT));
   }, [total]);
 
-  // Debounced search
+
+  //* 🟢 Search Debounce
   useEffect(() => {
     const t = setTimeout(() => {
       setSearch(searchInput.trim());
@@ -65,7 +73,7 @@ export default function AllProductsPage() {
     return () => clearTimeout(t);
   }, [searchInput]);
 
-  // Fetch categories (for filter + editor select)
+
   useEffect(() => {
     (async () => {
       try {
@@ -82,6 +90,7 @@ export default function AllProductsPage() {
     })();
   }, []);
 
+  //* 🟢 Product Data Fetch
   const fetchProducts = async () => {
     try {
       setLoading(true);
@@ -114,6 +123,7 @@ export default function AllProductsPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [page, status, visible, categoryId, search]);
 
+  //* 🟢 Modal Actions
   const openCreate = () => {
     setEditorMode("create");
     setEditorId(null);
@@ -137,6 +147,7 @@ export default function AllProductsPage() {
     setConfirmOpen(true);
   };
 
+  //* 🟢 Confirmed Actions
   const doConfirm = async () => {
     const p = confirmProduct;
     const id = p?._id;

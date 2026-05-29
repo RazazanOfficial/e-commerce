@@ -9,7 +9,7 @@ import {
   AdminCard,
   AdminCardContent,
 } from "@/components/admin-ui";
-import backApis from "@/common/inedx";
+import backApis from "@/common";
 import ProductStatusBadge from "./ProductStatusBadge";
 
 const formatPrice = (price, currency) => {
@@ -136,7 +136,7 @@ export default function ProductViewModal({ open, onClose, productId }) {
                   className="rounded-2xl overflow-hidden border border-[color:var(--adm-border)] bg-[var(--adm-surface)]"
                 >
                   <div className="aspect-square bg-[var(--adm-surface-2)]">
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
+
                     <img
                       src={img.url}
                       alt={img.alt}

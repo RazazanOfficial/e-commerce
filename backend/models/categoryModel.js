@@ -1,7 +1,7 @@
-//? 🔵Required Modules
+//? 🔵 Required Modules
 const mongoose = require("mongoose");
 
-//* Category Model
+//* 🟢 Category Model
 const categorySchema = new mongoose.Schema(
   {
     name: { type: String, required: true, unique: true },
@@ -25,5 +25,5 @@ const categorySchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-//? 🔵Export Controller
+//? 🔵 Export Controller
 module.exports = mongoose.model("Category", categorySchema);

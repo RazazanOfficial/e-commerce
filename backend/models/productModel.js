@@ -1,14 +1,16 @@
+//? 🔵 Required Modules
 const mongoose = require("mongoose");
 const { Schema } = mongoose;
 const { ObjectId } = Schema.Types;
 
-// فقط وقتی محصول "فعال" است، فیلدهای اصلی اجباری شوند
+
+//* 🟢 Activation Helpers
 function requiredIfActive() {
   return this.status === "ACTIVE";
 }
 
 
-/* ========== Option Catalog (برای مدیریت آپشن‌های عمومی توسط ادمین) ========== */
+//* 🟢 Option Catalog Schema
 const OptionCatalogSchema = new Schema(
   {
     name: { type: String, required: true, trim: true, unique: true },
@@ -25,7 +27,8 @@ const OptionCatalogSchema = new Schema(
   { timestamps: true }
 );
 
-/* ========== Sub-schemas ========== */
+
+//* 🟢 Product Sub Schemas
 const AttributeSchema = new Schema(
   {
     key: { type: String, required: true, trim: true },
@@ -82,11 +85,11 @@ const UnifiedMediaSchema = new Schema(
       trim: true,
       lowercase: true,
     },
-    // key in cloud storage (preferred)
+
     key: { type: String, trim: true },
-    // external url / embed url (optional)
+
     url: { type: String, trim: true },
-    // optional: poster for video/gif
+
     posterKey: { type: String, trim: true },
     posterUrl: { type: String, trim: true },
 
@@ -99,10 +102,10 @@ const UnifiedMediaSchema = new Schema(
 );
 
 
-/* قیمت‌ها و اعداد صحیح */
+//* 🟢 Validation Helpers
 const isIntOrUndef = (v) => v == null || Number.isInteger(v);
 
-/* FAQ (سوالات متداول) */
+
 const FaqSchema = new Schema(
   {
     question: { type: String, required: true, trim: true, maxlength: 140 },
@@ -114,7 +117,6 @@ const FaqSchema = new Schema(
 );
 
 
-/* Variant */
 const VariantSchema = new Schema(
   {
     variantKey: { type: String, required: true, index: true },
@@ -157,7 +159,8 @@ const VariantSchema = new Schema(
   { _id: true, timestamps: false }
 );
 
-/* ========== Product ========== */
+
+//* 🟢 Product Schema
 const ProductSchema = new Schema(
   {
     title: { type: String, required: requiredIfActive, maxlength: 120, trim: true },
@@ -198,7 +201,7 @@ const ProductSchema = new Schema(
       required: requiredIfActive,
       min: 0,
       validate: { validator: Number.isInteger },
-    }, // تومان به صورت عدد صحیح
+    },
     currency: { type: String, required: requiredIfActive, trim: true, uppercase: true },
     compareAt: {
       type: Number,
@@ -254,7 +257,7 @@ const ProductSchema = new Schema(
     ],
     variants: [VariantSchema],
 
-        media: {
+    media: {
       type: [UnifiedMediaSchema],
       default: undefined,
       validate: {
@@ -263,26 +266,26 @@ const ProductSchema = new Schema(
           if (!Array.isArray(arr)) return false;
           if (arr.length === 0) return true;
 
-          // primary rules: if ACTIVE and media exists -> exactly one primary
+
           const primaryCount = arr.filter((m) => m && m.isPrimary === true).length;
           if (this.status === "ACTIVE") {
             return primaryCount === 1;
           }
-          // Draft/Archived: 0 or 1 primary is acceptable
+
           return primaryCount <= 1;
         },
         message: "برای محصول فعال، در media باید دقیقاً یک آیتم اصلی مشخص شود",
       },
     },
 
-images: {
+    images: {
       type: [MediaImageSchema],
       validate: {
         validator(arr) {
           const hasMedia =
             Array.isArray(this.media) && this.media.length > 0;
 
-          // Draft/Archived: images optional (if provided, must have exactly one primary)
+
           if (this.status !== "ACTIVE") {
             if (arr == null) return true;
             if (!Array.isArray(arr)) return false;
@@ -290,7 +293,7 @@ images: {
             return arr.filter((i) => i && i.isPrimary === true).length === 1;
           }
 
-          // Active: if media exists, images are optional
+
           if (hasMedia) {
             if (arr == null) return true;
             if (!Array.isArray(arr)) return false;
@@ -298,7 +301,7 @@ images: {
             return arr.filter((i) => i && i.isPrimary === true).length === 1;
           }
 
-          // Active legacy mode: require at least 1 image + exactly one primary
+
           if (!Array.isArray(arr) || arr.length === 0) return false;
           return arr.filter((i) => i && i.isPrimary === true).length === 1;
         },
@@ -351,12 +354,13 @@ images: {
   { timestamps: true }
 );
 
-/* Hooks: مشتق‌سازی وضعیت و کنترل یکتایی واریانت‌ها */
+
+//* 🟢 Product Hooks
 ProductSchema.pre("validate", function (next) {
-  // Draft/Archived should never be visible in site
+
   if (this.status !== "ACTIVE") {
     this.visible = false;
-    // اگر نامک/اسلاگ خالی باشد، برای Draft یک مقدار یکتا تولید کن (بر اساس _id)
+
     if (!this.slug || !String(this.slug).trim()) {
       this.slug = `draft-${this._id.toString()}`;
     }
@@ -389,7 +393,8 @@ ProductSchema.pre("validate", function (next) {
   next();
 });
 
-/* Indexes */
+
+//* 🟢 Product Indexes
 ProductSchema.index(
   { slug: 1 },
   { unique: true, collation: { locale: "en", strength: 2 } }
@@ -408,14 +413,17 @@ ProductSchema.index(
   { weights: { title: 5, shortDescription: 3 } }
 );
 
-/* JSON shaping */
+
+//* 🟢 JSON Shape
 ProductSchema.set("toJSON", { virtuals: true, versionKey: false });
 ProductSchema.set("toObject", { virtuals: true });
 
+//* 🟢 Model Registration
 const OptionCatalog =
   mongoose.models.OptionCatalog ||
   mongoose.model("OptionCatalog", OptionCatalogSchema);
 const Product =
   mongoose.models.Product || mongoose.model("Product", ProductSchema);
 
+//? 🔵 Export Models
 module.exports = { Product, OptionCatalog };

@@ -1,11 +1,7 @@
 const mongoose = require("mongoose");
 const { Schema } = mongoose;
 
-/**
- * MediaAsset
- * Stores uploaded media metadata (key-based).
- * key is the object key inside the ParsPack bucket.
- */
+
 const MediaAssetSchema = new Schema(
   {
     key: { type: String, required: true, unique: true, trim: true, index: true },

@@ -1,21 +1,22 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { useContext, useEffect, useState } from "react";
+import { motion, AnimatePresence } from "motion/react";
 import Image from "next/image";
 import Logo from "@/assets/images/Logo.png";
 import { StarsIcon } from "lucide-react";
 import apiClient from "@/common/apiClient";
 import { useRouter } from "next/navigation";
 import { toast } from "react-toastify";
-import backApis from "@/common/inedx";
+import backApis from "@/common";
 import { InputField } from "@/components/ui/Inputs";
 import { Btn1 } from "@/components/ui/Buttons";
-import Cookies from "js-cookie";
 import Link from "next/link";
+import { UserContext } from "@/context/UserContext";
 
 const AuthPage = () => {
   const router = useRouter();
+  const { fetchUserDetails } = useContext(UserContext);
 
   const [mode, setMode] = useState("signin");
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -38,14 +39,20 @@ const AuthPage = () => {
   });
 
   useEffect(() => {
-    const token = Cookies.get("token");
-    if (token) {
-      toast.info("شما وارد حساب شده‌اید");
-      setTimeout(() => {
-        router.push("/");
-      }, 1000);
-    }
-  }, [router]);
+    let ignore = false;
+
+    (async () => {
+      const currentUser = await fetchUserDetails({ silent: true });
+      if (!ignore && currentUser?._id) {
+        toast.info("شما وارد حساب شده‌اید");
+        router.replace("/");
+      }
+    })();
+
+    return () => {
+      ignore = true;
+    };
+  }, [fetchUserDetails, router]);
 
   const calcPasswordStrength = () => {
     let strength = 0;
@@ -99,17 +106,15 @@ const AuthPage = () => {
     setIsSubmitting(true);
 
     try {
-      const res = await apiClient.post(backApis.login.url, signInData);
+      await apiClient.post(backApis.login.url, signInData);
+      await fetchUserDetails({ silent: true });
       toast.success("ورود با موفقیت انجام شد");
-      setTimeout(() => {
-        router.push("/");
-        window.location.reload(); 
-      }, 1000);
-      setIsSubmitting(false);
+      router.push("/");
     } catch (error) {
       const errorMsg =
         error.response?.data?.message || "مشکلی در ورود به وجود آمد";
       toast.error(errorMsg);
+    } finally {
       setIsSubmitting(false);
     }
   };
@@ -147,18 +152,24 @@ const AuthPage = () => {
     }
 
     try {
-      const res = await apiClient.post(backApis.register.url, formData);
-      toast.success("ثبت نام با موفقیت انجام شد");
-      setIsSubmitting(false);
-      setTimeout(() => {
-        window.location.reload();
-      }, 2500);
+      await apiClient.post(backApis.register.url, formData);
+      toast.success("ثبت نام با موفقیت انجام شد؛ حالا وارد شوید");
+      setMode("signin");
+      setSignInData((prev) => ({ ...prev, phoneOrEmail: formData.email }));
+      setFormData({
+        name: "",
+        phone: "",
+        email: "",
+        password: "",
+        confirmPassword: "",
+      });
+      setRegexMsg({ name: "", phone: "", email: "" });
     } catch (err) {
-      console.log(err);
-      setIsSubmitting(false);
       const errorMsg =
         err.response?.data?.message || "مشکلی در ثبت‌ نام به وجود آمد";
       toast.error(errorMsg);
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -244,15 +255,12 @@ const AuthPage = () => {
                     />
 
                     <Btn1
-                      type={"submit"}
-                      
-                      disabled={false}
-                      btnClassName={
-                        "calcPasswordStrength() > 2 && !isSubmitting ? 'bg-gradient-to-r from-blue-600 to-blue-500 text-white hover:scale-[1.02] active:scale-95' : 'bg-gray-400 text-white cursor-not-allowed'"
-                      }
+                      type="submit"
+                      disabled={isSubmitting || !signInData.phoneOrEmail || !signInData.password}
+                      btnClassName="hover:scale-[1.02] active:scale-95"
                       text={isSubmitting ? "در حال ارسال..." : "ورود"}
                     />
-                    <Link className="text-lg md:text-sm lg:text-base text-red-600 mt-2 text-center hover:text-blue-800/70 transition-colors" href="/forget-passwoed">رمز عبور خود را فراموش کرده اید؟</Link>
+                    <Link className="text-lg md:text-sm lg:text-base text-red-600 mt-2 text-center hover:text-blue-800/70 transition-colors" href="/forget-password">رمز عبور خود را فراموش کرده اید؟</Link>
                   </motion.form>
                 )}
               </AnimatePresence>
@@ -405,11 +413,9 @@ const AuthPage = () => {
                       ))}
                     </div>
                     <Btn1
-                      type={"submit"}
+                      type="submit"
                       disabled={calcPasswordStrength() <= 2 || isSubmitting}
-                      btnClassName={
-                        "calcPasswordStrength() > 2 && !isSubmitting ? 'bg-gradient-to-r from-blue-600 to-blue-500 text-white hover:scale-[1.02] active:scale-95' : 'bg-gray-400 text-white cursor-not-allowed'"
-                      }
+                      btnClassName="hover:scale-[1.02] active:scale-95"
                       text={isSubmitting ? "در حال ارسال..." : "ثبت‌نام"}
                     />
                   </motion.form>

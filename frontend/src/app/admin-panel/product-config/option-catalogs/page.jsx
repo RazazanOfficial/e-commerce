@@ -1,11 +1,13 @@
 "use client";
 
+//? 🔵 Required Modules
+
 import { useEffect, useMemo, useState } from "react";
 import apiClient from "@/common/apiClient";
 import { toast } from "react-toastify";
 import Link from "next/link";
 import { Plus, Search, Pencil, Trash2, ToggleLeft, ToggleRight, ArrowRight } from "lucide-react";
-import backApis from "@/common/inedx";
+import backApis from "@/common";
 import {
   AdminBadge,
   AdminButton,
@@ -27,50 +29,59 @@ import {
 } from "@/components/admin-ui";
 import OptionCatalogEditorModal from "@/components/Admin-Panel/ProductConfig/OptionCatalogEditorModal";
 
+//* 🟢 Page Constants
 const LIMIT = 50;
 
+//* 🟢 Response Utilities
 function safeGetItems(payload) {
   if (!payload) return { items: [], total: 0, page: 1, limit: LIMIT };
-  // our api may return {page,limit,total,items} OR {data:{...}} in some cases
+
   if (Array.isArray(payload.items)) return payload;
   if (payload.data && Array.isArray(payload.data.items)) return payload.data;
   if (payload.data && Array.isArray(payload.data)) return { items: payload.data, total: payload.data.length, page: 1, limit: LIMIT };
   return { items: [], total: 0, page: 1, limit: LIMIT };
 }
 
+//* 🟢 Option Catalogs Page
 export default function OptionCatalogsPage() {
+  //* 🟢 Table State
   const [items, setItems] = useState([]);
   const [total, setTotal] = useState(0);
 
   const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(false);
 
-  // filters
+
+  //* 🟢 Filter State
   const [qInput, setQInput] = useState("");
   const [q, setQ] = useState("");
   const [isActive, setIsActive] = useState("all");
 
-  // editor
+
+  //* 🟢 Editor State
   const [editorOpen, setEditorOpen] = useState(false);
   const [editorLoading, setEditorLoading] = useState(false);
   const [editing, setEditing] = useState(null);
 
-  // delete confirm
+
+  //* 🟢 Confirm State
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [confirmLoading, setConfirmLoading] = useState(false);
   const [pendingDelete, setPendingDelete] = useState(null);
 
-  // debounce search
+
+  //* 🟢 Search Debounce
   useEffect(() => {
     const t = setTimeout(() => setQ(qInput.trim()), 350);
     return () => clearTimeout(t);
   }, [qInput]);
 
-  // reset page on filter change
+
   useEffect(() => {
     setPage(1);
   }, [q, isActive]);
 
+  //* 🟢 Catalog Data Fetch
   const fetchItems = async () => {
     setLoading(true);
     try {
@@ -103,6 +114,7 @@ export default function OptionCatalogsPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [page, q, isActive]);
 
+  //* 🟢 Modal Actions
   const openCreate = () => {
     setEditing(null);
     setEditorOpen(true);
@@ -113,6 +125,7 @@ export default function OptionCatalogsPage() {
     setEditorOpen(true);
   };
 
+  //* 🟢 Mutation Actions
   const handleSubmit = async (payload) => {
     setEditorLoading(true);
     try {

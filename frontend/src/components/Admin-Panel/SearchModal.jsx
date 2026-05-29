@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { Eye, Edit, Trash2 } from "lucide-react";
-import backApis from "@/common/inedx";
+import backApis from "@/common";
 import apiClient from "@/common/apiClient";
 import UserModal from "./UserModal";
 import { cn } from "@/lib/utils";
@@ -145,14 +145,14 @@ export default function SearchModal({
                     </AdminTD>
 
                     <AdminTD>
-                      {/* backward compatibility: if parent passes a class-string, use it; otherwise use AdminBadge */}
+
                       {typeof getRoleBadgeVariant === "function" ? (
                         <span
                           className={`${getRoleBadgeVariant(
                             user.role
                           )} px-3 py-1 rounded-full text-xs font-semibold`}
                         >
-                          {user.role === "admin" ? "مدیر" : user.role === "seller" ? "فروشنده" : "کاربر"}
+                          {user.role === "admin" ? "مدیر" : user.role === "developer" ? "توسعه‌دهنده" : user.role === "seller" ? "فروشنده" : "کاربر"}
                         </span>
                       ) : (
                         <AdminBadge variant="primary">

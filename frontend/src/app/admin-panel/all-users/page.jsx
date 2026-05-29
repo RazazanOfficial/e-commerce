@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import usePaginatedFetchHook from "@/hooks/usePaginatedFetchHook";
-import backApis from "@/common/inedx";
+import backApis from "@/common";
 import { Search, Eye, Edit, Trash2, ArrowLeft, ArrowRight } from "lucide-react";
 import SearchModal from "@/components/Admin-Panel/SearchModal";
 import apiClient from "@/common/apiClient";
@@ -103,6 +103,7 @@ export default function AllUsersPage() {
   const roleLabel = (role) => {
     const r = (role || "").toLowerCase();
     if (r === "admin") return "مدیر";
+    if (r === "developer") return "توسعه‌دهنده";
     if (r === "seller") return "فروشنده";
     return "کاربر";
   };
@@ -110,6 +111,7 @@ export default function AllUsersPage() {
   const roleVariant = (role) => {
     const r = (role || "").toLowerCase();
     if (r === "admin") return "error";
+    if (r === "developer") return "warning";
     if (r === "seller") return "info";
     return "primary";
   };
@@ -130,7 +132,7 @@ export default function AllUsersPage() {
 
   return (
     <div className="max-w-[100vw] py-12">
-      {/* Header */}
+
       <div className="mb-8 flex sm:flex-row flex-col items-center justify-between responsive-table mx-auto">
         <div className="flex flex-col justify-center gap-1 sm:items-stretch items-center">
           <h1 className="text-2xl md:text-3xl font-bold text-[var(--adm-text)] sm:text-start text-center">
@@ -288,7 +290,7 @@ export default function AllUsersPage() {
         </AdminCardContent>
       </AdminCard>
 
-      {/* Pagination */}
+
       <AdminCard className="mt-6 responsive-table mx-auto">
         <AdminCardContent className="flex flex-col sm:flex-row items-center justify-between gap-4">
           <div className="text-[var(--adm-text-muted)]">

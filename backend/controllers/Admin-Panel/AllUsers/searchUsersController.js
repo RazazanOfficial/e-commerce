@@ -1,12 +1,13 @@
-//? 🔵Required Modules
+//? 🔵 Required Modules
 const UserModel = require("../../../models/userModel");
+const { escapeRegex, USER_PUBLIC_FIELDS } = require("../../../utils/userSecurity");
 
-//* 🟢Search Users Controller
+//* 🟢 Search Users Controller
 const searchUsersController = async (req, res) => {
   try {
     const { q } = req.query;
 
-    if (!q) {
+    if (!q || !String(q).trim()) {
       return res.status(400).json({
         success: false,
         error: true,
@@ -14,26 +15,37 @@ const searchUsersController = async (req, res) => {
       });
     }
 
-    const searchRegex = new RegExp(q, "i");
+    const page = Math.max(1, parseInt(req.query.page, 10) || 1);
+    const limit = Math.max(1, Math.min(100, parseInt(req.query.limit, 10) || 20));
+    const searchRegex = new RegExp(escapeRegex(String(q).trim()), "i");
+    const filter = {
+      $or: [
+        { name: { $regex: searchRegex } },
+        { email: { $regex: searchRegex } },
+        { phone: { $regex: searchRegex } },
+      ],
+    };
 
-    const users = await UserModel.find(
-      {
-        $or: [
-          { name: { $regex: searchRegex } },
-          { email: { $regex: searchRegex } },
-          { phone: { $regex: searchRegex } },
-        ],
-      },
-      "-password"
-    ).sort({ createdAt: -1 });
+    const [users, totalCount] = await Promise.all([
+      UserModel.find(filter)
+        .select(USER_PUBLIC_FIELDS)
+        .sort({ createdAt: -1 })
+        .skip((page - 1) * limit)
+        .limit(limit)
+        .lean(),
+      UserModel.countDocuments(filter),
+    ]);
 
     return res.json({
       data: users,
-      totalCount: users.length,
+      page,
+      limit,
+      totalCount,
+      totalPages: Math.ceil(totalCount / limit),
       success: true,
     });
   } catch (error) {
-    //! 🔴Handle Errors
+    //! 🔴 Handle Errors
     return res.status(500).json({
       data: null,
       success: false,
@@ -43,5 +55,5 @@ const searchUsersController = async (req, res) => {
   }
 };
 
-//? 🔵Export Controller
+//? 🔵 Export Controller
 module.exports = searchUsersController;
