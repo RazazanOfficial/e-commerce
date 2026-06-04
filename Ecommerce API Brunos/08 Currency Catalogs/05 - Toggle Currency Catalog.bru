@@ -1,0 +1,15 @@
+meta {
+  name: Toggle Currency Catalog
+  type: http
+  seq: 5
+}
+
+patch {
+  url: {{baseURL}}/api/admin/currency-catalogs/{{currencyCatalogId}}/toggle
+  body: none
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+}

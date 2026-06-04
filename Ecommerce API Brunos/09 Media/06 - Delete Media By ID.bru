@@ -1,0 +1,19 @@
+meta {
+  name: Delete Media By ID
+  type: http
+  seq: 6
+}
+
+delete {
+  url: {{baseURL}}/api/admin/media/{{mediaId}}
+  body: none
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+}
+
+params:query {
+  force: false
+}

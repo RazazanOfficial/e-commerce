@@ -1,0 +1,15 @@
+meta {
+  name: Delete Tag Catalog
+  type: http
+  seq: 7
+}
+
+delete {
+  url: {{baseURL}}/api/admin/tag-catalogs/{{tagCatalogId}}
+  body: none
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+}

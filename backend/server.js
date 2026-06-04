@@ -1,3 +1,6 @@
+//? 🔵 Environment Configuration
+require("dotenv").config();
+
 //? 🔵 Required Modules
 const express = require("express");
 const cors = require("cors");
@@ -9,9 +12,7 @@ const sanitizeMid = require("./middlewares/sanitizeMid");
 const apiLimiter = require("./middlewares/rateLimitMid");
 const errorHandler = require("./middlewares/errorHandlerMid");
 const loggerMiddleware = require("./middlewares/loggerMid");
-
-//? 🔵 Environment Configuration
-require("dotenv").config();
+const { swaggerUi, swaggerSpec, swaggerUiOptions } = require("./config/swagger");
 
 //* 🟢 Express App
 const app = express();
@@ -25,7 +26,6 @@ app.use(
   })
 );
 
-
 //* 🟢 Static Files
 if (String(process.env.SERVE_LOCAL_UPLOADS || "").toLowerCase() === "true") {
   app.use("/uploads", express.static(path.join(__dirname, "uploads")));
@@ -36,6 +36,11 @@ app.use(express.json({ limit: process.env.JSON_BODY_LIMIT || "1mb" }));
 app.use(express.urlencoded({ extended: true, limit: process.env.FORM_BODY_LIMIT || "1mb" }));
 app.use(sanitizeMid);
 app.use(cookieParser());
+
+//* 🟢 Swagger Documentation
+app.get("/api-docs.json", (req, res) => res.json(swaggerSpec));
+app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec, swaggerUiOptions));
+
 app.use("/api", apiLimiter, router);
 app.use(errorHandler);
 

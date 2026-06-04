@@ -1,0 +1,27 @@
+meta {
+  name: Update User
+  type: http
+  seq: 4
+}
+
+put {
+  url: {{baseURL}}/api/admin/user/{{userId}}
+  body: json
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+{
+  "name": "Updated User",
+  "phone": "09123456789",
+  "email": "updated@example.com",
+  "password": "123456",
+  "role": "user",
+  "address": "Tehran",
+  "postalCode": "1234567890"
+}
+}

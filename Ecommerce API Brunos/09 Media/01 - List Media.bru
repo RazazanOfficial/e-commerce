@@ -1,0 +1,22 @@
+meta {
+  name: List Media
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{baseURL}}/api/admin/media
+  body: none
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+}
+
+params:query {
+  page: 1
+  limit: 30
+  q: 
+  kind: image
+}

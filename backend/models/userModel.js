@@ -10,6 +10,8 @@ const USER_ROLES = Object.freeze({
 //* 🟢 Users Model
 const userSchema = mongoose.Schema(
   {
+    firstName: { type: String, trim: true },
+    lastName: { type: String, trim: true },
     name: { type: String, trim: true },
     phone: {
       type: String,
@@ -18,15 +20,20 @@ const userSchema = mongoose.Schema(
       trim: true,
       set: (value) => String(value || "").replace(/\D/g, ""),
     },
+    phoneVerifiedAt: { type: Date, default: null },
     email: {
       type: String,
-      required: true,
       unique: true,
+      sparse: true,
       lowercase: true,
       trim: true,
-      set: (value) => String(value || "").trim().toLowerCase(),
+      set: (value) => {
+        const email = String(value || "").trim().toLowerCase();
+        return email || undefined;
+      },
     },
-    password: { type: String, required: true, select: false },
+    emailVerifiedAt: { type: Date, default: null },
+    password: { type: String, select: false },
     role: {
       type: String,
       enum: Object.values(USER_ROLES),
@@ -35,9 +42,26 @@ const userSchema = mongoose.Schema(
 
     address: { type: String, trim: true },
     postalCode: { type: String, trim: true },
+    province: { type: String, trim: true },
+    city: { type: String, trim: true },
   },
   { timestamps: true }
 );
+
+userSchema.pre("validate", function syncDisplayName() {
+  const firstName = String(this.firstName || "").trim();
+  const lastName = String(this.lastName || "").trim();
+
+  if (!this.name && (firstName || lastName)) {
+    this.name = [firstName, lastName].filter(Boolean).join(" ");
+  }
+
+  if ((!firstName || !lastName) && this.name) {
+    const parts = String(this.name).trim().split(/\s+/).filter(Boolean);
+    if (!firstName && parts[0]) this.firstName = parts[0];
+    if (!lastName && parts.length > 1) this.lastName = parts.slice(1).join(" ");
+  }
+});
 
 const UserModel = mongoose.model("User", userSchema);
 

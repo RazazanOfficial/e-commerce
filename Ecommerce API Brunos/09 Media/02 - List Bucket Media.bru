@@ -1,0 +1,22 @@
+meta {
+  name: List Bucket Media
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{baseURL}}/api/admin/media/bucket
+  body: none
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+}
+
+params:query {
+  prefix: 
+  limit: 200
+  continuationToken: 
+  kind: image
+}

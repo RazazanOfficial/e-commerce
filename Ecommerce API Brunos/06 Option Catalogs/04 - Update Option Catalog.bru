@@ -1,0 +1,28 @@
+meta {
+  name: Update Option Catalog
+  type: http
+  seq: 4
+}
+
+put {
+  url: {{baseURL}}/api/admin/option-catalogs/{{optionCatalogId}}
+  body: json
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+{
+  "name": "Size",
+  "code": "size",
+  "values": [
+    "S",
+    "M",
+    "L"
+  ],
+  "isActive": true
+}
+}

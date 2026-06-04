@@ -1,8 +1,11 @@
+//? 🔵 Required Modules
 const bcrypt = require("bcryptjs");
 const UserModel = require("../models/userModel");
 
 const ADMIN_ROLES = new Set(["admin", "developer"]);
 const EDITABLE_USER_FIELDS = new Set([
+  "firstName",
+  "lastName",
   "name",
   "phone",
   "email",
@@ -10,9 +13,12 @@ const EDITABLE_USER_FIELDS = new Set([
   "role",
   "address",
   "postalCode",
+  "province",
+  "city",
 ]);
 
-const USER_PUBLIC_FIELDS = "_id name phone email role address postalCode createdAt updatedAt";
+const USER_PUBLIC_FIELDS =
+  "_id firstName lastName name phone phoneVerifiedAt email emailVerifiedAt role address postalCode province city createdAt updatedAt";
 
 const normalizePhone = (phone) => String(phone || "").replace(/\D/g, "");
 const normalizeEmail = (email) => String(email || "").trim().toLowerCase();
@@ -69,6 +75,10 @@ const buildSafeUserUpdates = async (body = {}) => {
 
     if (key === "email") {
       const email = normalizeEmail(value);
+      if (!email) {
+        updates.$unset = { ...(updates.$unset || {}), email: 1, emailVerifiedAt: 1 };
+        continue;
+      }
       if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
         const err = new Error("ایمیل نامعتبر است");
         err.statusCode = 400;
@@ -79,6 +89,12 @@ const buildSafeUserUpdates = async (body = {}) => {
     }
 
     updates[key] = typeof value === "string" ? value.trim() : value;
+  }
+
+  if ((updates.firstName || updates.lastName) && !updates.name) {
+    const firstName = updates.firstName || body.firstName || "";
+    const lastName = updates.lastName || body.lastName || "";
+    updates.name = [firstName, lastName].map((item) => String(item || "").trim()).filter(Boolean).join(" ");
   }
 
   return updates;

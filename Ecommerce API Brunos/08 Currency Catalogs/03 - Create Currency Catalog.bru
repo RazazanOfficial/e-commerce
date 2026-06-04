@@ -1,0 +1,25 @@
+meta {
+  name: Create Currency Catalog
+  type: http
+  seq: 3
+}
+
+post {
+  url: {{baseURL}}/api/admin/currency-catalogs
+  body: json
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+{
+  "nameFa": "تومان",
+  "code": "IRT",
+  "symbol": "ت",
+  "isActive": true,
+  "sortOrder": 1
+}
+}

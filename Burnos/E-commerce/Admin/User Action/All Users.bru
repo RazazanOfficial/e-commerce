@@ -1,0 +1,21 @@
+meta {
+  name: All Users
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{baseURL}}/api/admin/all-users?page=1&limit=20
+  body: json
+  auth: inherit
+}
+
+params:query {
+  page: 1
+  limit: 20
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

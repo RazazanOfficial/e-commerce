@@ -1,0 +1,15 @@
+meta {
+  name: Archive Product
+  type: http
+  seq: 6
+}
+
+delete {
+  url: {{baseURL}}/api/admin/products/{{productId}}
+  body: none
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+}

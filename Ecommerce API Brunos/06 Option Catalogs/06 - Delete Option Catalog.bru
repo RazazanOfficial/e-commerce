@@ -1,0 +1,15 @@
+meta {
+  name: Delete Option Catalog
+  type: http
+  seq: 6
+}
+
+delete {
+  url: {{baseURL}}/api/admin/option-catalogs/{{optionCatalogId}}
+  body: none
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+}

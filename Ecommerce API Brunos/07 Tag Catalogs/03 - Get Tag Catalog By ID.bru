@@ -1,0 +1,15 @@
+meta {
+  name: Get Tag Catalog By ID
+  type: http
+  seq: 3
+}
+
+get {
+  url: {{baseURL}}/api/admin/tag-catalogs/{{tagCatalogId}}
+  body: none
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+}

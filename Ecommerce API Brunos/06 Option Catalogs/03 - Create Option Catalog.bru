@@ -1,0 +1,27 @@
+meta {
+  name: Create Option Catalog
+  type: http
+  seq: 3
+}
+
+post {
+  url: {{baseURL}}/api/admin/option-catalogs
+  body: json
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+{
+  "name": "Color",
+  "code": "color",
+  "values": [
+    "Black",
+    "White"
+  ],
+  "isActive": true
+}
+}

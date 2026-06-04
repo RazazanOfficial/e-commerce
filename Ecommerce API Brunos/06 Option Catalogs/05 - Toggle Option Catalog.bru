@@ -1,0 +1,15 @@
+meta {
+  name: Toggle Option Catalog
+  type: http
+  seq: 5
+}
+
+patch {
+  url: {{baseURL}}/api/admin/option-catalogs/{{optionCatalogId}}/toggle
+  body: none
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+}

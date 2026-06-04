@@ -1,0 +1,19 @@
+meta {
+  name: DEL User
+  type: http
+  seq: 2
+}
+
+delete {
+  url: {{baseURL}}/api/admin/user/:id
+  body: json
+  auth: inherit
+}
+
+params:path {
+  id: 689dfe9c687901ceadaa177f
+}
+
+settings {
+  encodeUrl: true
+}

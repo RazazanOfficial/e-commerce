@@ -1,0 +1,19 @@
+meta {
+  name: OptionCatalog toggle
+  type: http
+  seq: 5
+}
+
+patch {
+  url: {{baseURL}}/api/admin/option-catalogs/:id/toggle
+  body: none
+  auth: inherit
+}
+
+params:path {
+  id: 
+}
+
+settings {
+  encodeUrl: true
+}

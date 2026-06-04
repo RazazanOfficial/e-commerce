@@ -1,0 +1,21 @@
+meta {
+  name: Category POST
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{baseURL}}/api/admin/categories
+  body: json
+  auth: inherit
+}
+
+body:json {
+  { "name": "Electronics", "slug": "ElecTRonics-NEW" }
+  
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

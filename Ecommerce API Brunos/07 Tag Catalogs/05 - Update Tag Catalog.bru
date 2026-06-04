@@ -1,0 +1,23 @@
+meta {
+  name: Update Tag Catalog
+  type: http
+  seq: 5
+}
+
+put {
+  url: {{baseURL}}/api/admin/tag-catalogs/{{tagCatalogId}}
+  body: json
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+{
+  "label": "Sale",
+  "key": "sale",
+  "isActive": true
+}
+}

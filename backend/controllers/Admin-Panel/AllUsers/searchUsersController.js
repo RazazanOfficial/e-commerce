@@ -20,6 +20,8 @@ const searchUsersController = async (req, res) => {
     const searchRegex = new RegExp(escapeRegex(String(q).trim()), "i");
     const filter = {
       $or: [
+        { firstName: { $regex: searchRegex } },
+        { lastName: { $regex: searchRegex } },
         { name: { $regex: searchRegex } },
         { email: { $regex: searchRegex } },
         { phone: { $regex: searchRegex } },

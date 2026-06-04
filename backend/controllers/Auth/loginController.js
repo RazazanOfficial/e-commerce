@@ -39,6 +39,15 @@ const loginController = async (req, res) => {
     }
 
     //* 🟢 Validation Password
+    if (!user.password) {
+      return res.status(400).json({
+        data: null,
+        success: false,
+        error: true,
+        message: "برای این حساب رمز عبور تنظیم نشده است",
+      });
+    }
+
     const isMatch = await bcrypt.compare(String(password), user.password);
     if (!isMatch) {
       return res.status(400).json({

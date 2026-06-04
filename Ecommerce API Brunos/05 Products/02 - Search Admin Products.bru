@@ -1,0 +1,23 @@
+meta {
+  name: Search Admin Products
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{baseURL}}/api/admin/products/search
+  body: none
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+}
+
+params:query {
+  q: sample
+  page: 1
+  limit: 20
+  status: 
+  visible: 
+}

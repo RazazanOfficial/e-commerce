@@ -1,0 +1,20 @@
+meta {
+  name: GET User Info
+  type: http
+  seq: 3
+}
+
+get {
+  url: {{baseURL}}/api/admin/user/:id
+  body: json
+  auth: inherit
+}
+
+params:path {
+  id: 69cd2f285b63a7fa75aea988
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

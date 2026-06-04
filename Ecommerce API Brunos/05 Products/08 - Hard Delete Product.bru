@@ -1,0 +1,15 @@
+meta {
+  name: Hard Delete Product
+  type: http
+  seq: 8
+}
+
+delete {
+  url: {{baseURL}}/api/admin/products/{{productId}}/hard
+  body: none
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+}

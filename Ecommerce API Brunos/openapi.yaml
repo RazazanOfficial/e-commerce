@@ -1,0 +1,185 @@
+openapi: 3.0.3
+info:
+  title: Ecommerce API
+  version: 1.0.0
+servers:
+  - url: http://localhost:9999
+paths:
+  /api/register:
+    post:
+      tags: [Auth]
+      summary: Register user
+  /api/login:
+    post:
+      tags: [Auth]
+      summary: Login and set token cookie
+  /api/user-details:
+    get:
+      tags: [Auth]
+      summary: Get current user details
+  /api/logout:
+    get:
+      tags: [Auth]
+      summary: Logout
+  /api/products:
+    get:
+      tags: [Storefront]
+      summary: List public products
+    post:
+      tags: [Admin Products]
+      summary: Create product
+  /api/products/{slug}:
+    get:
+      tags: [Storefront]
+      summary: Get public product by slug
+  /api/admin/all-users:
+    get:
+      tags: [Admin Users]
+      summary: List users
+  /api/admin/search-users:
+    get:
+      tags: [Admin Users]
+      summary: Search users
+  /api/admin/user/{id}:
+    get:
+      tags: [Admin Users]
+      summary: Get user by id
+    put:
+      tags: [Admin Users]
+      summary: Update user
+    delete:
+      tags: [Admin Users]
+      summary: Delete user
+  /api/admin/categories:
+    get:
+      tags: [Admin Categories]
+      summary: List categories
+    post:
+      tags: [Admin Categories]
+      summary: Create category
+  /api/admin/categories/{id}:
+    put:
+      tags: [Admin Categories]
+      summary: Update category
+    delete:
+      tags: [Admin Categories]
+      summary: Delete category
+  /api/admin/products:
+    get:
+      tags: [Admin Products]
+      summary: List admin products
+    post:
+      tags: [Admin Products]
+      summary: Create product
+  /api/admin/products/search:
+    get:
+      tags: [Admin Products]
+      summary: Search products
+  /api/admin/products/{id}:
+    get:
+      tags: [Admin Products]
+      summary: Get product by id
+    put:
+      tags: [Admin Products]
+      summary: Update product
+    delete:
+      tags: [Admin Products]
+      summary: Archive product
+  /api/admin/products/{id}/restore:
+    patch:
+      tags: [Admin Products]
+      summary: Restore archived product
+  /api/admin/products/{id}/hard:
+    delete:
+      tags: [Admin Products]
+      summary: Hard delete product
+  /api/admin/option-catalogs:
+    get:
+      tags: [Option Catalogs]
+      summary: List option catalogs
+    post:
+      tags: [Option Catalogs]
+      summary: Create option catalog
+  /api/admin/option-catalogs/{id}:
+    get:
+      tags: [Option Catalogs]
+      summary: Get option catalog by id
+    put:
+      tags: [Option Catalogs]
+      summary: Update option catalog
+    delete:
+      tags: [Option Catalogs]
+      summary: Delete option catalog
+  /api/admin/option-catalogs/{id}/toggle:
+    patch:
+      tags: [Option Catalogs]
+      summary: Toggle option catalog active state
+  /api/admin/tag-catalogs:
+    get:
+      tags: [Tag Catalogs]
+      summary: List tag catalogs
+    post:
+      tags: [Tag Catalogs]
+      summary: Create tag catalog
+  /api/admin/tag-catalogs/suggest:
+    get:
+      tags: [Tag Catalogs]
+      summary: Suggest tags
+  /api/admin/tag-catalogs/{id}:
+    get:
+      tags: [Tag Catalogs]
+      summary: Get tag catalog by id
+    put:
+      tags: [Tag Catalogs]
+      summary: Update tag catalog
+    delete:
+      tags: [Tag Catalogs]
+      summary: Delete tag catalog
+  /api/admin/tag-catalogs/{id}/toggle:
+    patch:
+      tags: [Tag Catalogs]
+      summary: Toggle tag catalog active state
+  /api/admin/currency-catalogs:
+    get:
+      tags: [Currency Catalogs]
+      summary: List currency catalogs
+    post:
+      tags: [Currency Catalogs]
+      summary: Create currency catalog
+  /api/admin/currency-catalogs/{id}:
+    get:
+      tags: [Currency Catalogs]
+      summary: Get currency catalog by id
+    put:
+      tags: [Currency Catalogs]
+      summary: Update currency catalog
+    delete:
+      tags: [Currency Catalogs]
+      summary: Delete currency catalog
+  /api/admin/currency-catalogs/{id}/toggle:
+    patch:
+      tags: [Currency Catalogs]
+      summary: Toggle currency catalog active state
+  /api/admin/media:
+    get:
+      tags: [Media]
+      summary: List media assets from DB
+    delete:
+      tags: [Media]
+      summary: Delete media by key
+  /api/admin/media/bucket:
+    get:
+      tags: [Media]
+      summary: List bucket objects directly
+  /api/admin/media/presign:
+    post:
+      tags: [Media]
+      summary: Create presigned upload URL
+  /api/admin/media/commit:
+    post:
+      tags: [Media]
+      summary: Commit media metadata after upload
+  /api/admin/media/{id}:
+    delete:
+      tags: [Media]
+      summary: Delete media by DB id

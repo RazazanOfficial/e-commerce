@@ -1,0 +1,15 @@
+meta {
+  name: OptionCatalog DELETE
+  type: http
+  seq: 6
+}
+
+delete {
+  url: {{baseURL}}/api/admin/option-catalogs/
+  body: none
+  auth: inherit
+}
+
+settings {
+  encodeUrl: true
+}

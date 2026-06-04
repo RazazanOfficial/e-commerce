@@ -1,0 +1,15 @@
+meta {
+  name: Get Currency Catalog By ID
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{baseURL}}/api/admin/currency-catalogs/{{currencyCatalogId}}
+  body: none
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+}

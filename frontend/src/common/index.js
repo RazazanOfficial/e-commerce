@@ -5,6 +5,8 @@ const backDomin = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:9999"
 const backApis = {
   //? 🔵 Auth Endpoints
   register: { url: `${backDomin}/api/register`, method: "POST" },
+  registerRequestCode: { url: `${backDomin}/api/register/request-code`, method: "POST" },
+  registerVerifyCode: { url: `${backDomin}/api/register/verify-code`, method: "POST" },
   login: { url: `${backDomin}/api/login`, method: "POST" },
   getUserInfo: { url: `${backDomin}/api/user-details`, method: "GET" },
   logOut: { url: `${backDomin}/api/logout`, method: "GET" },

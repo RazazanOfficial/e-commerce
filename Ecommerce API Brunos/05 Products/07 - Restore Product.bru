@@ -1,0 +1,15 @@
+meta {
+  name: Restore Product
+  type: http
+  seq: 7
+}
+
+patch {
+  url: {{baseURL}}/api/admin/products/{{productId}}/restore
+  body: none
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+}

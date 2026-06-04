@@ -1,0 +1,108 @@
+meta {
+  name: Create Product
+  type: http
+  seq: 4
+}
+
+post {
+  url: {{baseURL}}/api/admin/products
+  body: json
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+{
+  "title": "Sample Product",
+  "slug": "sample-product",
+  "shortDescription": "Short product description",
+  "overviewHtml": "<p>Product overview</p>",
+  "categoryId": "{{categoryId}}",
+  "status": "DRAFT",
+  "visible": false,
+  "price": 100000,
+  "currency": "IRT",
+  "compareAt": 120000,
+  "cost": 70000,
+  "inventory": {
+    "manage": true,
+    "qty": 10
+  },
+  "stockStatus": "IN_STOCK",
+  "lowStockThreshold": 2,
+  "allowBackorder": false,
+  "restockNotifyEnabled": true,
+  "hasVariants": false,
+  "tags": [
+    "sample",
+    "new"
+  ],
+  "media": [
+    {
+      "type": "image",
+      "key": "uploads/example.webp",
+      "alt": "Sample image",
+      "isPrimary": true,
+      "order": 0
+    }
+  ],
+  "images": [],
+  "attributes": [
+    {
+      "key": "Color",
+      "value": "Black",
+      "pinToHero": true
+    }
+  ],
+  "techSpecs": [
+    {
+      "title": "General",
+      "items": [
+        {
+          "k": "Material",
+          "v": "Cotton"
+        }
+      ]
+    }
+  ],
+  "faqs": [
+    {
+      "question": "Question?",
+      "answerHtml": "<p>Answer</p>",
+      "isActive": true,
+      "sortOrder": 0
+    }
+  ],
+  "seo": {
+    "title": "Sample Product",
+    "description": "SEO description",
+    "canonicalUrl": ""
+  },
+  "shipping": {
+    "weight": 500,
+    "dimensions": {
+      "length": 10,
+      "width": 10,
+      "height": 5
+    }
+  },
+  "warranty": "7 days",
+  "returnPolicy": {
+    "mode": "CUSTOM",
+    "body": "Return policy text"
+  },
+  "handlingTime": {
+    "mode": "CUSTOM",
+    "body": "1-2 business days"
+  },
+  "related": {
+    "manualIds": [],
+    "matchByTags": true,
+    "adminOnlySimilarTags": []
+  },
+  "breadcrumbsCache": []
+}
+}

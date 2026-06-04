@@ -1,0 +1,21 @@
+meta {
+  name: Toggle Tag Catalog
+  type: http
+  seq: 6
+}
+
+patch {
+  url: {{baseURL}}/api/admin/tag-catalogs/{{tagCatalogId}}/toggle
+  body: json
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+{
+  "isActive": false
+}
+}

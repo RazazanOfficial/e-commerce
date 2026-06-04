@@ -1,0 +1,25 @@
+info:
+  name: 01 - Register
+  type: http
+  seq: 1
+
+http:
+  method: POST
+  url: "{{base_URL}}/register"
+  body:
+    type: json
+    data: |-
+      {
+        "name": "معراج رزازان",
+        "phone": "09333668229",
+        "email": "razazanOfficial@gmail.com",
+        "password": "Anitalove82@",
+        "confirmPassword": "Anitalove82@"
+      }
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5

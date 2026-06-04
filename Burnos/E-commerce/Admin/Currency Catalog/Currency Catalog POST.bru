@@ -1,0 +1,21 @@
+meta {
+  name: Currency Catalog POST
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{baseURL}}/api/admin/currency-catalogs
+  body: json
+  auth: inherit
+}
+
+body:json {
+  { "nameFa":"تومان", "code":"IRT", "symbol":"تومان", "sortOrder": 1, "isActive": true }
+  
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

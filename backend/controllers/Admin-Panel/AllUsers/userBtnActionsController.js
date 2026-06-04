@@ -1,6 +1,9 @@
 //? 🔵 Required Modules
 const UserModel = require("../../../models/userModel");
-const { buildSafeUserUpdates, USER_PUBLIC_FIELDS } = require("../../../utils/userSecurity");
+const {
+  buildSafeUserUpdates,
+  USER_PUBLIC_FIELDS,
+} = require("../../../utils/userSecurity");
 
 //* 🟢 Get One User Info Controller
 const getSingleUserController = async (req, res) => {
@@ -67,7 +70,8 @@ const updateUserController = async (req, res) => {
   } catch (error) {
     //! 🔴 Handle Errors
     const statusCode = error?.statusCode || (error?.code === 11000 ? 409 : 500);
-    const duplicateField = error?.code === 11000 ? Object.keys(error.keyPattern || {})[0] : null;
+    const duplicateField =
+      error?.code === 11000 ? Object.keys(error.keyPattern || {})[0] : null;
     return res.status(statusCode).json({
       data: null,
       success: false,
@@ -93,7 +97,9 @@ const deleteUserController = async (req, res) => {
       });
     }
 
-    const deletedUser = await UserModel.findByIdAndDelete(id).select("_id").lean();
+    const deletedUser = await UserModel.findByIdAndDelete(id)
+      .select("_id")
+      .lean();
     if (!deletedUser) {
       return res.status(404).json({
         success: false,

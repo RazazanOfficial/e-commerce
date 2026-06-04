@@ -1,0 +1,15 @@
+meta {
+  name: Get Option Catalog By ID
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{baseURL}}/api/admin/option-catalogs/{{optionCatalogId}}
+  body: none
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+}

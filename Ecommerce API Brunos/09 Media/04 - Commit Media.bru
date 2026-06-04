@@ -1,0 +1,23 @@
+meta {
+  name: Commit Media
+  type: http
+  seq: 4
+}
+
+post {
+  url: {{baseURL}}/api/admin/media/commit
+  body: json
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+{
+  "key": "uploads/1710000000000-abcdef12.webp",
+  "originalName": "product.webp",
+  "kind": "image"
+}
+}

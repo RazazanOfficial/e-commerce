@@ -1,0 +1,24 @@
+meta {
+  name: Get Option Catalogs
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{baseURL}}/api/admin/option-catalogs
+  body: none
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+}
+
+params:query {
+  q: 
+  isActive: true
+  page: 1
+  limit: 50
+  sort: name
+  dir: asc
+}
