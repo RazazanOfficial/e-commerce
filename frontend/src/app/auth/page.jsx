@@ -19,12 +19,15 @@ const RESEND_COOLDOWN_SECONDS = 60;
 const namePattern = /^[A-Za-zآ-یء-ی\s‌-]+$/;
 const phonePattern = /^09\d{9}$/;
 const codePattern = /^\d{6}$/;
+const passwordPattern = /^(?=.*[A-Za-z])(?=.*\d).{6,}$/;
 
 const getInitialFormData = () => ({
   firstName: "",
   lastName: "",
   phone: "",
   code: "",
+  password: "",
+  confirmPassword: "",
 });
 
 const getInitialRegexMsg = () => ({
@@ -32,6 +35,8 @@ const getInitialRegexMsg = () => ({
   lastName: "",
   phone: "",
   code: "",
+  password: "",
+  confirmPassword: "",
 });
 
 const readSignupProgress = () => {
@@ -52,7 +57,9 @@ const readSignupProgress = () => {
         firstName: String(formData.firstName || ""),
         lastName: String(formData.lastName || ""),
         phone: String(formData.phone || ""),
-        code: String(formData.code || ""),
+        code: "",
+        password: "",
+        confirmPassword: "",
       },
     };
   } catch {
@@ -74,7 +81,6 @@ const writeSignupProgress = ({ mode, signupStep, formData, cooldownEndsAt }) => 
         firstName: formData.firstName,
         lastName: formData.lastName,
         phone: formData.phone,
-        code: formData.code,
       },
     })
   );
@@ -178,6 +184,11 @@ const AuthPage = () => {
     [formData.firstName, formData.lastName, formData.phone]
   );
 
+  const passwordIsValid = useMemo(
+    () => passwordPattern.test(formData.password) && formData.password === formData.confirmPassword,
+    [formData.confirmPassword, formData.password]
+  );
+
   const codeIsExpired = signupStep === "verify" && cooldownEndsAt > 0 && cooldownLeft <= 0;
 
   const setFieldMessage = (name, value) => {
@@ -199,6 +210,14 @@ const AuthPage = () => {
       return codePattern.test(value) ? "کد تایید معتبر است" : "کد تایید باید ۶ رقم باشد";
     }
 
+    if (name === "password") {
+      return passwordPattern.test(value) ? "رمز عبور معتبر است" : "رمز عبور باید حداقل ۶ کاراکتر و شامل حرف و عدد باشد";
+    }
+
+    if (name === "confirmPassword") {
+      return value && value === formData.password ? "تکرار رمز عبور معتبر است" : "تکرار رمز عبور با رمز عبور یکسان نیست";
+    }
+
     return "";
   };
 
@@ -215,12 +234,20 @@ const AuthPage = () => {
     setFormData((prev) => ({
       ...prev,
       [name]: nextValue,
-      ...(name === "phone" ? { code: "" } : {}),
+      ...(name === "phone" ? { code: "", password: "", confirmPassword: "" } : {}),
     }));
     setRegexMsg((prev) => ({
       ...prev,
       [name]: setFieldMessage(name, nextValue),
-      ...(name === "phone" ? { code: "" } : {}),
+      ...(name === "phone" ? { code: "", password: "", confirmPassword: "" } : {}),
+      ...(name === "password" && formData.confirmPassword
+        ? {
+            confirmPassword:
+              nextValue === formData.confirmPassword
+                ? "تکرار رمز عبور معتبر است"
+                : "تکرار رمز عبور با رمز عبور یکسان نیست",
+          }
+        : {}),
     }));
   };
 
@@ -272,8 +299,8 @@ const AuthPage = () => {
       const expiresInSeconds = Number(response.data?.data?.expiresInSeconds) || RESEND_COOLDOWN_SECONDS;
       const nextCooldownEndsAt = Date.now() + expiresInSeconds * 1000;
       setCooldownEndsAt(nextCooldownEndsAt);
-      setFormData((prev) => ({ ...prev, code: "" }));
-      setRegexMsg((prev) => ({ ...prev, code: "" }));
+      setFormData((prev) => ({ ...prev, code: "", password: "", confirmPassword: "" }));
+      setRegexMsg((prev) => ({ ...prev, code: "", password: "", confirmPassword: "" }));
       setSignupStep("verify");
       setShowPhoneConfirm(false);
       toast.success(response.data?.message || "کد تایید ارسال شد");
@@ -307,6 +334,11 @@ const AuthPage = () => {
       return;
     }
 
+    if (!passwordIsValid) {
+      toast.error("رمز عبور باید حداقل ۶ کاراکتر و شامل حداقل یک حرف و یک عدد باشد و با تکرار آن یکسان باشد");
+      return;
+    }
+
     if (cooldownEndsAt > 0 && Date.now() >= cooldownEndsAt) {
       toast.error("کد تایید منقضی شده است. دوباره کد دریافت کنید");
       return;
@@ -320,6 +352,8 @@ const AuthPage = () => {
         lastName: formData.lastName.trim(),
         phone: formData.phone.trim(),
         code: formData.code.trim(),
+        password: formData.password,
+        confirmPassword: formData.confirmPassword,
       });
       await fetchUserDetails({ silent: true });
       clearSignupProgress();
@@ -340,10 +374,12 @@ const AuthPage = () => {
   const handleEditIdentity = () => {
     setShowPhoneConfirm(false);
     setSignupStep("identity");
+    setFormData((prev) => ({ ...prev, code: "", password: "", confirmPassword: "" }));
+    setRegexMsg((prev) => ({ ...prev, code: "", password: "", confirmPassword: "" }));
   };
 
   const helperClass = (message) =>
-    message.includes("نامعتبر") || message.includes("باید") ? "text-red-400" : "text-green-700";
+    message.includes("نامعتبر") || message.includes("باید") || message.includes("نیست") ? "text-red-400" : "text-green-700";
 
   return (
     <div className="min-h-[calc(100vh-7rem)] flex items-center justify-center bg-gradient-to-br from-blue-100 via-white to-blue-200 px-4">
@@ -511,7 +547,7 @@ const AuthPage = () => {
                 <StarsIcon className="text-yellow-600" />
               </div>
               <p className="text-lg md:text-sm lg:text-base text-gray-600 mt-2 text-center">
-                فقط با شماره موبایل ثبت‌نام کنید
+                با تایید موبایل و تعیین رمز عبور ثبت‌نام کنید
               </p>
             </div>
 
@@ -599,12 +635,34 @@ const AuthPage = () => {
                       <span className={`text-sm pr-3 ${helperClass(regexMsg.code)}`}>{regexMsg.code}</span>
                     </div>
 
+                    <div className="flex flex-col justify-center gap-2">
+                      <InputField
+                        label="رمز عبور"
+                        type="password"
+                        name="password"
+                        value={formData.password}
+                        onChange={handleChange}
+                      />
+                      <span className={`text-sm pr-3 ${helperClass(regexMsg.password)}`}>{regexMsg.password}</span>
+                    </div>
+
+                    <div className="flex flex-col justify-center gap-2">
+                      <InputField
+                        label="تکرار رمز عبور"
+                        type="password"
+                        name="confirmPassword"
+                        value={formData.confirmPassword}
+                        onChange={handleChange}
+                      />
+                      <span className={`text-sm pr-3 ${helperClass(regexMsg.confirmPassword)}`}>{regexMsg.confirmPassword}</span>
+                    </div>
+
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                       <Btn1
                         type="submit"
-                        disabled={!codePattern.test(formData.code) || isSubmitting || codeIsExpired}
+                        disabled={!codePattern.test(formData.code) || !passwordIsValid || isSubmitting || codeIsExpired}
                         btnClassName="hover:scale-[1.02] active:scale-95 cursor-pointer"
-                        text={isSubmitting ? "در حال تایید..." : "تایید و ثبت‌نام"}
+                        text={isSubmitting ? "در حال تایید..." : "تایید و تکمیل ثبت‌نام"}
                       />
                       <Btn1
                         type="button"

@@ -1,10 +1,12 @@
 //? 🔵 Required Modules
 const UserModel = require("../../models/userModel");
 const { USER_PUBLIC_FIELDS } = require("../../utils/userSecurity");
+const { attachRoleMeta, getUserAccess } = require("../../utils/roleService");
 
 //* 🟢 UserDetails Controller
 const userDetailsController = async (req, res) => {
   try {
+    await getUserAccess(req.user.id);
     const user = await UserModel.findById(req.user.id).select(USER_PUBLIC_FIELDS).lean();
 
     if (!user) {
@@ -17,7 +19,7 @@ const userDetailsController = async (req, res) => {
     }
 
     res.status(200).json({
-      data: user,
+      data: await attachRoleMeta(user),
       success: true,
       error: false,
       message: "مشخصات کاربر",

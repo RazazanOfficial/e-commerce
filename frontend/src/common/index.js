@@ -39,6 +39,18 @@ const backApis = {
     method: "DELETE",
   }),
 
+  //? 🔵 Admin Role Endpoints
+  adminRoles: { url: `${backDomin}/api/admin/roles`, method: "GET" },
+  createAdminRole: { url: `${backDomin}/api/admin/roles`, method: "POST" },
+  updateAdminRole: (id) => ({
+    url: `${backDomin}/api/admin/roles/${id}`,
+    method: "PUT",
+  }),
+  deleteAdminRole: (id) => ({
+    url: `${backDomin}/api/admin/roles/${id}`,
+    method: "DELETE",
+  }),
+
   //? 🔵 Category Endpoints
   getAllCategories: {
     url: `${backDomin}/api/admin/categories`,

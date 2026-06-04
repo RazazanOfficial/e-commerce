@@ -1,15 +1,21 @@
 //? 🔵 Required Modules
 const UserModel = require("../../../models/userModel");
+const { buildSafeUserUpdates, USER_PUBLIC_FIELDS } = require("../../../utils/userSecurity");
 const {
-  buildSafeUserUpdates,
-  USER_PUBLIC_FIELDS,
-} = require("../../../utils/userSecurity");
+  assertCanManageUser,
+  attachRoleMeta,
+  filterHiddenDeveloperQuery,
+  normalizeRoleKey,
+} = require("../../../utils/roleService");
 
 //* 🟢 Get One User Info Controller
 const getSingleUserController = async (req, res) => {
   try {
     const { id } = req.params;
-    const user = await UserModel.findById(id).select(USER_PUBLIC_FIELDS).lean();
+    const user = await UserModel.findOne({ _id: id, ...filterHiddenDeveloperQuery(req.userAccess) })
+      .select(USER_PUBLIC_FIELDS)
+      .lean();
+
     if (!user) {
       return res.status(404).json({
         success: false,
@@ -17,8 +23,9 @@ const getSingleUserController = async (req, res) => {
         message: "کاربر پیدا نشد",
       });
     }
+
     return res.json({
-      data: user,
+      data: await attachRoleMeta(user),
       success: true,
     });
   } catch (error) {
@@ -36,7 +43,21 @@ const getSingleUserController = async (req, res) => {
 const updateUserController = async (req, res) => {
   try {
     const { id } = req.params;
+    const targetUser = await UserModel.findById(id).select(USER_PUBLIC_FIELDS);
+    const nextRole = Object.prototype.hasOwnProperty.call(req.body || {}, "role")
+      ? normalizeRoleKey(req.body.role)
+      : null;
+
+    if (nextRole || targetUser?.role !== "user") {
+      await assertCanManageUser({
+        actorAccess: req.userAccess,
+        targetUser,
+        nextRoleKey: nextRole,
+      });
+    }
+
     const updates = await buildSafeUserUpdates(req.body);
+    if (nextRole) updates.role = nextRole;
 
     if (!Object.keys(updates).length) {
       return res.status(400).json({
@@ -63,15 +84,14 @@ const updateUserController = async (req, res) => {
     }
 
     return res.json({
-      data: updatedUser,
+      data: await attachRoleMeta(updatedUser),
       success: true,
       message: "کاربر با موفقیت ویرایش شد",
     });
   } catch (error) {
     //! 🔴 Handle Errors
     const statusCode = error?.statusCode || (error?.code === 11000 ? 409 : 500);
-    const duplicateField =
-      error?.code === 11000 ? Object.keys(error.keyPattern || {})[0] : null;
+    const duplicateField = error?.code === 11000 ? Object.keys(error.keyPattern || {})[0] : null;
     return res.status(statusCode).json({
       data: null,
       success: false,
@@ -88,18 +108,11 @@ const updateUserController = async (req, res) => {
 const deleteUserController = async (req, res) => {
   try {
     const { id } = req.params;
+    const targetUser = await UserModel.findById(id).select(USER_PUBLIC_FIELDS);
 
-    if (String(req.user?.id) === String(id)) {
-      return res.status(400).json({
-        success: false,
-        error: true,
-        message: "امکان حذف حساب کاربری خودتان از این مسیر وجود ندارد",
-      });
-    }
+    await assertCanManageUser({ actorAccess: req.userAccess, targetUser });
 
-    const deletedUser = await UserModel.findByIdAndDelete(id)
-      .select("_id")
-      .lean();
+    const deletedUser = await UserModel.findByIdAndDelete(id).select("_id").lean();
     if (!deletedUser) {
       return res.status(404).json({
         success: false,
@@ -114,11 +127,11 @@ const deleteUserController = async (req, res) => {
     });
   } catch (error) {
     //! 🔴 Handle Errors
-    return res.status(500).json({
+    return res.status(error?.statusCode || 500).json({
       data: null,
       success: false,
       error: true,
-      message: "خطا در حذف کاربر",
+      message: error?.message || "خطا در حذف کاربر",
     });
   }
 };

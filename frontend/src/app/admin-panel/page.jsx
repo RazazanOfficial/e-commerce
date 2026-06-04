@@ -2,9 +2,9 @@
 
 import { useContext, useEffect } from "react";
 import { UserContext } from "@/context/UserContext";
-import { notFound, useRouter } from "next/navigation";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Users, Tags, Package, Settings } from "lucide-react";
+import { Users, Tags, Package, Settings, ShieldCheck } from "lucide-react";
 import {
   AdminCard,
   AdminCardContent,
@@ -15,18 +15,19 @@ import {
 export default function AdminPanelHome() {
   const { user } = useContext(UserContext);
   const router = useRouter();
+  const isAdmin = Boolean(user?.isAdmin || Number(user?.roleMeta?.level || 0) >= 500);
 
   useEffect(() => {
     if (user === null) return;
 
     if (!user) {
       router.push("/auth");
-    } else if (user.role !== "admin") {
-      notFound();
+    } else if (!isAdmin) {
+      router.push("/");
     }
-  }, [user, router]);
+  }, [isAdmin, user, router]);
 
-  if (!user || user.role !== "admin") return null;
+  if (!user || !isAdmin) return null;
 
   const cards = [
     {
@@ -46,6 +47,12 @@ export default function AdminPanelHome() {
       title: "دسته‌بندی‌ها",
       desc: "ساختار درختی و ترتیب",
       Icon: Tags,
+    },
+    {
+      href: "/admin-panel/roles",
+      title: "نقش‌ها",
+      desc: "سطوح دسترسی پنل",
+      Icon: ShieldCheck,
     },
     {
       href: "/admin-panel/settings",

@@ -1,8 +1,6 @@
 //? 🔵 Required Modules
 const bcrypt = require("bcryptjs");
-const UserModel = require("../models/userModel");
 
-const ADMIN_ROLES = new Set(["admin", "developer"]);
 const EDITABLE_USER_FIELDS = new Set([
   "firstName",
   "lastName",
@@ -10,7 +8,6 @@ const EDITABLE_USER_FIELDS = new Set([
   "phone",
   "email",
   "password",
-  "role",
   "address",
   "postalCode",
   "province",
@@ -23,7 +20,6 @@ const USER_PUBLIC_FIELDS =
 const normalizePhone = (phone) => String(phone || "").replace(/\D/g, "");
 const normalizeEmail = (email) => String(email || "").trim().toLowerCase();
 const escapeRegex = (value) => String(value || "").replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-const isAdminRole = (role) => ADMIN_ROLES.has(String(role || "").trim());
 
 const toPublicUser = (user) => {
   if (!user) return null;
@@ -48,17 +44,6 @@ const buildSafeUserUpdates = async (body = {}) => {
       }
       const salt = await bcrypt.genSalt(12);
       updates.password = await bcrypt.hash(password, salt);
-      continue;
-    }
-
-    if (key === "role") {
-      const role = String(value || "").trim();
-      if (!Object.values(UserModel.USER_ROLES).includes(role)) {
-        const err = new Error("نقش کاربر نامعتبر است");
-        err.statusCode = 400;
-        throw err;
-      }
-      updates.role = role;
       continue;
     }
 
@@ -101,11 +86,9 @@ const buildSafeUserUpdates = async (body = {}) => {
 };
 
 module.exports = {
-  ADMIN_ROLES,
   USER_PUBLIC_FIELDS,
   buildSafeUserUpdates,
   escapeRegex,
-  isAdminRole,
   normalizeEmail,
   normalizePhone,
   toPublicUser,

@@ -15,14 +15,12 @@ const navItems = [
   { href: "/contact", label: "تماس با ما" },
 ];
 
-const ADMIN_ROLES = new Set(["admin", "developer"]);
-
 const getAccountLink = (user) => {
   if (!user) {
     return { href: "/auth", label: "ورود / ثبت‌نام" };
   }
 
-  if (ADMIN_ROLES.has(user.role)) {
+  if (user.isAdmin || Number(user.roleMeta?.level || 0) >= 500) {
     return { href: "/admin-panel", label: "پنل ادمین" };
   }
 

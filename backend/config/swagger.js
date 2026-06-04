@@ -24,6 +24,7 @@ const swaggerSpec = {
     { name: "Auth" },
     { name: "Storefront Products" },
     { name: "Admin Users" },
+    { name: "Admin Roles" },
     { name: "Admin Categories" },
     { name: "Admin Products" },
     { name: "Option Catalogs" },
@@ -129,7 +130,7 @@ const swaggerSpec = {
           phoneVerifiedAt: { type: "string", format: "date-time", nullable: true },
           email: { type: "string", format: "email", nullable: true },
           emailVerifiedAt: { type: "string", format: "date-time", nullable: true },
-          role: { type: "string", enum: ["user", "admin", "developer"] },
+          role: { type: "string", example: "user", description: "Dynamic role key. Developer is never assignable through public admin APIs." },
           address: { type: "string" },
           postalCode: { type: "string" },
           province: { type: "string" },
@@ -150,12 +151,25 @@ const swaggerSpec = {
       },
       RegisterCodeVerifyInput: {
         type: "object",
-        required: ["firstName", "lastName", "phone", "code"],
+        required: ["firstName", "lastName", "phone", "code", "password", "confirmPassword"],
         properties: {
           firstName: { type: "string", example: "معراج" },
           lastName: { type: "string", example: "رزازان" },
           phone: { type: "string", pattern: "^09[0-9]{9}$", example: "09333668229" },
           code: { type: "string", pattern: "^[0-9]{6}$", example: "123456" },
+          password: {
+            type: "string",
+            format: "password",
+            minLength: 6,
+            pattern: "^(?=.*[A-Za-z])(?=.*\\d).{6,}$",
+            example: "Anita82",
+          },
+          confirmPassword: {
+            type: "string",
+            format: "password",
+            minLength: 6,
+            example: "Anita82",
+          },
         },
         additionalProperties: false,
       },
@@ -176,11 +190,51 @@ const swaggerSpec = {
           phone: { type: "string", pattern: "^09[0-9]{9}$" },
           email: { type: "string", format: "email" },
           password: { type: "string", format: "password", minLength: 6 },
-          role: { type: "string", enum: ["user", "admin", "developer"] },
+          role: { type: "string", example: "user", description: "Dynamic role key. Developer is never assignable through public admin APIs." },
           address: { type: "string" },
           postalCode: { type: "string" },
           province: { type: "string" },
           city: { type: "string" },
+        },
+        additionalProperties: false,
+      },
+
+      AdminRole: {
+        type: "object",
+        properties: {
+          _id: { type: "string" },
+          name: { type: "string" },
+          key: { type: "string", example: "sub-owner" },
+          level: { type: "number", example: 850 },
+          description: { type: "string" },
+          isSystem: { type: "boolean" },
+          locked: { type: "boolean" },
+          hidden: { type: "boolean" },
+          isActive: { type: "boolean" },
+          canAssign: { type: "boolean" },
+          canEdit: { type: "boolean" },
+          canDelete: { type: "boolean" },
+          disabledReason: { type: "string" },
+        },
+      },
+      AdminRoleCreateInput: {
+        type: "object",
+        required: ["name", "level"],
+        properties: {
+          name: { type: "string", example: "Sub Owner" },
+          key: { type: "string", pattern: "^[a-z][a-z0-9-]{1,48}$", example: "sub-owner" },
+          level: { type: "number", minimum: 1, maximum: 999, example: 850 },
+          description: { type: "string" },
+        },
+        additionalProperties: false,
+      },
+      AdminRoleUpdateInput: {
+        type: "object",
+        properties: {
+          name: { type: "string" },
+          level: { type: "number", minimum: 1, maximum: 999 },
+          description: { type: "string" },
+          isActive: { type: "boolean" },
         },
         additionalProperties: false,
       },
@@ -612,6 +666,58 @@ Object.assign(swaggerSpec.paths, {
       security: secured,
       parameters: [idParam],
       responses: { 200: successResponse(), 404: { $ref: "#/components/responses/NotFound" }, ...adminResponses },
+    },
+  },
+});
+
+
+//* 🟢 Admin Role Paths
+Object.assign(swaggerSpec.paths, {
+  "/api/admin/roles": {
+    get: {
+      tags: ["Admin Roles"],
+      summary: "List visible role definitions",
+      security: secured,
+      responses: { 200: successResponse(), ...adminResponses },
+    },
+    post: {
+      tags: ["Admin Roles"],
+      summary: "Create a custom role below the current user's level",
+      security: secured,
+      requestBody: jsonBody("#/components/schemas/AdminRoleCreateInput"),
+      responses: {
+        201: successResponse("Role created successfully."),
+        400: { $ref: "#/components/responses/BadRequest" },
+        409: { $ref: "#/components/responses/Conflict" },
+        ...adminResponses,
+      },
+    },
+  },
+  "/api/admin/roles/{id}": {
+    put: {
+      tags: ["Admin Roles"],
+      summary: "Update a custom role",
+      security: secured,
+      parameters: [idParam],
+      requestBody: jsonBody("#/components/schemas/AdminRoleUpdateInput"),
+      responses: {
+        200: successResponse(),
+        400: { $ref: "#/components/responses/BadRequest" },
+        404: { $ref: "#/components/responses/NotFound" },
+        ...adminResponses,
+      },
+    },
+    delete: {
+      tags: ["Admin Roles"],
+      summary: "Delete an unused custom role",
+      security: secured,
+      parameters: [idParam],
+      responses: {
+        200: successResponse(),
+        404: { $ref: "#/components/responses/NotFound" },
+        409: { $ref: "#/components/responses/Conflict" },
+        ...adminResponses,
+      },
     },
   },
 });

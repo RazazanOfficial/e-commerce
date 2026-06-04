@@ -4,6 +4,7 @@ const mongoose = require("mongoose");
 const USER_ROLES = Object.freeze({
   USER: "user",
   ADMIN: "admin",
+  OWNER: "owner",
   DEVELOPER: "developer",
 });
 
@@ -36,8 +37,10 @@ const userSchema = mongoose.Schema(
     password: { type: String, select: false },
     role: {
       type: String,
-      enum: Object.values(USER_ROLES),
       default: USER_ROLES.USER,
+      lowercase: true,
+      trim: true,
+      match: /^[a-z][a-z0-9-]{1,48}$/,
     },
 
     address: { type: String, trim: true },

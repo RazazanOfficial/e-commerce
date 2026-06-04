@@ -26,6 +26,7 @@ export default function SearchModal({
   getRoleBadgeVariant,
   onUserUpdate,
   onUserDelete,
+  roles = [],
 }) {
   const [selectedUser, setSelectedUser] = useState(null);
   const [actionMode, setActionMode] = useState(null);
@@ -152,7 +153,7 @@ export default function SearchModal({
                             user.role
                           )} px-3 py-1 rounded-full text-xs font-semibold`}
                         >
-                          {user.role === "admin" ? "مدیر" : user.role === "developer" ? "توسعه‌دهنده" : user.role === "seller" ? "فروشنده" : "کاربر"}
+                          {roles.find((role) => role.key === user.role)?.name || user.role || "user"}
                         </span>
                       ) : (
                         <AdminBadge variant="primary">
@@ -203,6 +204,7 @@ export default function SearchModal({
           setActionMode(null);
         }}
         onUpdate={handleUpdateUser}
+        roles={roles}
         onDelete={handleDeleteUser}
       />
     </>

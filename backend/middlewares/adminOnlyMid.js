@@ -1,6 +1,5 @@
 //? 🔵 Required Modules
-const UserModel = require("../models/userModel");
-const { isAdminRole } = require("../utils/userSecurity");
+const { getUserAccess } = require("../utils/roleService");
 
 //* 🟢 Admin Only Middleware
 const adminOnlyMid = async (req, res, next) => {
@@ -14,9 +13,9 @@ const adminOnlyMid = async (req, res, next) => {
       });
     }
 
-    const user = await UserModel.findById(req.user.id).select("role").lean();
+    const access = await getUserAccess(req.user.id);
 
-    if (!user || !isAdminRole(user.role)) {
+    if (!access?.canAccessAdmin) {
       return res.status(403).json({
         data: null,
         success: false,
@@ -25,10 +24,14 @@ const adminOnlyMid = async (req, res, next) => {
       });
     }
 
-    req.user.role = user.role;
+    req.user.role = access.roleKey;
+    req.user.roleLevel = access.level;
+    req.user.isDeveloper = access.isDeveloper;
+    req.userAccess = access;
     next();
   } catch (error) {
     //! 🔴 Handle Errors
+    console.error("Admin access error:", error);
     return res.status(500).json({
       data: null,
       success: false,

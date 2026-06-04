@@ -1,11 +1,12 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import usePaginatedFetchHook from "@/hooks/usePaginatedFetchHook";
 import backApis from "@/common";
 import { Search, Eye, Edit, Trash2, ArrowLeft, ArrowRight } from "lucide-react";
 import SearchModal from "@/components/Admin-Panel/SearchModal";
 import apiClient from "@/common/apiClient";
+import { toast } from "react-toastify";
 import UserModal from "@/components/Admin-Panel/UserModal";
 import {
   AdminBadge,
@@ -36,6 +37,26 @@ export default function AllUsersPage() {
   const [selectedUser, setSelectedUser] = useState(null);
   const [userModalOpen, setUserModalOpen] = useState(false);
   const [modalMode, setModalMode] = useState("view");
+  const [roles, setRoles] = useState([]);
+
+  useEffect(() => {
+    let ignore = false;
+
+    const loadRoles = async () => {
+      try {
+        const { data } = await apiClient.get(backApis.adminRoles.url);
+        if (!ignore) setRoles(data?.data || []);
+      } catch (error) {
+        if (!ignore) toast.error("خطا در دریافت نقش‌ها");
+      }
+    };
+
+    loadRoles();
+
+    return () => {
+      ignore = true;
+    };
+  }, []);
 
   const handleSearch = async () => {
     try {
@@ -67,7 +88,7 @@ export default function AllUsersPage() {
       refreshData();
       setUserModalOpen(false);
     } catch (err) {
-      console.error("خطا در آپدیت کاربر:", err);
+      toast.error(err?.response?.data?.message || "خطا در آپدیت کاربر");
     }
   };
 
@@ -79,7 +100,7 @@ export default function AllUsersPage() {
       refreshData();
       setUserModalOpen(false);
     } catch (err) {
-      console.error("خطا در حذف کاربر:", err);
+      toast.error(err?.response?.data?.message || "خطا در حذف کاربر");
     }
   };
 
@@ -100,19 +121,22 @@ export default function AllUsersPage() {
     return styles[hash % styles.length];
   };
 
-  const roleLabel = (role) => {
-    const r = (role || "").toLowerCase();
-    if (r === "admin") return "مدیر";
-    if (r === "developer") return "توسعه‌دهنده";
-    if (r === "seller") return "فروشنده";
-    return "کاربر";
+  const roleLabel = (roleValue) => {
+    const r = (roleValue || "").toLowerCase();
+    const matchedRole = roles.find((item) => item.key === r);
+    if (matchedRole?.name) return matchedRole.name;
+    if (r === "developer") return "Developer";
+    if (r === "owner") return "Owner";
+    if (r === "admin") return "Admin";
+    return "User";
   };
 
-  const roleVariant = (role) => {
-    const r = (role || "").toLowerCase();
-    if (r === "admin") return "error";
+  const roleVariant = (roleValue) => {
+    const r = (roleValue || "").toLowerCase();
     if (r === "developer") return "warning";
-    if (r === "seller") return "info";
+    if (r === "owner") return "error";
+    if (r === "admin") return "info";
+    if (Number(roles.find((item) => item.key === r)?.level || 0) >= 500) return "success";
     return "primary";
   };
 
@@ -176,6 +200,7 @@ export default function AllUsersPage() {
           getUserAvatarColor={getUserAvatarColor}
           getRoleBadgeVariant={null}
           onUserUpdate={() => refreshData()}
+          roles={roles}
           onUserDelete={() => refreshData()}
         />
       )}
@@ -346,6 +371,7 @@ export default function AllUsersPage() {
         mode={modalMode}
         user={selectedUser}
         onUpdate={handleUpdateUser}
+        roles={roles}
         onDelete={handleDeleteUser}
       />
     </div>

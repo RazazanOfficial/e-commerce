@@ -11,6 +11,7 @@ const optionCatalogRouters = require("./Admin-Panel/products/optionCatalogRouter
 const tagCatalogRouters = require("./Admin-Panel/products/tagCatalogRouters");
 const currencyCatalogRouters = require("./Admin-Panel/products/currencyCatalogRouters");
 const mediaRouters = require("./Admin-Panel/media/mediaRouters");
+const roleRouters = require("./Admin-Panel/roles/roleRouters");
 const publicProductRouters = require("./Storefront/productRouters");
 
 //! 🔴 Auth Routes
@@ -24,6 +25,7 @@ router.use("/products", publicProductRouters);
 router.use("/admin/all-users", allUsers);
 router.use("/admin/user", user);
 router.use("/admin/search-users", searchUsers);
+router.use("/admin/roles", roleRouters);
 
 //? 🔵 Product Routes
 router.use("/admin/categories", categoryRouters);

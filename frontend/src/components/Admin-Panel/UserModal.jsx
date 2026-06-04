@@ -18,9 +18,27 @@ const FIELDS = [
   { label: "کد پستی", name: "postalCode", type: "text" },
 ];
 
-export default function UserModal({ isOpen, onClose, mode, user, onUpdate, onDelete }) {
+const fallbackRoles = [
+  { key: "user", name: "User", canAssign: true },
+  { key: "admin", name: "Admin", canAssign: false, disabledReason: "لیست نقش‌ها هنوز دریافت نشده است" },
+  { key: "owner", name: "Owner", canAssign: false, disabledReason: "برای تخصیص Owner باید توسعه‌دهنده وارد پنل شود" },
+];
+
+const roleLabel = (role, roles = []) => {
+  const item = roles.find((entry) => entry.key === role);
+  if (item?.name) return item.name;
+  if (role === "developer") return "Developer";
+  if (role === "owner") return "Owner";
+  if (role === "admin") return "Admin";
+  return "User";
+};
+
+export default function UserModal({ isOpen, onClose, mode, user, roles = [], onUpdate, onDelete }) {
   const [formData, setFormData] = useState(user || {});
   const [countdown, setCountdown] = useState(5);
+
+  const roleOptions = roles.length ? roles : fallbackRoles;
+  const currentRoleIsMissing = formData.role && !roleOptions.some((role) => role.key === formData.role);
 
   const title = useMemo(() => {
     switch (mode) {
@@ -123,17 +141,36 @@ export default function UserModal({ isOpen, onClose, mode, user, onUpdate, onDel
               />
             </AdminField>
           ))}
-          <AdminField label="نقش کاربر">
+          <AdminField
+            label="نقش کاربر"
+            hint={mode === "edit" ? "نقش‌های غیرقابل تخصیص غیرفعال هستند" : undefined}
+          >
             <AdminSelect
               name="role"
               value={formData.role || "user"}
               onChange={handleChange}
-              disabled={mode === "view"}
+              disabled={mode === "view" || formData.role === "developer"}
             >
-              <option value="user">کاربر</option>
-              <option value="admin">مدیر</option>
-              <option value="developer">توسعه‌دهنده</option>
+              {currentRoleIsMissing ? (
+                <option value={formData.role}>{roleLabel(formData.role, roleOptions)}</option>
+              ) : null}
+              {roleOptions.map((role) => (
+                <option key={role.key} value={role.key} disabled={!role.canAssign && formData.role !== role.key}>
+                  {role.name || role.key}{!role.canAssign && formData.role !== role.key ? " — غیرفعال" : ""}
+                </option>
+              ))}
             </AdminSelect>
+            {mode === "edit" ? (
+              <div className="mt-2 space-y-1">
+                {roleOptions
+                  .filter((role) => !role.canAssign && role.disabledReason)
+                  .map((role) => (
+                    <p key={role.key} className="text-xs text-[var(--adm-text-muted)]">
+                      {role.name}: {role.disabledReason}
+                    </p>
+                  ))}
+              </div>
+            ) : null}
           </AdminField>
         </div>
       )}

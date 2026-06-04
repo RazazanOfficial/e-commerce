@@ -1,5 +1,6 @@
 //? 🔵 Required Modules
 const jwt = require("jsonwebtoken");
+const bcrypt = require("bcryptjs");
 const UserModel = require("../../models/userModel");
 const AuthOtpModel = require("../../models/authOtpModel");
 const { cookieOptions } = require("../../config/coockieOptions");
@@ -13,11 +14,13 @@ const {
   verifyOtpCode,
 } = require("../../utils/otpService");
 
+const { getBootstrapRoleForUser } = require("../../utils/roleService");
+
 const { OTP_PURPOSES } = AuthOtpModel;
-const { USER_ROLES = { USER: "user" } } = UserModel;
 const namePattern = /^[A-Za-zآ-یء-ی\s‌-]+$/;
 const phonePattern = /^09[0-9]{9}$/;
 const codePattern = /^[0-9]{6}$/;
+const passwordPattern = /^(?=.*[A-Za-z])(?=.*\d).{6,}$/;
 
 //* 🟢 Normalize Register Payload
 const normalizeRegisterPayload = (body = {}) => {
@@ -25,8 +28,10 @@ const normalizeRegisterPayload = (body = {}) => {
   const lastName = String(body.lastName || "").trim();
   const phone = normalizePhone(body.phone);
   const code = String(body.code || "").trim();
+  const password = String(body.password || "");
+  const confirmPassword = String(body.confirmPassword || "");
 
-  return { firstName, lastName, phone, code };
+  return { firstName, lastName, phone, code, password, confirmPassword };
 };
 
 //* 🟢 Validate Register Identity
@@ -45,6 +50,23 @@ const validateRegisterIdentity = ({ firstName, lastName, phone }) => {
 
   if (!phonePattern.test(phone)) {
     return "شماره موبایل نامعتبر است";
+  }
+
+  return null;
+};
+
+//* 🟢 Validate Register Password
+const validateRegisterPassword = ({ password, confirmPassword }) => {
+  if (!password || !confirmPassword) {
+    return "رمز عبور و تکرار رمز عبور الزامی است";
+  }
+
+  if (!passwordPattern.test(password)) {
+    return "رمز عبور باید حداقل ۶ کاراکتر و شامل حداقل یک حرف و یک عدد باشد";
+  }
+
+  if (password !== confirmPassword) {
+    return "رمز عبور و تکرار آن یکسان نیست";
   }
 
   return null;
@@ -154,6 +176,17 @@ const verifyRegisterCodeController = async (req, res) => {
       });
     }
 
+    const passwordValidationMessage = validateRegisterPassword(payload);
+
+    if (passwordValidationMessage) {
+      return res.status(400).json({
+        data: null,
+        success: false,
+        error: true,
+        message: passwordValidationMessage,
+      });
+    }
+
     if (!codePattern.test(payload.code)) {
       return res.status(400).json({
         data: null,
@@ -215,13 +248,16 @@ const verifyRegisterCodeController = async (req, res) => {
       throw new Error("JWT_SECRET is not configured");
     }
 
+    const hashedPassword = await bcrypt.hash(payload.password, 10);
+
     const user = await UserModel.create({
       firstName: payload.firstName,
       lastName: payload.lastName,
       name: `${payload.firstName} ${payload.lastName}`,
       phone: payload.phone,
       phoneVerifiedAt: new Date(),
-      role: USER_ROLES.USER,
+      password: hashedPassword,
+      role: getBootstrapRoleForUser(payload),
     });
 
     otpRecord.consumedAt = new Date();

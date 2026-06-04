@@ -1,6 +1,7 @@
 //? 🔵 Required Modules
 const UserModel = require("../../../models/userModel");
 const { escapeRegex, USER_PUBLIC_FIELDS } = require("../../../utils/userSecurity");
+const { attachRoleMeta, filterHiddenDeveloperQuery } = require("../../../utils/roleService");
 
 //* 🟢 Search Users Controller
 const searchUsersController = async (req, res) => {
@@ -19,12 +20,14 @@ const searchUsersController = async (req, res) => {
     const limit = Math.max(1, Math.min(100, parseInt(req.query.limit, 10) || 20));
     const searchRegex = new RegExp(escapeRegex(String(q).trim()), "i");
     const filter = {
+      ...filterHiddenDeveloperQuery(req.userAccess),
       $or: [
         { firstName: { $regex: searchRegex } },
         { lastName: { $regex: searchRegex } },
         { name: { $regex: searchRegex } },
         { email: { $regex: searchRegex } },
         { phone: { $regex: searchRegex } },
+        { role: { $regex: searchRegex } },
       ],
     };
 
@@ -38,8 +41,10 @@ const searchUsersController = async (req, res) => {
       UserModel.countDocuments(filter),
     ]);
 
+    const safeUsers = await Promise.all(users.map((user) => attachRoleMeta(user)));
+
     return res.json({
-      data: users,
+      data: safeUsers,
       page,
       limit,
       totalCount,

@@ -16,6 +16,7 @@ import {
   ShoppingBag,
   Settings,
   LogOut,
+  ShieldCheck,
   Home,
   Sun,
   Monitor,
@@ -110,6 +111,11 @@ export default function AdminPanelLayout({ children }) {
         label: "دسته‌بندی‌ها",
         icon: <Folder size={16} />,
       },
+      {
+        href: "/admin-panel/roles",
+        label: "نقش‌ها",
+        icon: <ShieldCheck size={16} />,
+      },
 
       {
         href: "/admin-panel/all-products",
@@ -128,7 +134,7 @@ export default function AdminPanelLayout({ children }) {
   const [activeHref, setActiveHref] = useState(pathname);
   useEffect(() => setActiveHref(pathname), [pathname]);
 
-  const isAdmin = user?.role === "admin" || user?.role === "developer";
+  const isAdmin = Boolean(user?.isAdmin || Number(user?.roleMeta?.level || 0) >= 500);
 
   //* 🟢 Access Guard
   useEffect(() => {
