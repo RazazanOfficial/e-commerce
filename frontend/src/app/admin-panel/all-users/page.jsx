@@ -5,7 +5,6 @@ import { toast } from "react-toastify";
 import {
   ArrowLeft,
   ArrowRight,
-  BadgeCheck,
   CheckCircle2,
   Eye,
   Mail,
@@ -41,9 +40,9 @@ import {
 const HIDDEN_ROLES = new Set(["developer"]);
 
 const ROLE_META = {
-  admin: { label: "مدیر", variant: "primary" },
-  seller: { label: "فروشنده", variant: "info" },
-  user: { label: "کاربر", variant: "neutral" },
+  admin: { label: "مدیر", className: "bg-[var(--adm-error-soft)] text-[var(--adm-error)] ring-[var(--adm-border)]" },
+  seller: { label: "فروشنده", className: "bg-[var(--adm-warning-soft)] text-[var(--adm-warning)] ring-[var(--adm-border)]" },
+  user: { label: "کاربر", className: "bg-[var(--adm-info-soft)] text-[var(--adm-info)] ring-[var(--adm-border)]" },
 };
 
 const AVATAR_STYLES = [
@@ -83,7 +82,7 @@ function getProfileStatus(user) {
   const phoneVerified = Boolean(user?.phoneVerifiedAt);
 
   if (hasIdentity && hasAddress && phoneVerified) {
-    return { label: "آماده خرید", variant: "success" };
+    return { label: "پروفایل تکمیل است", variant: "success" };
   }
 
   if (hasIdentity && phoneVerified) {
@@ -146,6 +145,72 @@ function UserAvatar({ user, size = "md" }) {
       aria-hidden="true"
     >
       {name.charAt(0)}
+    </div>
+  );
+}
+
+function RoleBadge({ role }) {
+  const meta = getRoleMeta(role);
+
+  return (
+    <span className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-black ring-1 ${meta.className}`}>
+      {meta.label}
+    </span>
+  );
+}
+
+function VerificationMark({ active, label }) {
+  return (
+    <span
+      className={active ? "flex h-6 w-6 items-center justify-center rounded-full bg-[var(--adm-success-soft)] text-[var(--adm-success)]" : "flex h-6 w-6 items-center justify-center rounded-full bg-[var(--adm-error-soft)] text-[var(--adm-error)]"}
+      title={label}
+      aria-label={label}
+    >
+      {active ? <CheckCircle2 className="h-4 w-4" /> : <X className="h-4 w-4" />}
+    </span>
+  );
+}
+
+function ContactRows({ user }) {
+  const rows = [
+    {
+      key: "phone",
+      icon: Phone,
+      value: user.phone || "-",
+      muted: false,
+      verified: Boolean(user.phoneVerifiedAt),
+      label: user.phoneVerifiedAt ? "موبایل تایید شده" : "موبایل تایید نشده",
+      dir: "ltr",
+    },
+    {
+      key: "email",
+      icon: Mail,
+      value: user.email || "ایمیل ثبت نشده",
+      muted: !user.email,
+      verified: Boolean(user.email && user.emailVerifiedAt),
+      label: user.emailVerifiedAt ? "ایمیل تایید شده" : "ایمیل تایید نشده",
+      dir: user.email ? "ltr" : "rtl",
+    },
+  ];
+
+  return (
+    <div className="space-y-2 text-sm">
+      {rows.map((row) => {
+        const Icon = row.icon;
+        return (
+          <div key={row.key} className="grid grid-cols-[18px_minmax(0,1fr)_26px] items-center gap-2">
+            <Icon className="h-4 w-4 text-[var(--adm-text-muted)]" />
+            <span
+              dir={row.dir}
+              className={row.muted ? "min-w-0 truncate text-[var(--adm-text-muted)]" : "min-w-0 truncate text-[var(--adm-text)]"}
+              title={String(row.value || "")}
+            >
+              {row.value}
+            </span>
+            <VerificationMark active={row.verified} label={row.label} />
+          </div>
+        );
+      })}
     </div>
   );
 }
@@ -214,7 +279,6 @@ function UsersDesktopTable({ users, onAction }) {
         </AdminTHead>
         <tbody>
           {users.map((user) => {
-            const role = getRoleMeta(user.role);
             const profile = getProfileStatus(user);
             const name = getDisplayName(user);
 
@@ -227,31 +291,14 @@ function UsersDesktopTable({ users, onAction }) {
                       <p className="max-w-[220px] truncate font-bold text-[var(--adm-text)]" title={name}>
                         {name}
                       </p>
-                      <p className="mt-1 text-xs text-[var(--adm-text-muted)]">
-                        شناسه: {String(user._id || user.id || "-").slice(-8)}
-                      </p>
                     </div>
                   </div>
                 </AdminTD>
                 <AdminTD>
-                  <div className="space-y-2 text-sm">
-                    <div className="flex items-center gap-2 text-[var(--adm-text)]">
-                      <Phone className="h-4 w-4 text-[var(--adm-text-muted)]" />
-                      <span dir="ltr">{user.phone || "-"}</span>
-                      {user.phoneVerifiedAt ? (
-                        <CheckCircle2 className="h-4 w-4 text-[var(--adm-success)]" />
-                      ) : null}
-                    </div>
-                    <div className="flex items-center gap-2 text-[var(--adm-text-muted)]">
-                      <Mail className="h-4 w-4" />
-                      <span className="max-w-[220px] truncate" title={user.email || ""}>
-                        {user.email || "ایمیل ثبت نشده"}
-                      </span>
-                    </div>
-                  </div>
+                  <ContactRows user={user} />
                 </AdminTD>
                 <AdminTD>
-                  <AdminBadge variant={role.variant}>{role.label}</AdminBadge>
+                  <RoleBadge role={user.role} />
                 </AdminTD>
                 <AdminTD>
                   <AdminBadge variant={profile.variant}>{profile.label}</AdminBadge>
@@ -282,7 +329,6 @@ function UsersMobileList({ users, onAction }) {
   return (
     <div className="grid gap-3 p-4 lg:hidden">
       {users.map((user) => {
-        const role = getRoleMeta(user.role);
         const profile = getProfileStatus(user);
         const name = getDisplayName(user);
 
@@ -299,7 +345,7 @@ function UsersMobileList({ users, onAction }) {
                     {name}
                   </p>
                   <div className="mt-2 flex flex-wrap items-center gap-2">
-                    <AdminBadge variant={role.variant}>{role.label}</AdminBadge>
+                    <RoleBadge role={user.role} />
                     <AdminBadge variant={profile.variant}>{profile.label}</AdminBadge>
                   </div>
                 </div>
@@ -307,15 +353,7 @@ function UsersMobileList({ users, onAction }) {
             </div>
 
             <div className="mt-4 grid gap-2 rounded-2xl bg-[var(--adm-surface-2)] p-3 text-sm">
-              <div className="flex items-center gap-2 text-[var(--adm-text)]">
-                <Phone className="h-4 w-4 text-[var(--adm-text-muted)]" />
-                <span dir="ltr">{user.phone || "-"}</span>
-                {user.phoneVerifiedAt ? <CheckCircle2 className="h-4 w-4 text-[var(--adm-success)]" /> : null}
-              </div>
-              <div className="flex items-center gap-2 text-[var(--adm-text-muted)]">
-                <Mail className="h-4 w-4" />
-                <span className="truncate">{user.email || "ایمیل ثبت نشده"}</span>
-              </div>
+              <ContactRows user={user} />
             </div>
 
             <div className="mt-4 grid grid-cols-3 gap-2">
@@ -362,13 +400,13 @@ export default function AllUsersPage() {
   const stats = useMemo(() => {
     const currentList = activeSearch ? visibleSearchResults : visibleUsers;
     const admins = currentList.filter((user) => String(user.role || "").toLowerCase() === "admin").length;
-    const verifiedPhones = currentList.filter((user) => Boolean(user.phoneVerifiedAt)).length;
+    const completedProfiles = currentList.filter((user) => getProfileStatus(user).variant === "success").length;
 
     return {
       total: activeSearch ? visibleSearchResults.length : totalCount || visibleUsers.length,
       pageUsers: currentList.length,
       admins,
-      verifiedPhones,
+      completedProfiles,
     };
   }, [activeSearch, totalCount, visibleSearchResults, visibleUsers]);
 
@@ -469,9 +507,6 @@ export default function AllUsersPage() {
               <h1 className="text-2xl font-black text-[var(--adm-text)] md:text-4xl">
                 کاربران سایت
               </h1>
-              <p className="mt-3 text-sm leading-7 text-[var(--adm-text-muted)] md:text-base">
-                کاربران را سریع پیدا کنید، وضعیت پروفایل را ببینید و اطلاعات حساب را بدون شلوغی مدیریت کنید.
-              </p>
             </div>
 
             <div className="flex flex-col gap-3 sm:flex-row">
@@ -493,7 +528,7 @@ export default function AllUsersPage() {
         <StatCard icon={Users} label={activeSearch ? "نتایج جستجو" : "کل کاربران"} value={stats.total} hint={activeSearch || "بر اساس اطلاعات سرور"} />
         <StatCard icon={UserCheck} label="نمایش فعلی" value={stats.pageUsers} hint={activeSearch ? "در نتیجه جستجو" : `صفحه ${page} از ${totalPages || 1}`} variant="info" />
         <StatCard icon={ShieldCheck} label="مدیران" value={stats.admins} hint="در لیست فعلی" variant="warning" />
-        <StatCard icon={BadgeCheck} label="موبایل تاییدشده" value={stats.verifiedPhones} hint="در لیست فعلی" variant="success" />
+        <StatCard icon={CheckCircle2} label="پروفایل تکمیل" value={stats.completedProfiles} hint="نام، تماس و آدرس کامل" variant="success" />
       </section>
 
       <AdminCard elevated className="overflow-hidden">
