@@ -152,11 +152,11 @@ export default function SearchModal({
                             user.role
                           )} px-3 py-1 rounded-full text-xs font-semibold`}
                         >
-                          {user.role === "admin" ? "مدیر" : user.role === "developer" ? "توسعه‌دهنده" : user.role === "seller" ? "فروشنده" : "کاربر"}
+                          {user.role === "admin" ? "مدیر" : user.role === "seller" ? "فروشنده" : "کاربر"}
                         </span>
                       ) : (
                         <AdminBadge variant="primary">
-                          {user.role || "user"}
+                          {user.role === "admin" ? "مدیر" : "کاربر"}
                         </AdminBadge>
                       )}
                     </AdminTD>

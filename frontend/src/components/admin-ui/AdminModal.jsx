@@ -52,14 +52,14 @@ export function AdminModal({
 
       <div
         className={cn(
-          "relative w-full m-3 sm:m-0 rounded-2xl overflow-hidden border border-[color:var(--adm-border)] bg-[var(--adm-surface)] text-[var(--adm-text)] shadow-[0_30px_90px_var(--adm-shadow)]",
+          "relative w-full m-3 sm:m-0 max-h-[calc(100vh-1.5rem)] rounded-2xl overflow-hidden border border-[color:var(--adm-border)] bg-[var(--adm-surface)] text-[var(--adm-text)] shadow-[0_30px_90px_var(--adm-shadow)] flex flex-col",
           SIZES[size] || SIZES.md,
           className
         )}
         role="dialog"
         aria-modal="true"
       >
-        <div className="px-5 py-4 bg-[var(--adm-surface-2)] border-b border-[color:var(--adm-border)]">
+        <div className="shrink-0 px-5 py-4 bg-[var(--adm-surface-2)] border-b border-[color:var(--adm-border)]">
           <div className="flex items-start justify-between gap-4">
             <div className="min-w-0">
               {title ? <h3 className="text-lg font-bold">{title}</h3> : null}
@@ -80,10 +80,10 @@ export function AdminModal({
           </div>
         </div>
 
-        <div className="p-5">{children}</div>
+        <div className="min-h-0 flex-1 overflow-y-auto p-5">{children}</div>
 
         {footer ? (
-          <div className="px-5 py-4 border-t border-[color:var(--adm-border)] bg-[var(--adm-surface)]">
+          <div className="shrink-0 px-5 py-4 border-t border-[color:var(--adm-border)] bg-[var(--adm-surface)]">
             {footer}
           </div>
         ) : null}

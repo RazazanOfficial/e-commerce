@@ -1,22 +1,340 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { toast } from "react-toastify";
+import {
+  ArrowLeft,
+  ArrowRight,
+  BadgeCheck,
+  CheckCircle2,
+  Eye,
+  Mail,
+  Pencil,
+  Phone,
+  RefreshCw,
+  Search,
+  ShieldCheck,
+  Trash2,
+  UserCheck,
+  Users,
+  X,
+} from "lucide-react";
 import usePaginatedFetchHook from "@/hooks/usePaginatedFetchHook";
 import backApis from "@/common";
-import { Search, Eye, Edit, Trash2, ArrowLeft, ArrowRight } from "lucide-react";
-import SearchModal from "@/components/Admin-Panel/SearchModal";
 import apiClient from "@/common/apiClient";
 import UserModal from "@/components/Admin-Panel/UserModal";
 import {
   AdminBadge,
+  AdminButton,
   AdminCard,
   AdminCardContent,
-  AdminCardDescription,
-  AdminCardHeader,
-  AdminCardTitle,
   AdminIconButton,
   AdminInput,
+  AdminTable,
+  AdminTableShell,
+  AdminTD,
+  AdminTH,
+  AdminTHead,
+  AdminTR,
 } from "@/components/admin-ui";
+
+const HIDDEN_ROLES = new Set(["developer"]);
+
+const ROLE_META = {
+  admin: { label: "مدیر", variant: "primary" },
+  seller: { label: "فروشنده", variant: "info" },
+  user: { label: "کاربر", variant: "neutral" },
+};
+
+const AVATAR_STYLES = [
+  { bg: "var(--adm-primary-soft)", fg: "var(--adm-primary)" },
+  { bg: "var(--adm-info-soft)", fg: "var(--adm-info)" },
+  { bg: "var(--adm-success-soft)", fg: "var(--adm-success)" },
+  { bg: "var(--adm-warning-soft)", fg: "var(--adm-warning)" },
+  { bg: "var(--adm-error-soft)", fg: "var(--adm-error)" },
+  { bg: "var(--adm-surface-2)", fg: "var(--adm-text)" },
+];
+
+function getDisplayName(user) {
+  const fullName = [user?.firstName, user?.lastName]
+    .map((item) => String(item || "").trim())
+    .filter(Boolean)
+    .join(" ");
+
+  return fullName || user?.name || "کاربر بدون نام";
+}
+
+function getAvatarStyle(name) {
+  const hash = String(name || "")
+    .split("")
+    .reduce((acc, char) => acc + char.charCodeAt(0), 0);
+
+  return AVATAR_STYLES[hash % AVATAR_STYLES.length];
+}
+
+function getRoleMeta(role) {
+  const key = String(role || "user").toLowerCase();
+  return ROLE_META[key] || ROLE_META.user;
+}
+
+function getProfileStatus(user) {
+  const hasIdentity = Boolean(getDisplayName(user) && user?.phone);
+  const hasAddress = Boolean(user?.province && user?.city && user?.address && user?.postalCode);
+  const phoneVerified = Boolean(user?.phoneVerifiedAt);
+
+  if (hasIdentity && hasAddress && phoneVerified) {
+    return { label: "آماده خرید", variant: "success" };
+  }
+
+  if (hasIdentity && phoneVerified) {
+    return { label: "نیاز به تکمیل", variant: "warning" };
+  }
+
+  return { label: "ناقص", variant: "error" };
+}
+
+function filterVisibleUsers(list = []) {
+  return list.filter((user) => !HIDDEN_ROLES.has(String(user?.role || "").toLowerCase()));
+}
+
+function buildPagination(currentPage, totalPages) {
+  const total = Math.max(Number(totalPages || 1), 1);
+  const current = Math.min(Math.max(Number(currentPage || 1), 1), total);
+
+  if (total <= 7) {
+    return Array.from({ length: total }, (_, index) => index + 1);
+  }
+
+  const items = new Set([1, total, current, current - 1, current + 1]);
+
+  if (current <= 3) {
+    items.add(2);
+    items.add(3);
+    items.add(4);
+  }
+
+  if (current >= total - 2) {
+    items.add(total - 1);
+    items.add(total - 2);
+    items.add(total - 3);
+  }
+
+  const sorted = [...items]
+    .filter((item) => item >= 1 && item <= total)
+    .sort((a, b) => a - b);
+
+  return sorted.reduce((acc, item, index) => {
+    if (index > 0 && item - sorted[index - 1] > 1) acc.push("...");
+    acc.push(item);
+    return acc;
+  }, []);
+}
+
+function UserAvatar({ user, size = "md" }) {
+  const name = getDisplayName(user);
+  const style = getAvatarStyle(name);
+  const sizes = {
+    sm: "h-9 w-9 text-xs",
+    md: "h-11 w-11 text-sm",
+    lg: "h-12 w-12 text-base",
+  };
+
+  return (
+    <div
+      className={`${sizes[size] || sizes.md} shrink-0 rounded-2xl flex items-center justify-center font-bold`}
+      style={{ background: style.bg, color: style.fg }}
+      aria-hidden="true"
+    >
+      {name.charAt(0)}
+    </div>
+  );
+}
+
+function StatCard({ icon: Icon, label, value, hint, variant = "primary" }) {
+  const tones = {
+    primary: "bg-[var(--adm-primary-soft)] text-[var(--adm-primary)]",
+    success: "bg-[var(--adm-success-soft)] text-[var(--adm-success)]",
+    info: "bg-[var(--adm-info-soft)] text-[var(--adm-info)]",
+    warning: "bg-[var(--adm-warning-soft)] text-[var(--adm-warning)]",
+  };
+
+  return (
+    <AdminCard className="overflow-hidden">
+      <AdminCardContent className="p-4">
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <p className="text-sm text-[var(--adm-text-muted)]">{label}</p>
+            <p className="mt-2 text-2xl font-black text-[var(--adm-text)]">{value}</p>
+            {hint ? <p className="mt-1 text-xs text-[var(--adm-text-muted)]">{hint}</p> : null}
+          </div>
+          <div className={`h-11 w-11 rounded-2xl flex items-center justify-center ${tones[variant] || tones.primary}`}>
+            <Icon className="h-5 w-5" />
+          </div>
+        </div>
+      </AdminCardContent>
+    </AdminCard>
+  );
+}
+
+function EmptyState({ activeSearch, onClearSearch }) {
+  return (
+    <div className="py-16 text-center">
+      <div className="mx-auto mb-4 h-14 w-14 rounded-2xl bg-[var(--adm-surface-2)] text-[var(--adm-text-muted)] flex items-center justify-center">
+        <Users className="h-7 w-7" />
+      </div>
+      <h3 className="text-base font-bold text-[var(--adm-text)]">
+        {activeSearch ? "نتیجه‌ای پیدا نشد" : "هنوز کاربری برای نمایش وجود ندارد"}
+      </h3>
+      <p className="mt-2 text-sm text-[var(--adm-text-muted)]">
+        {activeSearch
+          ? "عبارت جستجو را تغییر دهید یا جستجو را پاک کنید."
+          : "بعد از ثبت‌نام کاربران، اطلاعات آن‌ها اینجا نمایش داده می‌شود."}
+      </p>
+      {activeSearch ? (
+        <AdminButton className="mt-5" variant="secondary" onClick={onClearSearch} leftIcon={X}>
+          پاک کردن جستجو
+        </AdminButton>
+      ) : null}
+    </div>
+  );
+}
+
+function UsersDesktopTable({ users, onAction }) {
+  return (
+    <AdminTableShell className="hidden lg:block rounded-none border-0">
+      <AdminTable>
+        <AdminTHead className="sticky top-0 z-10">
+          <tr>
+            <AdminTH className="min-w-[260px]">کاربر</AdminTH>
+            <AdminTH>اطلاعات تماس</AdminTH>
+            <AdminTH>نقش</AdminTH>
+            <AdminTH>وضعیت پروفایل</AdminTH>
+            <AdminTH className="text-center">عملیات</AdminTH>
+          </tr>
+        </AdminTHead>
+        <tbody>
+          {users.map((user) => {
+            const role = getRoleMeta(user.role);
+            const profile = getProfileStatus(user);
+            const name = getDisplayName(user);
+
+            return (
+              <AdminTR key={user._id || user.id} interactive className="last:border-b-0">
+                <AdminTD>
+                  <div className="flex items-center gap-3">
+                    <UserAvatar user={user} />
+                    <div className="min-w-0">
+                      <p className="max-w-[220px] truncate font-bold text-[var(--adm-text)]" title={name}>
+                        {name}
+                      </p>
+                      <p className="mt-1 text-xs text-[var(--adm-text-muted)]">
+                        شناسه: {String(user._id || user.id || "-").slice(-8)}
+                      </p>
+                    </div>
+                  </div>
+                </AdminTD>
+                <AdminTD>
+                  <div className="space-y-2 text-sm">
+                    <div className="flex items-center gap-2 text-[var(--adm-text)]">
+                      <Phone className="h-4 w-4 text-[var(--adm-text-muted)]" />
+                      <span dir="ltr">{user.phone || "-"}</span>
+                      {user.phoneVerifiedAt ? (
+                        <CheckCircle2 className="h-4 w-4 text-[var(--adm-success)]" />
+                      ) : null}
+                    </div>
+                    <div className="flex items-center gap-2 text-[var(--adm-text-muted)]">
+                      <Mail className="h-4 w-4" />
+                      <span className="max-w-[220px] truncate" title={user.email || ""}>
+                        {user.email || "ایمیل ثبت نشده"}
+                      </span>
+                    </div>
+                  </div>
+                </AdminTD>
+                <AdminTD>
+                  <AdminBadge variant={role.variant}>{role.label}</AdminBadge>
+                </AdminTD>
+                <AdminTD>
+                  <AdminBadge variant={profile.variant}>{profile.label}</AdminBadge>
+                </AdminTD>
+                <AdminTD>
+                  <div className="flex items-center justify-center gap-1">
+                    <AdminIconButton className="cursor-pointer" intent="info" label="مشاهده" onClick={() => onAction(user, "view")}>
+                      <Eye className="h-5 w-5" />
+                    </AdminIconButton>
+                    <AdminIconButton className="cursor-pointer" intent="primary" label="ویرایش" onClick={() => onAction(user, "edit")}>
+                      <Pencil className="h-5 w-5" />
+                    </AdminIconButton>
+                    <AdminIconButton className="cursor-pointer" intent="danger" label="حذف" onClick={() => onAction(user, "delete")}>
+                      <Trash2 className="h-5 w-5" />
+                    </AdminIconButton>
+                  </div>
+                </AdminTD>
+              </AdminTR>
+            );
+          })}
+        </tbody>
+      </AdminTable>
+    </AdminTableShell>
+  );
+}
+
+function UsersMobileList({ users, onAction }) {
+  return (
+    <div className="grid gap-3 p-4 lg:hidden">
+      {users.map((user) => {
+        const role = getRoleMeta(user.role);
+        const profile = getProfileStatus(user);
+        const name = getDisplayName(user);
+
+        return (
+          <div
+            key={user._id || user.id}
+            className="rounded-2xl border border-[color:var(--adm-border)] bg-[var(--adm-surface)] p-4"
+          >
+            <div className="flex items-start justify-between gap-3">
+              <div className="flex min-w-0 items-center gap-3">
+                <UserAvatar user={user} />
+                <div className="min-w-0">
+                  <p className="truncate font-bold text-[var(--adm-text)]" title={name}>
+                    {name}
+                  </p>
+                  <div className="mt-2 flex flex-wrap items-center gap-2">
+                    <AdminBadge variant={role.variant}>{role.label}</AdminBadge>
+                    <AdminBadge variant={profile.variant}>{profile.label}</AdminBadge>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="mt-4 grid gap-2 rounded-2xl bg-[var(--adm-surface-2)] p-3 text-sm">
+              <div className="flex items-center gap-2 text-[var(--adm-text)]">
+                <Phone className="h-4 w-4 text-[var(--adm-text-muted)]" />
+                <span dir="ltr">{user.phone || "-"}</span>
+                {user.phoneVerifiedAt ? <CheckCircle2 className="h-4 w-4 text-[var(--adm-success)]" /> : null}
+              </div>
+              <div className="flex items-center gap-2 text-[var(--adm-text-muted)]">
+                <Mail className="h-4 w-4" />
+                <span className="truncate">{user.email || "ایمیل ثبت نشده"}</span>
+              </div>
+            </div>
+
+            <div className="mt-4 grid grid-cols-3 gap-2">
+              <AdminButton variant="secondary" size="sm" onClick={() => onAction(user, "view")} leftIcon={Eye}>
+                مشاهده
+              </AdminButton>
+              <AdminButton variant="primary" size="sm" onClick={() => onAction(user, "edit")} leftIcon={Pencil}>
+                ویرایش
+              </AdminButton>
+              <AdminButton variant="danger" size="sm" onClick={() => onAction(user, "delete")} leftIcon={Trash2}>
+                حذف
+              </AdminButton>
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
 
 export default function AllUsersPage() {
   const {
@@ -30,24 +348,32 @@ export default function AllUsersPage() {
   } = usePaginatedFetchHook(backApis.allUsers.url);
 
   const [searchTerm, setSearchTerm] = useState("");
+  const [activeSearch, setActiveSearch] = useState("");
   const [searchResults, setSearchResults] = useState([]);
-  const [isModalOpen, setIsModalOpen] = useState(false);
-
+  const [isSearching, setIsSearching] = useState(false);
   const [selectedUser, setSelectedUser] = useState(null);
   const [userModalOpen, setUserModalOpen] = useState(false);
   const [modalMode, setModalMode] = useState("view");
 
-  const handleSearch = async () => {
-    try {
-      const { data } = await apiClient.get(
-        `${backApis.searchUsers.url}?q=${searchTerm}`
-      );
-      setSearchResults(data.data);
-      setIsModalOpen(true);
-    } catch (error) {
-      console.log("Search error:", error);
-    }
-  };
+  const visibleUsers = useMemo(() => filterVisibleUsers(users || []), [users]);
+  const visibleSearchResults = useMemo(() => filterVisibleUsers(searchResults || []), [searchResults]);
+  const displayedUsers = activeSearch ? visibleSearchResults : visibleUsers;
+
+  const stats = useMemo(() => {
+    const currentList = activeSearch ? visibleSearchResults : visibleUsers;
+    const admins = currentList.filter((user) => String(user.role || "").toLowerCase() === "admin").length;
+    const verifiedPhones = currentList.filter((user) => Boolean(user.phoneVerifiedAt)).length;
+
+    return {
+      total: activeSearch ? visibleSearchResults.length : totalCount || visibleUsers.length,
+      pageUsers: currentList.length,
+      admins,
+      verifiedPhones,
+    };
+  }, [activeSearch, totalCount, visibleSearchResults, visibleUsers]);
+
+  const paginationPages = useMemo(() => buildPagination(page, totalPages), [page, totalPages]);
+  const isBusy = isLoading || isSearching;
 
   const handleOpenModal = (user, mode) => {
     setSelectedUser(user);
@@ -55,19 +381,62 @@ export default function AllUsersPage() {
     setUserModalOpen(true);
   };
 
+  const handleSearch = async (event) => {
+    event?.preventDefault();
+    const query = searchTerm.trim();
+
+    if (!query) {
+      setActiveSearch("");
+      setSearchResults([]);
+      return;
+    }
+
+    setIsSearching(true);
+    try {
+      const { data } = await apiClient.get(backApis.searchUsers.url, {
+        params: { q: query },
+      });
+
+      setSearchResults(Array.isArray(data?.data) ? data.data : []);
+      setActiveSearch(query);
+    } catch (error) {
+      toast.error(error?.response?.data?.message || "جستجو با خطا مواجه شد");
+    } finally {
+      setIsSearching(false);
+    }
+  };
+
+  const handleClearSearch = () => {
+    setSearchTerm("");
+    setActiveSearch("");
+    setSearchResults([]);
+  };
+
+  const handleRefresh = async () => {
+    try {
+      await refreshData();
+      if (activeSearch) await handleSearch();
+      toast.success("لیست کاربران بروزرسانی شد");
+    } catch (error) {
+      toast.error("بروزرسانی لیست کاربران انجام نشد");
+    }
+  };
+
   const handleUpdateUser = async (updatedUser) => {
     try {
       const { url, method } = backApis.updateUser(updatedUser._id);
-      await apiClient({
-        method,
-        url,
-        data: updatedUser,
-      });
+      const { data } = await apiClient({ method, url, data: updatedUser });
+      const nextUser = data?.data || updatedUser;
 
-      refreshData();
+      setSearchResults((prev) =>
+        prev.map((user) => (user._id === nextUser._id ? nextUser : user))
+      );
+      await refreshData();
       setUserModalOpen(false);
-    } catch (err) {
-      console.error("خطا در آپدیت کاربر:", err);
+      toast.success("اطلاعات کاربر ذخیره شد");
+    } catch (error) {
+      toast.error(error?.response?.data?.message || "ویرایش کاربر انجام نشد");
+      throw error;
     }
   };
 
@@ -76,268 +445,172 @@ export default function AllUsersPage() {
       const { url, method } = backApis.deleteUser(userId);
       await apiClient({ method, url });
 
-      refreshData();
+      setSearchResults((prev) => prev.filter((user) => user._id !== userId));
+      await refreshData();
       setUserModalOpen(false);
-    } catch (err) {
-      console.error("خطا در حذف کاربر:", err);
+      toast.success("کاربر حذف شد");
+    } catch (error) {
+      toast.error(error?.response?.data?.message || "حذف کاربر انجام نشد");
+      throw error;
     }
   };
 
-  const getUserAvatarColor = (name) => {
-    const styles = [
-      { bg: "var(--adm-primary-soft)", fg: "var(--adm-primary)" },
-      { bg: "var(--adm-info-soft)", fg: "var(--adm-info)" },
-      { bg: "var(--adm-success-soft)", fg: "var(--adm-success)" },
-      { bg: "var(--adm-warning-soft)", fg: "var(--adm-warning)" },
-      { bg: "var(--adm-error-soft)", fg: "var(--adm-error)" },
-      { bg: "var(--adm-surface-2)", fg: "var(--adm-text)" },
-    ];
-
-    const hash = (name || "")
-      .split("")
-      .reduce((acc, char) => acc + char.charCodeAt(0), 0);
-
-    return styles[hash % styles.length];
-  };
-
-  const roleLabel = (role) => {
-    const r = (role || "").toLowerCase();
-    if (r === "admin") return "مدیر";
-    if (r === "developer") return "توسعه‌دهنده";
-    if (r === "seller") return "فروشنده";
-    return "کاربر";
-  };
-
-  const roleVariant = (role) => {
-    const r = (role || "").toLowerCase();
-    if (r === "admin") return "error";
-    if (r === "developer") return "warning";
-    if (r === "seller") return "info";
-    return "primary";
-  };
-
-  const paginationPages = useMemo(() => {
-    const tp = totalPages || 1;
-    const cap = Math.min(5, tp);
-    return Array.from({ length: cap }).map((_, idx) => {
-      const pageNum =
-        page <= 3
-          ? idx + 1
-          : page >= tp - 2
-          ? tp - 4 + idx
-          : page - 2 + idx;
-      return pageNum;
-    });
-  }, [page, totalPages]);
-
   return (
-    <div className="max-w-[100vw] py-12">
+    <div className="mx-auto w-full max-w-7xl space-y-6 py-6 md:py-8">
+      <section className="overflow-hidden rounded-3xl border border-[color:var(--adm-border)] bg-[var(--adm-surface)] shadow-[0_20px_60px_var(--adm-shadow)]">
+        <div className="relative p-5 md:p-7">
+          <div className="absolute inset-x-0 top-0 h-1 bg-[var(--adm-primary)]" />
+          <div className="flex flex-col gap-5 xl:flex-row xl:items-end xl:justify-between">
+            <div className="max-w-2xl">
+              <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-[color:var(--adm-border)] bg-[var(--adm-surface-2)] px-3 py-1 text-xs font-bold text-[var(--adm-text-muted)]">
+                <Users className="h-4 w-4" />
+                مدیریت کاربران
+              </div>
+              <h1 className="text-2xl font-black text-[var(--adm-text)] md:text-4xl">
+                کاربران سایت
+              </h1>
+              <p className="mt-3 text-sm leading-7 text-[var(--adm-text-muted)] md:text-base">
+                کاربران را سریع پیدا کنید، وضعیت پروفایل را ببینید و اطلاعات حساب را بدون شلوغی مدیریت کنید.
+              </p>
+            </div>
 
-      <div className="mb-8 flex sm:flex-row flex-col items-center justify-between responsive-table mx-auto">
-        <div className="flex flex-col justify-center gap-1 sm:items-stretch items-center">
-          <h1 className="text-2xl md:text-3xl font-bold text-[var(--adm-text)] sm:text-start text-center">
-            لیست کاربران
-          </h1>
-          <p className="mt-2 text-[var(--adm-text-muted)] text-center">
-            مدیریت و مشاهده تمامی کاربران سیستم
-          </p>
+            <div className="flex flex-col gap-3 sm:flex-row">
+              <AdminButton
+                variant="secondary"
+                onClick={handleRefresh}
+                loading={isLoading}
+                leftIcon={RefreshCw}
+                className="cursor-pointer"
+              >
+                بروزرسانی
+              </AdminButton>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        <StatCard icon={Users} label={activeSearch ? "نتایج جستجو" : "کل کاربران"} value={stats.total} hint={activeSearch || "بر اساس اطلاعات سرور"} />
+        <StatCard icon={UserCheck} label="نمایش فعلی" value={stats.pageUsers} hint={activeSearch ? "در نتیجه جستجو" : `صفحه ${page} از ${totalPages || 1}`} variant="info" />
+        <StatCard icon={ShieldCheck} label="مدیران" value={stats.admins} hint="در لیست فعلی" variant="warning" />
+        <StatCard icon={BadgeCheck} label="موبایل تاییدشده" value={stats.verifiedPhones} hint="در لیست فعلی" variant="success" />
+      </section>
+
+      <AdminCard elevated className="overflow-hidden">
+        <div className="border-b border-[color:var(--adm-border)] bg-[var(--adm-surface-2)] p-4 md:p-5">
+          <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
+            <div>
+              <h2 className="text-lg font-black text-[var(--adm-text)]">لیست کاربران</h2>
+              <p className="mt-1 text-sm text-[var(--adm-text-muted)]">
+                {activeSearch
+                  ? `نمایش نتیجه برای «${activeSearch}»`
+                  : "نمایش کاربران با صفحه‌بندی و عملیات سریع"}
+              </p>
+            </div>
+
+            <form onSubmit={handleSearch} className="flex w-full flex-col gap-2 sm:flex-row xl:max-w-xl">
+              <div className="relative flex-1">
+                <AdminInput
+                  type="text"
+                  placeholder="جستجو با نام، موبایل یا ایمیل..."
+                  value={searchTerm}
+                  onChange={(event) => setSearchTerm(event.target.value)}
+                  className="h-11 pr-11 pl-10"
+                />
+                <Search className="pointer-events-none absolute right-3 top-1/2 h-5 w-5 -translate-y-1/2 text-[var(--adm-text-muted)]" />
+                {searchTerm ? (
+                  <button
+                    type="button"
+                    onClick={handleClearSearch}
+                    className="absolute left-2 top-1/2 inline-flex h-8 w-8 -translate-y-1/2 cursor-pointer items-center justify-center rounded-xl text-[var(--adm-text-muted)] hover:bg-[var(--adm-surface-2)] hover:text-[var(--adm-text)]"
+                    aria-label="پاک کردن جستجو"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                ) : null}
+              </div>
+              <AdminButton type="submit" loading={isSearching} leftIcon={Search} className="cursor-pointer">
+                جستجو
+              </AdminButton>
+            </form>
+          </div>
         </div>
 
-        <form
-          onSubmit={(e) => {
-            e.preventDefault();
-            handleSearch();
-          }}
-          className="relative w-full max-w-xs mt-4 sm:mt-0"
-        >
-          <AdminInput
-            type="text"
-            placeholder="جستجوی کاربر..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="pl-11"
-          />
-          <button
-            type="submit"
-            className="absolute left-2 top-1/2 -translate-y-1/2 h-9 w-9 rounded-xl text-[var(--adm-text-muted)] hover:bg-[var(--adm-primary-soft)] hover:text-[var(--adm-primary)] transition"
-            aria-label="جستجو"
-            title="جستجو"
-          >
-            <Search className="h-5 w-5 mx-auto" />
-          </button>
-        </form>
-      </div>
+        <div className="relative min-h-[320px]">
+          {isBusy ? (
+            <div className="absolute inset-0 z-20 flex items-center justify-center backdrop-blur-[1px]"
+              style={{ background: "color-mix(in srgb, var(--adm-overlay) 22%, transparent)" }}>
+              <div className="rounded-2xl border border-[color:var(--adm-border)] bg-[var(--adm-surface)] px-5 py-4 shadow-[0_20px_60px_var(--adm-shadow)]">
+                <div className="flex items-center gap-3 text-sm font-bold text-[var(--adm-text)]">
+                  <span className="h-5 w-5 animate-spin rounded-full border-2 border-[color:var(--adm-primary)] border-t-transparent" />
+                  در حال دریافت اطلاعات...
+                </div>
+              </div>
+            </div>
+          ) : null}
 
-      {isModalOpen && (
-        <SearchModal
-          isOpen={isModalOpen}
-          onClose={() => setIsModalOpen(false)}
-          users={searchResults}
-          getUserAvatarColor={getUserAvatarColor}
-          getRoleBadgeVariant={null}
-          onUserUpdate={() => refreshData()}
-          onUserDelete={() => refreshData()}
-        />
-      )}
+          {displayedUsers.length ? (
+            <>
+              <UsersDesktopTable users={displayedUsers} onAction={handleOpenModal} />
+              <UsersMobileList users={displayedUsers} onAction={handleOpenModal} />
+            </>
+          ) : (
+            <EmptyState activeSearch={Boolean(activeSearch)} onClearSearch={handleClearSearch} />
+          )}
+        </div>
 
-      <AdminCard elevated className="relative responsive-table mx-auto">
-        {isLoading ? (
-          <div
-            className="absolute inset-0 z-10 flex items-center justify-center"
-            style={{ background: "var(--adm-overlay)" }}
-          >
-            <div
-              className="w-10 h-10 border-4 border-t-transparent rounded-full animate-spin"
-              style={{
-                borderColor: "var(--adm-primary)",
-                borderTopColor: "transparent",
-              }}
-              aria-label="loading"
-            />
+        {!activeSearch && displayedUsers.length ? (
+          <div className="flex flex-col items-center justify-between gap-4 border-t border-[color:var(--adm-border)] bg-[var(--adm-surface)] p-4 sm:flex-row">
+            <p className="text-sm text-[var(--adm-text-muted)]">
+              نمایش <span className="font-bold text-[var(--adm-text)]">{displayedUsers.length}</span> کاربر در این صفحه از مجموع{" "}
+              <span className="font-bold text-[var(--adm-text)]">{totalCount || displayedUsers.length}</span>
+            </p>
+
+            <div className="flex items-center gap-2">
+              <AdminIconButton
+                className="cursor-pointer"
+                label="صفحه قبل"
+                onClick={() => setPage((prev) => Math.max(prev - 1, 1))}
+                disabled={page === 1}
+              >
+                <ArrowRight className="h-5 w-5" />
+              </AdminIconButton>
+
+              <div className="flex items-center gap-1">
+                {paginationPages.map((item, index) =>
+                  item === "..." ? (
+                    <span key={`gap-${index}`} className="px-2 text-[var(--adm-text-muted)]">
+                      ...
+                    </span>
+                  ) : (
+                    <button
+                      key={item}
+                      type="button"
+                      onClick={() => setPage(item)}
+                      className={
+                        page === item
+                          ? "h-10 min-w-10 cursor-pointer rounded-xl bg-[var(--adm-primary)] px-3 text-sm font-black text-[var(--adm-on-primary)]"
+                          : "h-10 min-w-10 cursor-pointer rounded-xl px-3 text-sm font-bold text-[var(--adm-text-muted)] hover:bg-[var(--adm-surface-2)] hover:text-[var(--adm-text)]"
+                      }
+                    >
+                      {item}
+                    </button>
+                  )
+                )}
+              </div>
+
+              <AdminIconButton
+                className="cursor-pointer"
+                intent="primary"
+                label="صفحه بعد"
+                onClick={() => setPage((prev) => Math.min(prev + 1, totalPages || 1))}
+                disabled={page === (totalPages || 1)}
+              >
+                <ArrowLeft className="h-5 w-5" />
+              </AdminIconButton>
+            </div>
           </div>
         ) : null}
-
-        <AdminCardHeader>
-          <div className="flex flex-wrap justify-between items-center gap-4">
-            <div>
-              <AdminCardTitle>اطلاعات کاربران</AdminCardTitle>
-              <AdminCardDescription>
-                لیست تمام کاربران ثبت شده در سیستم
-              </AdminCardDescription>
-            </div>
-
-            <div className="rounded-xl p-3 text-center bg-[var(--adm-surface)] border border-[color:var(--adm-border)]">
-              <div className="text-2xl font-bold text-[var(--adm-text)]">
-                {totalCount}
-              </div>
-              <div className="text-xs text-[var(--adm-text-muted)]">کل کاربران</div>
-            </div>
-          </div>
-        </AdminCardHeader>
-
-        <AdminCardContent className="p-0">
-          <div className="overflow-x-auto">
-            <table className="w-full text-right">
-              <thead className="bg-[var(--adm-surface-2)] text-[var(--adm-text)]">
-                <tr>
-                  <th className="py-4 px-4 font-semibold">نام</th>
-                  <th className="py-4 px-4 font-semibold">ایمیل</th>
-                  <th className="py-4 px-4 font-semibold">شماره تلفن</th>
-                  <th className="py-4 px-4 font-semibold">نقش</th>
-                  <th className="py-4 px-4 font-semibold">عملیات</th>
-                </tr>
-              </thead>
-              <tbody>
-                {users?.map((user) => {
-                  const a = getUserAvatarColor(user.name || "کاربر");
-                  return (
-                    <tr
-                      key={user._id}
-                      className="border-b border-[color:var(--adm-border)] bg-[var(--adm-surface)] hover:bg-[var(--adm-primary-soft)] transition-colors"
-                    >
-                      <td className="py-4 px-4">
-                        <div className="flex items-center gap-2">
-                          <div
-                            className="w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm"
-                            style={{ background: a.bg, color: a.fg }}
-                          >
-                            {user.name?.charAt(0) || "U"}
-                          </div>
-                          <span
-                            className="whitespace-nowrap truncate max-w-[180px]"
-                            title={user.name}
-                          >
-                            {user.name}
-                          </span>
-                        </div>
-                      </td>
-                      <td className="py-4 px-4 text-[var(--adm-text-muted)]">{user.email}</td>
-                      <td className="py-4 px-4 text-[var(--adm-text-muted)]">{user.phone || "-"}</td>
-                      <td className="py-4 px-4">
-                        <AdminBadge variant={roleVariant(user.role)}>{roleLabel(user.role)}</AdminBadge>
-                      </td>
-                      <td className="py-4 px-4">
-                        <div className="flex gap-1 justify-center sm:justify-start">
-                          <AdminIconButton
-                            intent="success"
-                            label="مشاهده"
-                            onClick={() => handleOpenModal(user, "view")}
-                          >
-                            <Eye className="h-5 w-5" />
-                          </AdminIconButton>
-                          <AdminIconButton
-                            intent="primary"
-                            label="ویرایش"
-                            onClick={() => handleOpenModal(user, "edit")}
-                          >
-                            <Edit className="h-5 w-5" />
-                          </AdminIconButton>
-                          <AdminIconButton
-                            intent="danger"
-                            label="حذف"
-                            onClick={() => handleOpenModal(user, "delete")}
-                          >
-                            <Trash2 className="h-5 w-5" />
-                          </AdminIconButton>
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        </AdminCardContent>
-      </AdminCard>
-
-
-      <AdminCard className="mt-6 responsive-table mx-auto">
-        <AdminCardContent className="flex flex-col sm:flex-row items-center justify-between gap-4">
-          <div className="text-[var(--adm-text-muted)]">
-            نمایش <span className="font-bold text-[var(--adm-text)]">{users?.length || 0}</span> از{" "}
-            <span className="font-bold text-[var(--adm-text)]">{users?.length || 0}</span> کاربر
-          </div>
-
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => setPage((prev) => Math.max(prev - 1, 1))}
-              disabled={page === 1}
-              className="h-10 w-10 rounded-xl border border-[color:var(--adm-border)] bg-[var(--adm-surface-2)] text-[var(--adm-text)] disabled:opacity-50 disabled:cursor-not-allowed hover:bg-[var(--adm-surface)] transition"
-              aria-label="صفحه قبل"
-            >
-              <ArrowRight className="h-5 w-5 mx-auto" />
-            </button>
-
-            <div className="flex gap-1">
-              {paginationPages.map((pageNum) => {
-                if (pageNum < 1 || pageNum > (totalPages || 1)) return null;
-                const active = page === pageNum;
-                return (
-                  <button
-                    key={pageNum}
-                    onClick={() => setPage(pageNum)}
-                    className={
-                      active
-                        ? "h-10 w-10 rounded-xl font-semibold bg-[var(--adm-primary)] text-[var(--adm-on-primary)]"
-                        : "h-10 w-10 rounded-xl font-semibold text-[var(--adm-text-muted)] hover:bg-[var(--adm-surface-2)] hover:text-[var(--adm-text)] transition"
-                    }
-                  >
-                    {pageNum}
-                  </button>
-                );
-              })}
-            </div>
-
-            <button
-              onClick={() => setPage((prev) => Math.min(prev + 1, totalPages || 1))}
-              disabled={page === (totalPages || 1)}
-              className="h-10 w-10 rounded-xl bg-[var(--adm-primary)] text-[var(--adm-on-primary)] disabled:opacity-50 disabled:cursor-not-allowed hover:bg-[var(--adm-primary-hover)] transition"
-              aria-label="صفحه بعد"
-            >
-              <ArrowLeft className="h-5 w-5 mx-auto" />
-            </button>
-          </div>
-        </AdminCardContent>
       </AdminCard>
 
       <UserModal
