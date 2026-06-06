@@ -5,6 +5,7 @@ import { toast } from "react-toastify";
 import {
   ArrowLeft,
   ArrowRight,
+  CalendarDays,
   CheckCircle2,
   Eye,
   Mail,
@@ -13,6 +14,7 @@ import {
   RefreshCw,
   Search,
   ShieldCheck,
+  SlidersHorizontal,
   Trash2,
   UserCheck,
   Users,
@@ -29,6 +31,7 @@ import {
   AdminCardContent,
   AdminIconButton,
   AdminInput,
+  AdminSelect,
   AdminTable,
   AdminTableShell,
   AdminTD,
@@ -44,6 +47,21 @@ const ROLE_META = {
   seller: { label: "فروشنده", className: "bg-[var(--adm-warning-soft)] text-[var(--adm-warning)] ring-[var(--adm-border)]" },
   user: { label: "کاربر", className: "bg-[var(--adm-info-soft)] text-[var(--adm-info)] ring-[var(--adm-border)]" },
 };
+
+const SORT_OPTIONS = [
+  { value: "latest", label: "آخرین ثبت‌نام" },
+  { value: "oldest", label: "اولین ثبت‌نام" },
+  { value: "admins_first", label: "مدیران ابتدا" },
+  { value: "completed_profile", label: "پروفایل‌های تکمیل‌تر" },
+];
+
+const JALALI_DATE_FORMATTER = new Intl.DateTimeFormat("fa-IR-u-ca-persian", {
+  year: "numeric",
+  month: "long",
+  day: "2-digit",
+  hour: "2-digit",
+  minute: "2-digit",
+});
 
 const AVATAR_STYLES = [
   { bg: "var(--adm-primary-soft)", fg: "var(--adm-primary)" },
@@ -74,6 +92,15 @@ function getAvatarStyle(name) {
 function getRoleMeta(role) {
   const key = String(role || "user").toLowerCase();
   return ROLE_META[key] || ROLE_META.user;
+}
+
+function formatJalaliDate(value) {
+  if (!value) return "ثبت نشده";
+
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "ثبت نشده";
+
+  return JALALI_DATE_FORMATTER.format(date);
 }
 
 function getProfileStatus(user) {
@@ -273,6 +300,7 @@ function UsersDesktopTable({ users, onAction }) {
             <AdminTH className="min-w-[260px]">کاربر</AdminTH>
             <AdminTH>اطلاعات تماس</AdminTH>
             <AdminTH>نقش</AdminTH>
+            <AdminTH>تاریخ ثبت‌نام</AdminTH>
             <AdminTH>وضعیت پروفایل</AdminTH>
             <AdminTH className="text-center">عملیات</AdminTH>
           </tr>
@@ -299,6 +327,12 @@ function UsersDesktopTable({ users, onAction }) {
                 </AdminTD>
                 <AdminTD>
                   <RoleBadge role={user.role} />
+                </AdminTD>
+                <AdminTD>
+                  <div className="inline-flex items-center gap-2 rounded-2xl bg-[var(--adm-surface-2)] px-3 py-2 text-xs font-bold text-[var(--adm-text)]">
+                    <CalendarDays className="h-4 w-4 text-[var(--adm-text-muted)]" />
+                    <span dir="rtl">{formatJalaliDate(user.createdAt)}</span>
+                  </div>
                 </AdminTD>
                 <AdminTD>
                   <AdminBadge variant={profile.variant}>{profile.label}</AdminBadge>
@@ -352,8 +386,12 @@ function UsersMobileList({ users, onAction }) {
               </div>
             </div>
 
-            <div className="mt-4 grid gap-2 rounded-2xl bg-[var(--adm-surface-2)] p-3 text-sm">
+            <div className="mt-4 grid gap-3 rounded-2xl bg-[var(--adm-surface-2)] p-3 text-sm">
               <ContactRows user={user} />
+              <div className="flex items-center gap-2 border-t border-[color:var(--adm-border)] pt-3 text-xs font-bold text-[var(--adm-text-muted)]">
+                <CalendarDays className="h-4 w-4" />
+                <span>ثبت‌نام: {formatJalaliDate(user.createdAt)}</span>
+              </div>
             </div>
 
             <div className="mt-4 grid grid-cols-3 gap-2">
@@ -375,6 +413,8 @@ function UsersMobileList({ users, onAction }) {
 }
 
 export default function AllUsersPage() {
+  const [sortMode, setSortMode] = useState("latest");
+  const queryParams = useMemo(() => ({ sort: sortMode }), [sortMode]);
   const {
     data: users,
     isLoading,
@@ -383,7 +423,7 @@ export default function AllUsersPage() {
     totalPages,
     totalCount,
     refreshData,
-  } = usePaginatedFetchHook(backApis.allUsers.url);
+  } = usePaginatedFetchHook(backApis.allUsers.url, queryParams);
 
   const [searchTerm, setSearchTerm] = useState("");
   const [activeSearch, setActiveSearch] = useState("");
@@ -419,11 +459,10 @@ export default function AllUsersPage() {
     setUserModalOpen(true);
   };
 
-  const handleSearch = async (event) => {
-    event?.preventDefault();
-    const query = searchTerm.trim();
+  const runSearch = async (query, selectedSort = sortMode) => {
+    const normalizedQuery = String(query || "").trim();
 
-    if (!query) {
+    if (!normalizedQuery) {
       setActiveSearch("");
       setSearchResults([]);
       return;
@@ -432,15 +471,30 @@ export default function AllUsersPage() {
     setIsSearching(true);
     try {
       const { data } = await apiClient.get(backApis.searchUsers.url, {
-        params: { q: query },
+        params: { q: normalizedQuery, sort: selectedSort },
       });
 
       setSearchResults(Array.isArray(data?.data) ? data.data : []);
-      setActiveSearch(query);
+      setActiveSearch(normalizedQuery);
     } catch (error) {
       toast.error(error?.response?.data?.message || "جستجو با خطا مواجه شد");
     } finally {
       setIsSearching(false);
+    }
+  };
+
+  const handleSearch = async (event) => {
+    event?.preventDefault();
+    await runSearch(searchTerm, sortMode);
+  };
+
+  const handleSortChange = async (event) => {
+    const nextSort = event.target.value;
+    setSortMode(nextSort);
+    setPage(1);
+
+    if (activeSearch) {
+      await runSearch(activeSearch, nextSort);
     }
   };
 
@@ -453,7 +507,7 @@ export default function AllUsersPage() {
   const handleRefresh = async () => {
     try {
       await refreshData();
-      if (activeSearch) await handleSearch();
+      if (activeSearch) await runSearch(activeSearch, sortMode);
       toast.success("لیست کاربران بروزرسانی شد");
     } catch (error) {
       toast.error("بروزرسانی لیست کاربران انجام نشد");
@@ -543,8 +597,26 @@ export default function AllUsersPage() {
               </p>
             </div>
 
-            <form onSubmit={handleSearch} className="flex w-full flex-col gap-2 sm:flex-row xl:max-w-xl">
-              <div className="relative flex-1">
+            <div className="flex w-full flex-col gap-2 xl:max-w-3xl xl:flex-row">
+              <label className="relative min-w-[190px]">
+                <span className="sr-only">مرتب‌سازی کاربران</span>
+                <AdminSelect
+                  value={sortMode}
+                  onChange={handleSortChange}
+                  variant="filled"
+                  className="h-11 pr-10"
+                >
+                  {SORT_OPTIONS.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </AdminSelect>
+                <SlidersHorizontal className="pointer-events-none absolute right-3 top-1/2 h-5 w-5 -translate-y-1/2 text-[var(--adm-text-muted)]" />
+              </label>
+
+              <form onSubmit={handleSearch} className="flex flex-1 flex-col gap-2 sm:flex-row">
+                <div className="relative flex-1">
                 <AdminInput
                   type="text"
                   placeholder="جستجو با نام، موبایل یا ایمیل..."
@@ -564,10 +636,11 @@ export default function AllUsersPage() {
                   </button>
                 ) : null}
               </div>
-              <AdminButton type="submit" loading={isSearching} leftIcon={Search} className="cursor-pointer">
-                جستجو
-              </AdminButton>
-            </form>
+                <AdminButton type="submit" loading={isSearching} leftIcon={Search} className="cursor-pointer">
+                  جستجو
+                </AdminButton>
+              </form>
+            </div>
           </div>
         </div>
 

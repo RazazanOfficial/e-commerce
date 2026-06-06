@@ -1,6 +1,6 @@
 //? 🔵 Required Modules
 const UserModel = require("../../../models/userModel");
-const { escapeRegex, USER_PUBLIC_FIELDS } = require("../../../utils/userSecurity");
+const { buildSearchFilter, buildUserListPipeline, normalizeUserSort } = require("../../../utils/userListQuery");
 
 //* 🟢 Search Users Controller
 const searchUsersController = async (req, res) => {
@@ -17,24 +17,12 @@ const searchUsersController = async (req, res) => {
 
     const page = Math.max(1, parseInt(req.query.page, 10) || 1);
     const limit = Math.max(1, Math.min(100, parseInt(req.query.limit, 10) || 20));
-    const searchRegex = new RegExp(escapeRegex(String(q).trim()), "i");
-    const filter = {
-      $or: [
-        { firstName: { $regex: searchRegex } },
-        { lastName: { $regex: searchRegex } },
-        { name: { $regex: searchRegex } },
-        { email: { $regex: searchRegex } },
-        { phone: { $regex: searchRegex } },
-      ],
-    };
+    const skip = (page - 1) * limit;
+    const sort = normalizeUserSort(req.query.sort);
+    const filter = buildSearchFilter(q);
 
     const [users, totalCount] = await Promise.all([
-      UserModel.find(filter)
-        .select(USER_PUBLIC_FIELDS)
-        .sort({ createdAt: -1 })
-        .skip((page - 1) * limit)
-        .limit(limit)
-        .lean(),
+      UserModel.aggregate(buildUserListPipeline({ filter, sort, skip, limit })),
       UserModel.countDocuments(filter),
     ]);
 
@@ -42,6 +30,7 @@ const searchUsersController = async (req, res) => {
       data: users,
       page,
       limit,
+      sort,
       totalCount,
       totalPages: Math.ceil(totalCount / limit),
       success: true,

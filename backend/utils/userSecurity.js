@@ -8,7 +8,11 @@ const EDITABLE_USER_FIELDS = new Set([
   "lastName",
   "name",
   "phone",
+  "phoneVerifiedAt",
+  "phoneVerified",
   "email",
+  "emailVerifiedAt",
+  "emailVerified",
   "password",
   "role",
   "address",
@@ -23,6 +27,13 @@ const USER_PUBLIC_FIELDS =
 const normalizePhone = (phone) => String(phone || "").replace(/\D/g, "");
 const normalizeEmail = (email) => String(email || "").trim().toLowerCase();
 const escapeRegex = (value) => String(value || "").replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+const normalizeVerificationDate = (value) => {
+  if (value === true || value === "true") return new Date();
+  if (value === false || value === "false" || value === null || value === "") return null;
+
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? new Date() : date;
+};
 const isAdminRole = (role) => ADMIN_ROLES.has(String(role || "").trim());
 
 const toPublicUser = (user) => {
@@ -34,9 +45,23 @@ const toPublicUser = (user) => {
 
 const buildSafeUserUpdates = async (body = {}) => {
   const updates = {};
+  const explicitVerification = { phone: false, email: false };
+  const changedContact = { phone: false, email: false };
 
   for (const [key, value] of Object.entries(body || {})) {
     if (!EDITABLE_USER_FIELDS.has(key)) continue;
+
+    if (key === "phoneVerifiedAt" || key === "phoneVerified") {
+      updates.phoneVerifiedAt = normalizeVerificationDate(value);
+      explicitVerification.phone = true;
+      continue;
+    }
+
+    if (key === "emailVerifiedAt" || key === "emailVerified") {
+      updates.emailVerifiedAt = normalizeVerificationDate(value);
+      explicitVerification.email = true;
+      continue;
+    }
 
     if (key === "password") {
       const password = String(value || "");
@@ -70,6 +95,7 @@ const buildSafeUserUpdates = async (body = {}) => {
         throw err;
       }
       updates.phone = phone;
+      changedContact.phone = true;
       continue;
     }
 
@@ -77,6 +103,7 @@ const buildSafeUserUpdates = async (body = {}) => {
       const email = normalizeEmail(value);
       if (!email) {
         updates.$unset = { ...(updates.$unset || {}), email: 1, emailVerifiedAt: 1 };
+        changedContact.email = true;
         continue;
       }
       if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
@@ -85,10 +112,23 @@ const buildSafeUserUpdates = async (body = {}) => {
         throw err;
       }
       updates.email = email;
+      changedContact.email = true;
       continue;
     }
 
     updates[key] = typeof value === "string" ? value.trim() : value;
+  }
+
+  if (changedContact.phone && !explicitVerification.phone) {
+    updates.phoneVerifiedAt = null;
+  }
+
+  if (changedContact.email && !explicitVerification.email) {
+    updates.emailVerifiedAt = null;
+  }
+
+  if (updates.$unset?.emailVerifiedAt) {
+    delete updates.emailVerifiedAt;
   }
 
   if ((updates.firstName || updates.lastName) && !updates.name) {
@@ -108,5 +148,6 @@ module.exports = {
   isAdminRole,
   normalizeEmail,
   normalizePhone,
+  normalizeVerificationDate,
   toPublicUser,
 };
