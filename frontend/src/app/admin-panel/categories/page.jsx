@@ -109,7 +109,7 @@ export default function CategoriesPage() {
       active,
       inactive: list.length - active,
       roots: rootCount,
-      depth: getMaxDepth(tree),
+      children: Math.max(list.length - rootCount, 0),
     };
   }, [raw, tree]);
 
@@ -379,8 +379,8 @@ export default function CategoriesPage() {
             value={stats.inactive}
             variant="warning"
           />
-          <StatCard icon={FolderTree} label="دسته سطح ۱" value={stats.roots} />
-          <StatCard icon={ChevronDown} label="عمق درخت" value={stats.depth} />
+          <StatCard icon={FolderTree} label="دسته‌های اصلی" value={stats.roots} />
+          <StatCard icon={Plus} label="زیر‌دسته‌ها" value={stats.children} />
         </div>
       </div>
 
@@ -436,11 +436,11 @@ export default function CategoriesPage() {
           </div>
         ) : (
           <div>
-            <div className="hidden grid-cols-[minmax(0,1fr)_auto_auto_auto] gap-3 border-b border-[color:var(--adm-border)] bg-[var(--adm-surface-2)] px-4 py-3 text-xs font-bold text-[var(--adm-text-muted)] xl:grid">
+            <div className="hidden grid-cols-[minmax(0,1fr)_92px_118px_132px] gap-3 border-b border-[color:var(--adm-border)] bg-[var(--adm-surface-2)] px-4 py-3 text-xs font-bold text-[var(--adm-text-muted)] xl:grid">
               <div>دسته‌بندی</div>
-              <div>ترتیب</div>
-              <div>وضعیت</div>
-              <div>عملیات</div>
+              <div className="text-center">ترتیب</div>
+              <div className="text-center">وضعیت</div>
+              <div className="text-center">عملیات</div>
             </div>
 
             <div

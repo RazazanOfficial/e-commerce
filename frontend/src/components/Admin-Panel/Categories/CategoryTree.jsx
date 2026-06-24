@@ -14,6 +14,7 @@ import {
   Edit,
   Folder,
   FolderOpen,
+  HelpCircle,
   ImageIcon,
   Link2,
   MoreVertical,
@@ -39,29 +40,37 @@ import {
 import { cn } from "@/lib/utils";
 
 //* 🟢 Category Utilities
-const slugify = (str = "") =>
+const normalizeSlugInput = (str = "") =>
   str
     .toString()
-    .trim()
     .toLowerCase()
     .replace(/\s+/g, "-")
     .replace(/[^a-z0-9-]+/g, "")
     .replace(/--+/g, "-")
-    .replace(/^-+|-+$/g, "");
+    .replace(/^-+/g, "");
+
+const slugify = (str = "") => normalizeSlugInput(str).replace(/-+$/g, "");
 
 const KEYWORD_SEPARATOR = "، ";
 const KEYWORD_SPLIT_RE = /[،,]/;
 
-const formatKeywords = (keywords) => {
-  if (Array.isArray(keywords)) return keywords.filter(Boolean).join(KEYWORD_SEPARATOR);
-  return keywords || "";
-};
-
-const parseKeywords = (keywords) =>
-  String(keywords || "")
+const parseKeywords = (keywords) => {
+  const source = Array.isArray(keywords) ? keywords.join(KEYWORD_SEPARATOR) : keywords;
+  return String(source || "")
     .split(KEYWORD_SPLIT_RE)
     .map((k) => k.trim())
     .filter(Boolean);
+};
+
+const uniqueKeywords = (items) => {
+  const seen = new Set();
+  return items.filter((item) => {
+    const key = item.trim().toLowerCase();
+    if (!key || seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+};
 
 const buildTree = (flat) => {
   const map = new Map();
@@ -90,6 +99,108 @@ const flattenForSelect = (tree, depth = 0, arr = []) => {
 
 const countDescendants = (node) =>
   (node.children || []).reduce((sum, child) => sum + 1 + countDescendants(child), 0);
+
+function FieldHelpLabel({ label, description }) {
+  return (
+    <span className="relative inline-flex items-center gap-1.5 align-middle group/help">
+      <span>{label}</span>
+      <span
+        className="inline-flex h-5 w-5 items-center justify-center rounded-full border border-[color:var(--adm-border)] bg-[var(--adm-surface)] text-[var(--adm-text-muted)] transition group-hover/help:border-[color:var(--adm-primary)] group-hover/help:text-[var(--adm-primary)]"
+        aria-hidden="true"
+      >
+        <HelpCircle className="h-3.5 w-3.5" />
+      </span>
+      <span className="pointer-events-none absolute right-0 top-full z-[70] mt-2 w-64 translate-y-1 rounded-2xl border border-[color:var(--adm-border)] bg-[var(--adm-surface)] p-3 text-xs leading-6 text-[var(--adm-text)] opacity-0 shadow-[0_20px_60px_var(--adm-shadow)] transition duration-150 group-hover/help:translate-y-0 group-hover/help:opacity-100">
+        {description}
+      </span>
+    </span>
+  );
+}
+
+function SectionTitle({ title, description }) {
+  return (
+    <h3 className="text-sm font-bold text-[var(--adm-text)]">
+      <FieldHelpLabel label={title} description={description} />
+    </h3>
+  );
+}
+
+function KeywordTagsInput({ tags, draft, onChangeTags, onChangeDraft }) {
+  const commitKeywords = (raw) => {
+    const parsed = parseKeywords(raw);
+    if (!parsed.length) return;
+    onChangeTags(uniqueKeywords([...(tags || []), ...parsed]));
+  };
+
+  const handleChange = (event) => {
+    const next = event.target.value;
+    if (KEYWORD_SPLIT_RE.test(next)) {
+      const parts = next.split(KEYWORD_SPLIT_RE);
+      const pending = parts.pop() || "";
+      commitKeywords(parts.join(KEYWORD_SEPARATOR));
+      onChangeDraft(pending);
+      return;
+    }
+    onChangeDraft(next);
+  };
+
+  const removeKeyword = (index) => {
+    onChangeTags((tags || []).filter((_, i) => i !== index));
+  };
+
+  const handleKeyDown = (event) => {
+    if ((event.key === "Enter" || event.key === "Tab") && draft.trim()) {
+      event.preventDefault();
+      commitKeywords(draft);
+      onChangeDraft("");
+      return;
+    }
+
+    if (event.key === "Backspace" && !draft && tags?.length) {
+      event.preventDefault();
+      onChangeTags(tags.slice(0, -1));
+    }
+  };
+
+  const handleBlur = () => {
+    if (!draft.trim()) return;
+    commitKeywords(draft);
+    onChangeDraft("");
+  };
+
+  return (
+    <div className="min-h-11 rounded-xl border border-[color:var(--adm-border)] bg-[var(--adm-surface-2)] px-2 py-2 focus-within:ring-2 focus-within:ring-[color:var(--adm-ring)] focus-within:ring-offset-2 focus-within:ring-offset-[color:var(--adm-bg)]">
+      <div className="flex flex-wrap items-center gap-2">
+        {(tags || []).map((tag, index) => (
+          <span
+            key={`${tag}-${index}`}
+            className="inline-flex items-center gap-1 rounded-xl border border-[color:var(--adm-border)] bg-[var(--adm-surface)] px-2.5 py-1 text-xs font-semibold text-[var(--adm-text)]"
+          >
+            {tag}
+            <button
+              type="button"
+              onClick={() => removeKeyword(index)}
+              className="inline-flex h-5 w-5 items-center justify-center rounded-full text-[var(--adm-error)] transition hover:bg-[var(--adm-error-soft)]"
+              aria-label={`حذف ${tag}`}
+              title="حذف"
+            >
+              <X className="h-3.5 w-3.5" />
+            </button>
+          </span>
+        ))}
+
+        <input
+          value={draft}
+          onChange={handleChange}
+          onKeyDown={handleKeyDown}
+          onBlur={handleBlur}
+          placeholder={(tags || []).length ? "کلمه بعدی..." : "موبایل، تبلت، گوشی هوشمند"}
+          className="h-7 min-w-36 flex-1 bg-transparent text-sm text-[var(--adm-text)] placeholder:text-[var(--adm-text-muted)] focus:outline-none"
+        />
+      </div>
+    </div>
+  );
+}
 
 //* 🟢 Category Image Uploader
 function CategoryImageUploader({
@@ -190,7 +301,10 @@ function CategoryImageUploader({
                 <AdminButton
                   variant="secondary"
                   size="sm"
-                  onClick={() => onChangeImage("")}
+                  onClick={() => {
+                    onChangeImage("");
+                    onChangeImageAlt("");
+                  }}
                   disabled={disabled || uploading}
                   leftIcon={X}
                 >
@@ -229,7 +343,15 @@ function CategoryImageUploader({
           ) : null}
 
           <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
-            <AdminField label="آدرس تصویر" hint="اختیاری">
+            <AdminField
+              label={
+                <FieldHelpLabel
+                  label="آدرس تصویر"
+                  description="آدرس عمومی تصویر دسته‌بندی است. می‌توانی آن را با آپلود خودکار پر کنی یا یک URL معتبر وارد کنی."
+                />
+              }
+              hint="اختیاری"
+            >
               <AdminInput
                 disabled={disabled || uploading}
                 value={image}
@@ -240,7 +362,15 @@ function CategoryImageUploader({
                 variant="filled"
               />
             </AdminField>
-            <AdminField label="متن جایگزین" hint="برای SEO و دسترس‌پذیری">
+            <AdminField
+              label={
+                <FieldHelpLabel
+                  label="متن جایگزین"
+                  description="متنی کوتاه برای توضیح تصویر است و به SEO، دسترس‌پذیری و نمایش بهتر تصویر کمک می‌کند."
+                />
+              }
+              hint="برای SEO و دسترس‌پذیری"
+            >
               <AdminInput
                 disabled={disabled || uploading}
                 value={imageAlt}
@@ -268,6 +398,7 @@ function CategoryFormPanel({
 }) {
   const isEdit = mode === "edit" && Boolean(initial?._id);
   const isModal = variant === "modal";
+  const isParentLocked = Boolean(parentDraft?._id && !isEdit);
   const [name, setName] = useState(initial?.name || "");
   const [slug, setSlug] = useState(initial?.slug || "");
   const [description, setDescription] = useState(initial?.description || "");
@@ -277,7 +408,8 @@ function CategoryFormPanel({
   const [parent, setParent] = useState(parentDraft?._id || initial?.parent?._id || initial?.parent || "");
   const [metaTitle, setMetaTitle] = useState(initial?.metaTitle || "");
   const [metaDescription, setMetaDescription] = useState(initial?.metaDescription || "");
-  const [keywords, setKeywords] = useState(formatKeywords(initial?.keywords));
+  const [keywordTags, setKeywordTags] = useState(parseKeywords(initial?.keywords));
+  const [keywordDraft, setKeywordDraft] = useState("");
 
   useEffect(() => {
     setName(initial?.name || "");
@@ -289,7 +421,8 @@ function CategoryFormPanel({
     setParent(parentDraft?._id || initial?.parent?._id || initial?.parent || "");
     setMetaTitle(initial?.metaTitle || "");
     setMetaDescription(initial?.metaDescription || "");
-    setKeywords(formatKeywords(initial?.keywords));
+    setKeywordTags(parseKeywords(initial?.keywords));
+    setKeywordDraft("");
   }, [initial?._id, parentDraft?._id, mode]);
 
   useEffect(() => {
@@ -321,11 +454,18 @@ function CategoryFormPanel({
     setParent(parentDraft?._id || "");
     setMetaTitle("");
     setMetaDescription("");
-    setKeywords("");
+    setKeywordTags([]);
+    setKeywordDraft("");
   };
 
   const handleSubmit = () => {
-    if (!name?.trim()) return toast.error("نام دسته‌بندی را وارد کنید");
+    const finalName = name.trim();
+    const finalSlug = normalizeSlugInput(slug).trim();
+
+    if (!finalName) return toast.error("نام دسته‌بندی را وارد کنید");
+    if (!finalSlug) return toast.error("اسلاگ را وارد کنید");
+    if (finalSlug.endsWith("-")) return toast.error("آخرین کاراکتر اسلاگ نباید خط تیره باشد");
+
     if (image && !String(image).trim().startsWith("/")) {
       try {
         new URL(image);
@@ -334,21 +474,30 @@ function CategoryFormPanel({
       }
     }
 
+    const finalKeywords = uniqueKeywords([
+      ...keywordTags,
+      ...parseKeywords(keywordDraft),
+    ]);
+
     const payload = {
       ...(isEdit ? { id: initial._id } : {}),
-      name: name.trim(),
-      slug: slug?.trim() || slugify(name),
+      name: finalName,
+      slug: finalSlug,
       description: description?.trim(),
-      image: image?.trim() || undefined,
-      imageAlt: imageAlt?.trim() || name.trim(),
+      image: image?.trim() || (isEdit ? "" : undefined),
+      imageAlt: image?.trim()
+        ? imageAlt?.trim() || finalName
+        : isEdit
+          ? ""
+          : undefined,
       isActive,
       parent: parent || null,
-      metaTitle: metaTitle?.trim() || `خرید ${name.trim()}`,
+      metaTitle: metaTitle?.trim() || `خرید ${finalName}`,
       metaDescription:
         metaDescription?.trim() ||
         description?.trim() ||
-        `مشاهده و خرید محصولات دسته ${name.trim()} در فروشگاه.`,
-      keywords: parseKeywords(keywords),
+        `مشاهده و خرید محصولات دسته ${finalName} در فروشگاه.`,
+      keywords: finalKeywords,
     };
 
     onSubmit(payload, { resetCreateForm });
@@ -362,35 +511,35 @@ function CategoryFormPanel({
       )}
     >
       {!isModal ? (
-      <div className="border-b border-[color:var(--adm-border)] bg-[var(--adm-surface-2)] p-5">
-        <div className="flex items-start justify-between gap-3">
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[var(--adm-text-muted)]">
-              {isEdit ? "Edit category" : "New category"}
-            </p>
-            <h2 className="mt-1 text-xl font-bold text-[var(--adm-text)]">
-              {isEdit ? "ویرایش دسته‌بندی" : parentDraft ? "ایجاد زیر‌دسته" : "افزودن دسته‌بندی"}
-            </h2>
-            <p className="mt-1 text-sm text-[var(--adm-text-muted)]">
-              {isEdit
-                ? "بعد از ذخیره، ساختار درختی به‌روزرسانی می‌شود."
-                : "اطلاعات پایه، تصویر و داده‌های SEO را از همین فرم مدیریت کن."}
-            </p>
+        <div className="border-b border-[color:var(--adm-border)] bg-[var(--adm-surface-2)] p-5">
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[var(--adm-text-muted)]">
+                {isEdit ? "Edit category" : "New category"}
+              </p>
+              <h2 className="mt-1 text-xl font-bold text-[var(--adm-text)]">
+                {isEdit ? "ویرایش دسته‌بندی" : parentDraft ? "ایجاد زیر‌دسته" : "افزودن دسته‌بندی"}
+              </h2>
+              <p className="mt-1 text-sm text-[var(--adm-text-muted)]">
+                {isEdit
+                  ? "بعد از ذخیره، ساختار درختی به‌روزرسانی می‌شود."
+                  : "اطلاعات پایه، تصویر و داده‌های SEO را از همین فرم مدیریت کن."}
+              </p>
+            </div>
+
+            {isEdit ? (
+              <AdminIconButton label="بازگشت به ایجاد" intent="muted" onClick={onCancelEdit}>
+                <RefreshCw className="h-4 w-4" />
+              </AdminIconButton>
+            ) : null}
           </div>
 
-          {isEdit ? (
-            <AdminIconButton label="بازگشت به ایجاد" intent="muted" onClick={onCancelEdit}>
-              <RefreshCw className="h-4 w-4" />
-            </AdminIconButton>
+          {parentDraft && !isEdit ? (
+            <div className="mt-4 rounded-xl border border-[color:var(--adm-border)] bg-[var(--adm-primary-soft)] px-3 py-2 text-sm text-[var(--adm-text)]">
+              والد انتخاب‌شده: <span className="font-semibold">{parentDraft.name}</span>
+            </div>
           ) : null}
         </div>
-
-        {parentDraft && !isEdit ? (
-          <div className="mt-4 rounded-xl border border-[color:var(--adm-border)] bg-[var(--adm-primary-soft)] px-3 py-2 text-sm text-[var(--adm-text)]">
-            والد انتخاب‌شده: <span className="font-semibold">{parentDraft.name}</span>
-          </div>
-        ) : null}
-      </div>
       ) : parentDraft && !isEdit ? (
         <div className="mb-5 rounded-xl border border-[color:var(--adm-border)] bg-[var(--adm-primary-soft)] px-3 py-2 text-sm text-[var(--adm-text)]">
           والد انتخاب‌شده: <span className="font-semibold">{parentDraft.name}</span>
@@ -400,10 +549,21 @@ function CategoryFormPanel({
       <div className={cn("space-y-5", !isModal && "p-5")}>
         <section className="space-y-4">
           <div>
-            <h3 className="text-sm font-bold text-[var(--adm-text)]">اطلاعات اصلی</h3>
+            <SectionTitle
+              title="اطلاعات اصلی"
+              description="اطلاعات پایه دسته‌بندی شامل نام، اسلاگ، والد و توضیحاتی است که ساختار فروشگاه را مشخص می‌کند."
+            />
           </div>
 
-          <AdminField label="نام دسته‌بندی" required>
+          <AdminField
+            label={
+              <FieldHelpLabel
+                label="نام دسته‌بندی"
+                description="نام نمایشی دسته است و در پنل مدیریت و معمولاً در صفحات فروشگاه نمایش داده می‌شود."
+              />
+            }
+            required
+          >
             <AdminInput
               value={name}
               onChange={(e) => setName(e.target.value)}
@@ -412,11 +572,20 @@ function CategoryFormPanel({
             />
           </AdminField>
 
-          <AdminField label="اسلاگ" hint="فقط حروف انگلیسی، عدد و خط تیره">
+          <AdminField
+            label={
+              <FieldHelpLabel
+                label="اسلاگ"
+                description="اسلاگ بخش خوانای URL است. فقط حروف انگلیسی، عدد و خط تیره مجاز است؛ در زمان ذخیره نباید با خط تیره تمام شود."
+              />
+            }
+            hint="فقط حروف انگلیسی، عدد و خط تیره"
+            required
+          >
             <div className="space-y-2">
               <AdminInput
                 value={slug}
-                onChange={(e) => setSlug(slugify(e.target.value))}
+                onChange={(e) => setSlug(normalizeSlugInput(e.target.value))}
                 placeholder="mobile-tablet"
                 dir="ltr"
                 className="text-left"
@@ -428,18 +597,40 @@ function CategoryFormPanel({
             </div>
           </AdminField>
 
-          <AdminField label="والد" hint="برای ساخت درخت دسته‌بندی">
-            <AdminSelect value={parent} onChange={(e) => setParent(e.target.value)} variant="filled">
-              <option value="">— بدون والد</option>
-              {options.map((o) => (
-                <option key={o._id} value={o._id}>
-                  {o.name}
-                </option>
-              ))}
-            </AdminSelect>
+          <AdminField
+            label={
+              <FieldHelpLabel
+                label="والد"
+                description="با انتخاب والد، این دسته به زیر‌دسته تبدیل می‌شود. هنگام ساخت زیر‌دسته از دکمه +، والد ثابت و غیرقابل تغییر است."
+              />
+            }
+            hint={isParentLocked ? "ثابت" : "برای ساخت درخت دسته‌بندی"}
+          >
+            {isParentLocked ? (
+              <div className="flex h-10 items-center rounded-xl border border-[color:var(--adm-border)] bg-[var(--adm-surface-2)] px-3 text-sm font-semibold text-[var(--adm-text-muted)]">
+                {parentDraft.name}
+              </div>
+            ) : (
+              <AdminSelect value={parent} onChange={(e) => setParent(e.target.value)} variant="filled">
+                <option value="">— بدون والد</option>
+                {options.map((o) => (
+                  <option key={o._id} value={o._id}>
+                    {o.name}
+                  </option>
+                ))}
+              </AdminSelect>
+            )}
           </AdminField>
 
-          <AdminField label="توضیحات" hint="اختیاری">
+          <AdminField
+            label={
+              <FieldHelpLabel
+                label="توضیحات"
+                description="توضیح کوتاهی درباره کاربرد یا محتوای این دسته است و می‌تواند در صفحه دسته‌بندی یا برای مدیریت داخلی استفاده شود."
+              />
+            }
+            hint="اختیاری"
+          >
             <AdminTextarea
               rows={4}
               value={description}
@@ -451,7 +642,12 @@ function CategoryFormPanel({
 
           <label className="flex items-center justify-between gap-3 rounded-2xl border border-[color:var(--adm-border)] bg-[var(--adm-surface-2)] px-4 py-3">
             <span>
-              <span className="block text-sm font-semibold text-[var(--adm-text)]">وضعیت نمایش</span>
+              <span className="block text-sm font-semibold text-[var(--adm-text)]">
+                <FieldHelpLabel
+                  label="وضعیت نمایش"
+                  description="اگر فعال باشد، دسته در بخش‌های قابل نمایش فروشگاه استفاده می‌شود؛ اگر غیرفعال باشد برای مدیریت داخلی باقی می‌ماند."
+                />
+              </span>
             </span>
             <input
               id="isActive"
@@ -466,7 +662,10 @@ function CategoryFormPanel({
 
         <section className="space-y-4">
           <div>
-            <h3 className="text-sm font-bold text-[var(--adm-text)]">تصویر</h3>
+            <SectionTitle
+              title="تصویر"
+              description="تصویر دسته‌بندی برای نمایش بهتر در فروشگاه و تشخیص سریع‌تر دسته‌ها در پنل مدیریت استفاده می‌شود."
+            />
           </div>
           <CategoryImageUploader
             image={image}
@@ -479,13 +678,24 @@ function CategoryFormPanel({
 
         <section className="space-y-4">
           <div>
-            <h3 className="text-sm font-bold text-[var(--adm-text)]">سئو</h3>
+            <SectionTitle
+              title="سئو"
+              description="این بخش برای بهینه‌سازی عنوان، توضیحات و کلمات کلیدی دسته در موتورهای جستجو استفاده می‌شود."
+            />
             <p className="mt-1 text-xs text-[var(--adm-text-muted)]">
               عنوان و توضیحات متا فارسی نوشته می‌شوند. کلمات کلیدی را با ویرگول «،» جدا کنید.
             </p>
           </div>
 
-          <AdminField label="عنوان متا" hint="فارسی / اختیاری">
+          <AdminField
+            label={
+              <FieldHelpLabel
+                label="عنوان متا"
+                description="عنوانی کوتاه و فارسی برای نتیجه جستجو است. بهتر است شامل نام دسته و عبارت خرید باشد."
+              />
+            }
+            hint="فارسی / اختیاری"
+          >
             <AdminInput
               value={metaTitle}
               onChange={(e) => setMetaTitle(e.target.value)}
@@ -494,7 +704,15 @@ function CategoryFormPanel({
             />
           </AdminField>
 
-          <AdminField label="توضیحات متا" hint="فارسی / اختیاری">
+          <AdminField
+            label={
+              <FieldHelpLabel
+                label="توضیحات متا"
+                description="توضیحی کوتاه برای نمایش در نتایج جستجو است. بهتر است طبیعی، فارسی و مرتبط با محصولات این دسته باشد."
+              />
+            }
+            hint="فارسی / اختیاری"
+          >
             <AdminTextarea
               rows={3}
               value={metaDescription}
@@ -504,12 +722,20 @@ function CategoryFormPanel({
             />
           </AdminField>
 
-          <AdminField label="کلمات کلیدی" hint="با «،» جدا کن">
-            <AdminInput
-              value={keywords}
-              onChange={(e) => setKeywords(e.target.value)}
-              placeholder="موبایل، تبلت، گوشی هوشمند"
-              variant="filled"
+          <AdminField
+            label={
+              <FieldHelpLabel
+                label="کلمات کلیدی"
+                description="هر کلمه یا عبارت را با ویرگول فارسی «،» جدا کن. هر مورد به‌صورت باکس جدا نمایش داده می‌شود و با Backspace یا دکمه ضربدر حذف می‌شود."
+              />
+            }
+            hint="با «،» جدا کن"
+          >
+            <KeywordTagsInput
+              tags={keywordTags}
+              draft={keywordDraft}
+              onChangeTags={setKeywordTags}
+              onChangeDraft={setKeywordDraft}
             />
           </AdminField>
         </section>
@@ -651,7 +877,16 @@ function Row({
   const isOpen = expanded;
   const padRight = 14 + depth * 22;
   const descendantCount = countDescendants(node);
-  const rowBg = isOpen || isAncestorHighlighted ? "var(--adm-primary-soft)" : "var(--adm-surface)";
+  const depthTone = Math.min(depth, 4);
+  const nestedSurfaceBg =
+    depth > 0
+      ? `color-mix(in srgb, var(--adm-surface-2) ${Math.min(42 + depthTone * 8, 74)}%, var(--adm-surface))`
+      : "var(--adm-surface)";
+  const expandedBg =
+    depth > 0
+      ? `color-mix(in srgb, var(--adm-primary-soft) ${Math.min(76 + depthTone * 5, 92)}%, var(--adm-primary) ${Math.min(4 + depthTone * 3, 16)}%)`
+      : "var(--adm-primary-soft)";
+  const rowBg = isOpen || isAncestorHighlighted ? expandedBg : nestedSurfaceBg;
 
   return (
     <div className="relative">
@@ -665,7 +900,7 @@ function Row({
         role="treeitem"
         aria-expanded={hasChildren ? isOpen : undefined}
         tabIndex={0}
-        className="group grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 border-b border-[color:var(--adm-border)] px-3 py-3 transition focus:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--adm-ring)] xl:grid-cols-[minmax(0,1fr)_auto_auto_auto]"
+        className="group grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 border-b border-[color:var(--adm-border)] px-3 py-3 transition focus:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--adm-ring)] xl:grid-cols-[minmax(0,1fr)_92px_118px_132px]"
         style={{ paddingRight: padRight, background: rowBg, color: "var(--adm-text)" }}
         onKeyDown={(e) => {
           if (!hasChildren) return;
@@ -714,7 +949,7 @@ function Row({
           </div>
         </div>
 
-        <div className="hidden items-center gap-1 justify-self-end xl:flex">
+        <div className="hidden w-[92px] items-center justify-center gap-1 justify-self-center xl:flex">
           <button
             className="rounded-xl p-2 text-[var(--adm-text-muted)] transition hover:bg-[var(--adm-surface-2)] hover:text-[var(--adm-text)]"
             onClick={() => onMoveUp(node)}
@@ -733,7 +968,7 @@ function Row({
           </button>
         </div>
 
-        <div className="hidden justify-self-end xl:block">
+        <div className="hidden w-[118px] justify-self-center text-center xl:block">
           <button
             onClick={() => onToggleActive(node)}
             className={cn(
@@ -751,8 +986,8 @@ function Row({
           </button>
         </div>
 
-        <div className="justify-self-end">
-          <div className="hidden items-center gap-1 lg:flex">
+        <div className="w-[132px] justify-self-end xl:justify-self-center">
+          <div className="hidden items-center justify-center gap-1 lg:flex">
             <button
               onClick={() => onAddChild(node)}
               className="rounded-xl p-2 text-[var(--adm-text-muted)] transition hover:bg-[var(--adm-primary-soft)] hover:text-[var(--adm-primary)]"
