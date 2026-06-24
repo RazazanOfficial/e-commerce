@@ -4,6 +4,7 @@ const { Product } = require("../../../../models/productModel");
 const CurrencyCatalog = require("../../../../models/currencyCatalogModel");
 const CategoryModel = require("../../../../models/categoryModel");
 const { buildPublicUrl } = require("../../../../utils/cloudSpace");
+const sanitizeHtml = require("sanitize-html");
 
 //* 🟢 Create Required Fields
 const REQUIRED = {
@@ -154,6 +155,91 @@ const parseIntegerField = (
 
 //* 🟢 validateCurrency Utility
 const ALLOWED_CURRENCIES_FALLBACK = new Set(["IRT", "IRR", "USD"]);
+
+const PRODUCT_HTML_SANITIZE_OPTIONS = {
+  allowedTags: [
+    "b",
+    "i",
+    "em",
+    "strong",
+    "u",
+    "s",
+    "br",
+    "p",
+    "div",
+    "span",
+    "ul",
+    "ol",
+    "li",
+    "h1",
+    "h2",
+    "h3",
+    "h4",
+    "h5",
+    "h6",
+    "blockquote",
+    "code",
+    "pre",
+    "hr",
+    "table",
+    "thead",
+    "tbody",
+    "tr",
+    "th",
+    "td",
+    "a",
+    "img",
+    "mark",
+    "small",
+    "sub",
+    "sup",
+  ],
+  allowedAttributes: {
+    a: ["href", "target", "rel", "title"],
+    img: ["src", "alt", "title", "width", "height"],
+    span: ["style"],
+    p: ["style"],
+    div: ["style"],
+    table: ["style"],
+    th: ["colspan", "rowspan", "style"],
+    td: ["colspan", "rowspan", "style"],
+  },
+  allowedSchemes: ["http", "https", "mailto"],
+  allowProtocolRelative: false,
+  transformTags: {
+    a: (tagName, attribs) => {
+      const out = { ...attribs };
+      if (out.target === "_blank") {
+        out.rel = "noopener noreferrer nofollow";
+      } else if (out.rel) {
+        const rel = String(out.rel).toLowerCase();
+        if (!rel.includes("noopener")) out.rel = `${out.rel} noopener`.trim();
+        if (!rel.includes("noreferrer")) out.rel = `${out.rel} noreferrer`.trim();
+      }
+      return { tagName, attribs: out };
+    },
+    img: (tagName, attribs) => {
+      const out = { ...attribs };
+      if (!out.alt) out.alt = "";
+      return { tagName, attribs: out };
+    },
+  },
+  allowedStyles: {
+    "*": {
+      color: [/^#([0-9a-f]{3}){1,2}$/i],
+      "background-color": [/^#([0-9a-f]{3}){1,2}$/i],
+      "text-align": [/^left$/, /^right$/, /^center$/, /^justify$/],
+      "font-weight": [/^normal$/, /^bold$/, /^bolder$/, /^lighter$/, /^[1-9]00$/],
+      "text-decoration": [/^none$/, /^underline$/, /^line-through$/],
+      "font-style": [/^normal$/, /^italic$/],
+    },
+  },
+};
+
+const sanitizeProductOverviewHtml = (html) => {
+  if (typeof html !== "string" || !html.trim()) return "";
+  return sanitizeHtml(html, PRODUCT_HTML_SANITIZE_OPTIONS);
+};
 
 const validateCurrency = async (currency) => {
   if (typeof currency !== "string") {
@@ -464,11 +550,15 @@ const buildUnifiedMediaForResponse = (p) => {
 const shapeProductForResponse = (p) => {
   const base = p && typeof p.toObject === "function" ? p.toObject() : p;
   const { media, primaryMediaUrl } = buildUnifiedMediaForResponse(base || {});
-  return {
+  const shaped = {
     ...(base || {}),
     media,
     primaryMediaUrl,
   };
+
+  shaped.overviewHtml = sanitizeProductOverviewHtml(shaped.overviewHtml);
+
+  return shaped;
 };
 
 //* 🟢 validateEnum Utility
@@ -713,6 +803,7 @@ module.exports = {
   safeBuildPublicUrl,
   buildUnifiedMediaForResponse,
   shapeProductForResponse,
+  sanitizeProductOverviewHtml,
   validateEnumIfProvided,
   validateOptionalObjectId,
   normalizeRelated,

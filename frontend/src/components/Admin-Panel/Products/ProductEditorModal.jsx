@@ -36,7 +36,7 @@ const emptyProduct = () => ({
   categoryId: "",
   tags: "",
   status: "DRAFT",
-  visible: true,
+  visible: false,
   price: "",
   currency: "",
   compareAt: "",
@@ -89,6 +89,19 @@ const formatCurrencyOption = (currency) => {
   return [name, code, symbol ? `(${symbol})` : ""].filter(Boolean).join(" - ");
 };
 
+const isActiveStatus = (status) => status === "ACTIVE";
+
+const hasValue = (value) => {
+  if (value === undefined || value === null) return false;
+  if (typeof value === "string") return !!value.trim();
+  return true;
+};
+
+const validateNonNegativeInteger = (value) => {
+  const n = Number(value);
+  return Number.isInteger(n) && n >= 0;
+};
+
 //* 🟢 Tab Button
 function TabButton({ active, children, ...props }) {
   return (
@@ -139,6 +152,7 @@ export default function ProductEditorModal({
   const [uploadProgress, setUploadProgress] = useState(0);
 
   const titleText = isEdit ? "ویرایش محصول" : "ایجاد محصول";
+  const isActiveProduct = isActiveStatus(form.status);
 
   const categoriesSorted = useMemo(() => {
     const list = Array.isArray(categories) ? categories : [];
@@ -221,6 +235,7 @@ export default function ProductEditorModal({
   //* 🟢 Currency Default Sync
   useEffect(() => {
     if (!open || isEdit) return;
+    if (!isActiveStatus(form.status)) return;
     if (form.currency) return;
 
     const firstCurrency = currenciesSorted.find((item) => !item?.isCurrentOnly)?.code;
@@ -228,7 +243,15 @@ export default function ProductEditorModal({
       setForm((prev) => ({ ...prev, currency: firstCurrency }));
       setErrors((prev) => ({ ...prev, currency: undefined }));
     }
-  }, [open, isEdit, form.currency, currenciesSorted]);
+  }, [open, isEdit, form.status, form.currency, currenciesSorted]);
+
+  //* 🟢 Visibility Sync
+  useEffect(() => {
+    if (!open) return;
+    if (isActiveStatus(form.status) || form.visible === false) return;
+
+    setForm((prev) => ({ ...prev, visible: false }));
+  }, [open, form.status, form.visible]);
 
   //* 🟢 Product Hydration
   useEffect(() => {
@@ -321,42 +344,51 @@ export default function ProductEditorModal({
   //* 🟢 Form Validation
   const validate = () => {
     const e = {};
+    const isActive = isActiveStatus(form.status);
 
-    if (!String(form.title).trim()) e.title = "عنوان الزامی است";
+    if (isActive && !String(form.title).trim()) e.title = "برای فعال‌سازی محصول، عنوان الزامی است";
+
     const s = String(form.slug || "").trim().toLowerCase();
-    if (!s) e.slug = "اسلاگ الزامی است";
-    else if (!/^[a-z0-9-]+$/.test(s)) e.slug = "فقط حروف انگلیسی، ارقام و -";
+    if (isActive && !s) e.slug = "برای فعال‌سازی محصول، اسلاگ الزامی است";
+    else if (s && !/^[a-z0-9-]+$/.test(s)) e.slug = "فقط حروف انگلیسی، ارقام و -";
 
-    if (!String(form.shortDescription).trim()) e.shortDescription = "توضیح کوتاه الزامی است";
-    if (!String(form.categoryId).trim()) e.categoryId = "دسته‌بندی را انتخاب کنید";
+    if (isActive && !String(form.shortDescription).trim()) {
+      e.shortDescription = "برای فعال‌سازی محصول، توضیح کوتاه الزامی است";
+    }
 
-    if (form.price === "" || form.price === null || form.price === undefined) {
-      e.price = "قیمت الزامی است";
-    } else {
-      const n = Number(form.price);
-      if (!Number.isInteger(n) || n < 0) e.price = "قیمت باید عدد صحیح و >= 0 باشد";
+    if (isActive && !String(form.categoryId).trim()) {
+      e.categoryId = "برای فعال‌سازی محصول، دسته‌بندی را انتخاب کنید";
+    }
+
+    if (isActive && !hasValue(form.price)) {
+      e.price = "برای فعال‌سازی محصول، قیمت الزامی است";
+    } else if (hasValue(form.price) && !validateNonNegativeInteger(form.price)) {
+      e.price = "قیمت باید عدد صحیح و >= 0 باشد";
     }
 
     const selectedCurrency = normalizeCurrencyCode(form.currency);
-    if (!selectedCurrency) e.currency = "واحد پول الزامی است";
-    else if (!currenciesSorted.some((item) => normalizeCurrencyCode(item?.code) === selectedCurrency && !item?.isCurrentOnly)) {
+    if (isActive && !selectedCurrency) {
+      e.currency = "برای فعال‌سازی محصول، واحد پول الزامی است";
+    } else if (selectedCurrency && !currenciesSorted.some((item) => normalizeCurrencyCode(item?.code) === selectedCurrency && !item?.isCurrentOnly)) {
       e.currency = "واحد پول انتخاب‌شده در کاتالوگ فعال نیست";
     }
 
-    if (!Array.isArray(form.images) || !form.images.length) {
-      e.images = "حداقل یک تصویر لازم است";
-    } else {
-      const primaryCount = form.images.filter((i) => i?.isPrimary).length;
+    const images = Array.isArray(form.images) ? form.images : [];
+    if (isActive && !images.length) {
+      e.images = "برای فعال‌سازی محصول، حداقل یک تصویر لازم است";
+    }
+
+    if (images.length) {
+      const primaryCount = images.filter((i) => i?.isPrimary).length;
       if (primaryCount !== 1) e.images = "باید دقیقاً یک تصویر اصلی داشته باشید";
-      for (let idx = 0; idx < form.images.length; idx++) {
-        const it = form.images[idx];
+      for (let idx = 0; idx < images.length; idx++) {
+        const it = images[idx];
         if (!String(it?.url || "").trim() || !String(it?.alt || "").trim()) {
           e.images = "برای هر تصویر url و alt الزامی است";
           break;
         }
       }
     }
-
 
     const optionalInts = [
       ["compareAt", "compareAt"],
@@ -367,9 +399,8 @@ export default function ProductEditorModal({
 
     for (const [key] of optionalInts) {
       const v = form[key];
-      if (v === "" || v === undefined || v === null) continue;
-      const n = Number(v);
-      if (!Number.isInteger(n) || n < 0) {
+      if (!hasValue(v)) continue;
+      if (!validateNonNegativeInteger(v)) {
         e[key] = "باید عدد صحیح و >= 0 باشد";
       }
     }
@@ -379,54 +410,52 @@ export default function ProductEditorModal({
   };
 
   const buildPayload = () => {
+    const isActive = isActiveStatus(form.status);
     const tagsArr = String(form.tags || "")
       .split(",")
       .map((t) => t.trim())
       .filter(Boolean);
 
     const payload = {
-      title: String(form.title).trim(),
-      slug: String(form.slug).trim().toLowerCase(),
-      shortDescription: String(form.shortDescription).trim(),
-      overviewHtml: String(form.overviewHtml || ""),
-      categoryId: form.categoryId,
-      tags: tagsArr,
       status: form.status,
-      visible: !!form.visible,
-      price: Number(form.price),
-      currency: String(form.currency).trim().toUpperCase(),
-      images: form.images.map((i) => ({
+      visible: isActive ? !!form.visible : false,
+      tags: tagsArr,
+      overviewHtml: String(form.overviewHtml || ""),
+      images: (Array.isArray(form.images) ? form.images : []).map((i) => ({
         url: String(i.url).trim(),
         alt: String(i.alt).trim(),
         isPrimary: !!i.isPrimary,
       })),
-
-
-      compareAt: form.compareAt === "" ? undefined : Number(form.compareAt),
-      cost: form.cost === "" ? undefined : Number(form.cost),
       inventory: {
         manage: !!form.inventoryManage,
-        qty: form.inventoryQty === "" ? 0 : Number(form.inventoryQty),
+        qty: hasValue(form.inventoryQty) ? Number(form.inventoryQty) : 0,
       },
       stockStatus: form.stockStatus,
-      lowStockThreshold:
-        form.lowStockThreshold === "" ? undefined : Number(form.lowStockThreshold),
       allowBackorder: !!form.allowBackorder,
-      seo: {
-        title: String(form.seoTitle || "").trim(),
-        description: String(form.seoDescription || "").trim(),
-        canonicalUrl: String(form.seoCanonicalUrl || "").trim(),
-      },
     };
 
+    const title = String(form.title || "").trim();
+    const slug = String(form.slug || "").trim().toLowerCase();
+    const shortDescription = String(form.shortDescription || "").trim();
+    const categoryId = String(form.categoryId || "").trim();
+    const currency = normalizeCurrencyCode(form.currency);
 
-    if (!payload.seo.title && !payload.seo.description && !payload.seo.canonicalUrl) {
-      delete payload.seo;
-    }
+    if (isActive || title) payload.title = title;
+    if (isActive || slug) payload.slug = slug;
+    if (isActive || shortDescription) payload.shortDescription = shortDescription;
+    if (isActive || categoryId) payload.categoryId = categoryId;
+    if (hasValue(form.price)) payload.price = Number(form.price);
+    if (currency) payload.currency = currency;
+    if (hasValue(form.compareAt)) payload.compareAt = Number(form.compareAt);
+    if (hasValue(form.cost)) payload.cost = Number(form.cost);
+    if (hasValue(form.lowStockThreshold)) payload.lowStockThreshold = Number(form.lowStockThreshold);
 
-    if (payload.compareAt === undefined) delete payload.compareAt;
-    if (payload.cost === undefined) delete payload.cost;
-    if (payload.lowStockThreshold === undefined) delete payload.lowStockThreshold;
+    const seo = {
+      title: String(form.seoTitle || "").trim(),
+      description: String(form.seoDescription || "").trim(),
+      canonicalUrl: String(form.seoCanonicalUrl || "").trim(),
+    };
+    if (seo.title || seo.description || seo.canonicalUrl) payload.seo = seo;
 
     return payload;
   };
@@ -620,7 +649,9 @@ export default function ProductEditorModal({
   const footer = (
     <div className="flex items-center justify-between gap-3">
       <div className="text-xs text-[var(--adm-text-muted)]">
-        فیلدهای ستاره‌دار الزامی هستند.
+        {isActiveProduct
+          ? "برای محصول فعال، فیلدهای ستاره‌دار الزامی هستند."
+          : "پیش‌نویس و آرشیو می‌توانند ناقص ذخیره شوند و در سایت نمایش داده نمی‌شوند."}
       </div>
       <div className="flex items-center gap-2">
         <AdminButton variant="secondary" onClick={onClose} disabled={loading}>
@@ -660,9 +691,15 @@ export default function ProductEditorModal({
 
       {!fetching ? (
         <div className="pt-4">
+          {!isActiveProduct ? (
+            <div className="mb-4 rounded-2xl border border-[color:var(--adm-border)] bg-[var(--adm-surface-2)] px-4 py-3 text-xs leading-6 text-[var(--adm-text-muted)]">
+              این محصول در وضعیت پیش‌نویس/آرشیو می‌تواند با اطلاعات ناقص ذخیره شود. برای نمایش در سایت، وضعیت را روی «فعال» بگذارید و فیلدهای الزامی را کامل کنید.
+            </div>
+          ) : null}
+
           {activeTab === "basic" ? (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <AdminField label="عنوان" required error={errors.title} className="md:col-span-2">
+              <AdminField label="عنوان" required={isActiveProduct} error={errors.title} className="md:col-span-2">
                 <AdminInput
                   value={form.title}
                   onChange={(e) => setField("title", e.target.value)}
@@ -670,7 +707,7 @@ export default function ProductEditorModal({
                 />
               </AdminField>
 
-              <AdminField label="اسلاگ" required hint="فقط a-z 0-9 و -" error={errors.slug}>
+              <AdminField label="اسلاگ" required={isActiveProduct} hint="فقط a-z 0-9 و -" error={errors.slug}>
                 <AdminInput
                   value={form.slug}
                   onChange={(e) => setField("slug", slugify(e.target.value))}
@@ -678,7 +715,7 @@ export default function ProductEditorModal({
                 />
               </AdminField>
 
-              <AdminField label="دسته‌بندی" required error={errors.categoryId}>
+              <AdminField label="دسته‌بندی" required={isActiveProduct} error={errors.categoryId}>
                 <AdminSelect
                   value={form.categoryId}
                   onChange={(e) => setField("categoryId", e.target.value)}
@@ -695,7 +732,19 @@ export default function ProductEditorModal({
               <AdminField label="وضعیت">
                 <AdminSelect
                   value={form.status}
-                  onChange={(e) => setField("status", e.target.value)}
+                  onChange={(e) => {
+                    const nextStatus = e.target.value;
+                    setForm((prev) => ({
+                      ...prev,
+                      status: nextStatus,
+                      visible: isActiveStatus(nextStatus) ? prev.visible : false,
+                    }));
+                    setErrors((prev) => ({
+                      ...prev,
+                      status: undefined,
+                      visible: undefined,
+                    }));
+                  }}
                 >
                   <option value="DRAFT">پیش‌نویس</option>
                   <option value="ACTIVE">فعال</option>
@@ -703,9 +752,13 @@ export default function ProductEditorModal({
                 </AdminSelect>
               </AdminField>
 
-              <AdminField label="نمایش در سایت">
+              <AdminField
+                label="نمایش در سایت"
+                hint={isActiveProduct ? "فقط محصول فعال می‌تواند در سایت نمایش داده شود" : "برای پیش‌نویس و آرشیو، بک‌اند همیشه محصول را مخفی ذخیره می‌کند"}
+              >
                 <AdminSelect
-                  value={form.visible ? "true" : "false"}
+                  value={isActiveProduct && form.visible ? "true" : "false"}
+                  disabled={!isActiveProduct}
                   onChange={(e) => setField("visible", e.target.value === "true")}
                 >
                   <option value="true">نمایش داده شود</option>
@@ -713,7 +766,7 @@ export default function ProductEditorModal({
                 </AdminSelect>
               </AdminField>
 
-              <AdminField label="توضیح کوتاه" required error={errors.shortDescription} className="md:col-span-2">
+              <AdminField label="توضیح کوتاه" required={isActiveProduct} error={errors.shortDescription} className="md:col-span-2">
                 <AdminTextarea
                   value={form.shortDescription}
                   onChange={(e) => setField("shortDescription", e.target.value)}
@@ -741,7 +794,7 @@ export default function ProductEditorModal({
 
           {activeTab === "pricing" ? (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <AdminField label="قیمت" required error={errors.price}>
+              <AdminField label="قیمت" required={isActiveProduct} error={errors.price}>
                 <AdminInput
                   inputMode="numeric"
                   value={form.price}
@@ -752,7 +805,7 @@ export default function ProductEditorModal({
 
               <AdminField
                 label="واحد پول"
-                required
+                required={isActiveProduct}
                 hint={currencyLoading ? "در حال دریافت از کاتالوگ…" : "از کاتالوگ واحد پول"}
                 error={errors.currency || currencyError}
               >
@@ -855,7 +908,13 @@ export default function ProductEditorModal({
           ) : null}
 
           {activeTab === "media" ? (
-            <ProductMediaEditor
+            <>
+              {!isActiveProduct ? (
+                <div className="mb-4 rounded-2xl border border-[color:var(--adm-border)] bg-[var(--adm-surface-2)] px-4 py-3 text-xs leading-6 text-[var(--adm-text-muted)]">
+                  تصویر برای پیش‌نویس اختیاری است؛ اما برای فعال‌سازی محصول باید حداقل یک تصویر و دقیقاً یک تصویر اصلی داشته باشید.
+                </div>
+              ) : null}
+              <ProductMediaEditor
               images={form.images}
               imgUrl={imgUrl}
               imgAlt={imgAlt}
@@ -872,6 +931,7 @@ export default function ProductEditorModal({
               onStartEdit={startEditImage}
               onRemove={removeImage}
             />
+            </>
           ) : null}
 
           {activeTab === "seo" ? (
