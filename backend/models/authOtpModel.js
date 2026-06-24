@@ -3,6 +3,7 @@ const mongoose = require("mongoose");
 
 const OTP_PURPOSES = Object.freeze({
   REGISTER: "REGISTER",
+  LOGIN: "LOGIN",
 });
 
 //* 🟢 Auth OTP Model

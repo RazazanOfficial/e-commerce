@@ -7,7 +7,10 @@ const backApis = {
   register: { url: `${backDomin}/api/register`, method: "POST" },
   registerRequestCode: { url: `${backDomin}/api/register/request-code`, method: "POST" },
   registerVerifyCode: { url: `${backDomin}/api/register/verify-code`, method: "POST" },
+  registerSetPassword: { url: `${backDomin}/api/register/set-password`, method: "POST" },
   login: { url: `${backDomin}/api/login`, method: "POST" },
+  loginRequestCode: { url: `${backDomin}/api/login/request-code`, method: "POST" },
+  loginVerifyCode: { url: `${backDomin}/api/login/verify-code`, method: "POST" },
   getUserInfo: { url: `${backDomin}/api/user-details`, method: "GET" },
   logOut: { url: `${backDomin}/api/logout`, method: "GET" },
 

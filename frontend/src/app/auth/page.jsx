@@ -3,33 +3,50 @@
 import { useCallback, useContext, useEffect, useMemo, useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import Image from "next/image";
-import Logo from "@/assets/images/Logo.png";
-import { StarsIcon } from "lucide-react";
-import apiClient from "@/common/apiClient";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { StarsIcon } from "lucide-react";
 import { toast } from "react-toastify";
+
+import Logo from "@/assets/images/Logo.png";
+import apiClient from "@/common/apiClient";
 import backApis from "@/common";
 import { InputField } from "@/components/ui/Inputs";
 import { Btn1 } from "@/components/ui/Buttons";
-import Link from "next/link";
 import { UserContext } from "@/context/UserContext";
 
-const SIGNUP_PROGRESS_STORAGE_KEY = "auth.signup.progress.v1";
+const SIGNUP_PROGRESS_STORAGE_KEY = "auth.signup.progress.v2";
 const RESEND_COOLDOWN_SECONDS = 60;
 const namePattern = /^[A-Za-zآ-یء-ی\s‌-]+$/;
 const phonePattern = /^09\d{9}$/;
 const codePattern = /^\d{6}$/;
+const passwordPattern = /^(?=.*[A-Za-zآ-ی])(?=.*\d).{8,}$/;
 
-const getInitialFormData = () => ({
+const getInitialSignupData = () => ({
   firstName: "",
   lastName: "",
   phone: "",
   code: "",
+  password: "",
+  confirmPassword: "",
+  registrationToken: "",
 });
 
 const getInitialRegexMsg = () => ({
   firstName: "",
   lastName: "",
+  phone: "",
+  code: "",
+  password: "",
+  confirmPassword: "",
+});
+
+const getInitialPasswordLoginData = () => ({
+  identifier: "",
+  password: "",
+});
+
+const getInitialOtpLoginData = () => ({
   phone: "",
   code: "",
 });
@@ -43,16 +60,21 @@ const readSignupProgress = () => {
 
     const progress = JSON.parse(rawProgress);
     const formData = progress?.formData || {};
+    const safeStep = ["identity", "verify", "password"].includes(progress?.signupStep)
+      ? progress.signupStep
+      : "identity";
 
     return {
       mode: progress?.mode === "signup" ? "signup" : "signin",
-      signupStep: progress?.signupStep === "verify" ? "verify" : "identity",
-      cooldownEndsAt: Number(progress?.cooldownEndsAt) || 0,
+      signupStep: safeStep,
+      signupCooldownEndsAt: Number(progress?.signupCooldownEndsAt) || 0,
       formData: {
+        ...getInitialSignupData(),
         firstName: String(formData.firstName || ""),
         lastName: String(formData.lastName || ""),
         phone: String(formData.phone || ""),
         code: String(formData.code || ""),
+        registrationToken: String(formData.registrationToken || ""),
       },
     };
   } catch {
@@ -61,7 +83,7 @@ const readSignupProgress = () => {
   }
 };
 
-const writeSignupProgress = ({ mode, signupStep, formData, cooldownEndsAt }) => {
+const writeSignupProgress = ({ mode, signupStep, formData, signupCooldownEndsAt }) => {
   if (typeof window === "undefined") return;
 
   window.localStorage.setItem(
@@ -69,12 +91,13 @@ const writeSignupProgress = ({ mode, signupStep, formData, cooldownEndsAt }) => 
     JSON.stringify({
       mode,
       signupStep,
-      cooldownEndsAt,
+      signupCooldownEndsAt,
       formData: {
         firstName: formData.firstName,
         lastName: formData.lastName,
         phone: formData.phone,
         code: formData.code,
+        registrationToken: formData.registrationToken,
       },
     })
   );
@@ -90,17 +113,19 @@ const AuthPage = () => {
   const { fetchUserDetails } = useContext(UserContext);
 
   const [mode, setMode] = useState("signin");
+  const [loginMethod, setLoginMethod] = useState("password");
   const [signupStep, setSignupStep] = useState("identity");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isHydrated, setIsHydrated] = useState(false);
   const [showPhoneConfirm, setShowPhoneConfirm] = useState(false);
-  const [cooldownEndsAt, setCooldownEndsAt] = useState(0);
-  const [cooldownLeft, setCooldownLeft] = useState(0);
-  const [signInData, setSignInData] = useState({
-    phoneOrEmail: "",
-    password: "",
-  });
-  const [formData, setFormData] = useState(getInitialFormData);
+  const [signupCooldownEndsAt, setSignupCooldownEndsAt] = useState(0);
+  const [signupCooldownLeft, setSignupCooldownLeft] = useState(0);
+  const [loginCooldownEndsAt, setLoginCooldownEndsAt] = useState(0);
+  const [loginCooldownLeft, setLoginCooldownLeft] = useState(0);
+  const [passwordLoginData, setPasswordLoginData] = useState(getInitialPasswordLoginData);
+  const [otpLoginData, setOtpLoginData] = useState(getInitialOtpLoginData);
+  const [otpLoginStep, setOtpLoginStep] = useState("phone");
+  const [formData, setFormData] = useState(getInitialSignupData);
   const [regexMsg, setRegexMsg] = useState(getInitialRegexMsg);
 
   useEffect(() => {
@@ -110,7 +135,7 @@ const AuthPage = () => {
       setMode(savedProgress.mode);
       setSignupStep(savedProgress.signupStep);
       setFormData(savedProgress.formData);
-      setCooldownEndsAt(savedProgress.cooldownEndsAt);
+      setSignupCooldownEndsAt(savedProgress.signupCooldownEndsAt);
     }
 
     setIsHydrated(true);
@@ -137,8 +162,8 @@ const AuthPage = () => {
 
     const hasSignupProgress =
       mode === "signup" ||
-      signupStep === "verify" ||
-      cooldownEndsAt > Date.now() ||
+      signupStep !== "identity" ||
+      signupCooldownEndsAt > Date.now() ||
       Object.values(formData).some(Boolean);
 
     if (!hasSignupProgress) {
@@ -150,20 +175,21 @@ const AuthPage = () => {
       mode,
       signupStep,
       formData,
-      cooldownEndsAt,
+      signupCooldownEndsAt,
     });
-  }, [cooldownEndsAt, formData, isHydrated, mode, signupStep]);
+  }, [formData, isHydrated, mode, signupCooldownEndsAt, signupStep]);
 
   useEffect(() => {
-    const updateCooldown = () => {
-      setCooldownLeft(Math.max(0, Math.ceil((cooldownEndsAt - Date.now()) / 1000)));
+    const updateCooldowns = () => {
+      setSignupCooldownLeft(Math.max(0, Math.ceil((signupCooldownEndsAt - Date.now()) / 1000)));
+      setLoginCooldownLeft(Math.max(0, Math.ceil((loginCooldownEndsAt - Date.now()) / 1000)));
     };
 
-    updateCooldown();
-    const timer = window.setInterval(updateCooldown, 1000);
+    updateCooldowns();
+    const timer = window.setInterval(updateCooldowns, 1000);
 
     return () => window.clearInterval(timer);
-  }, [cooldownEndsAt]);
+  }, [loginCooldownEndsAt, signupCooldownEndsAt]);
 
   const leftWidth = "w-full sm:w-2/5";
   const rightWidth = "w-full sm:w-3/5";
@@ -178,9 +204,18 @@ const AuthPage = () => {
     [formData.firstName, formData.lastName, formData.phone]
   );
 
-  const codeIsExpired = signupStep === "verify" && cooldownEndsAt > 0 && cooldownLeft <= 0;
+  const signupPasswordIsValid = useMemo(
+    () =>
+      passwordPattern.test(formData.password) &&
+      formData.password === formData.confirmPassword &&
+      Boolean(formData.registrationToken),
+    [formData.confirmPassword, formData.password, formData.registrationToken]
+  );
 
-  const setFieldMessage = (name, value) => {
+  const codeIsExpired = signupStep === "verify" && signupCooldownEndsAt > 0 && signupCooldownLeft <= 0;
+  const loginCodeIsExpired = otpLoginStep === "verify" && loginCooldownEndsAt > 0 && loginCooldownLeft <= 0;
+
+  const setFieldMessage = (name, value, nextForm = formData) => {
     if (name === "firstName") {
       return namePattern.test(value) && value.trim().length >= 2 ? "نام معتبر است" : "نام نامعتبر است";
     }
@@ -199,8 +234,23 @@ const AuthPage = () => {
       return codePattern.test(value) ? "کد تایید معتبر است" : "کد تایید باید ۶ رقم باشد";
     }
 
+    if (name === "password") {
+      return passwordPattern.test(value)
+        ? "رمز عبور معتبر است"
+        : "رمز عبور باید حداقل ۸ کاراکتر و شامل حرف و عدد باشد";
+    }
+
+    if (name === "confirmPassword") {
+      return value && value === nextForm.password ? "تکرار رمز عبور صحیح است" : "تکرار رمز عبور یکسان نیست";
+    }
+
     return "";
   };
+
+  const helperClass = (message) =>
+    message.includes("نامعتبر") || message.includes("باید") || message.includes("نیست")
+      ? "text-red-400"
+      : "text-green-700";
 
   const handleModeChange = (nextMode) => {
     setMode(nextMode);
@@ -208,39 +258,139 @@ const AuthPage = () => {
     setShowPhoneConfirm(false);
   };
 
-  const handleChange = (e) => {
+  const handleLoginMethodChange = (nextMethod) => {
+    setLoginMethod(nextMethod);
+    setIsSubmitting(false);
+  };
+
+  const handleSignupChange = (e) => {
     const { name, value } = e.target;
     const nextValue = name === "phone" || name === "code" ? value.replace(/\D/g, "") : value;
 
-    setFormData((prev) => ({
+    setFormData((prev) => {
+      const nextForm = {
+        ...prev,
+        [name]: nextValue,
+        ...(name === "phone" ? { code: "", registrationToken: "" } : {}),
+      };
+
+      setRegexMsg((current) => ({
+        ...current,
+        [name]: setFieldMessage(name, nextValue, nextForm),
+        ...(name === "phone" ? { code: "", password: "", confirmPassword: "" } : {}),
+        ...(name === "password" && nextForm.confirmPassword
+          ? { confirmPassword: setFieldMessage("confirmPassword", nextForm.confirmPassword, nextForm) }
+          : {}),
+      }));
+
+      return nextForm;
+    });
+  };
+
+  const handlePasswordLoginChange = (e) => {
+    const { name, value } = e.target;
+    setPasswordLoginData((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const handleOtpLoginChange = (e) => {
+    const { name, value } = e.target;
+    const nextValue = name === "phone" || name === "code" ? value.replace(/\D/g, "") : value;
+    setOtpLoginData((prev) => ({
       ...prev,
       [name]: nextValue,
       ...(name === "phone" ? { code: "" } : {}),
     }));
-    setRegexMsg((prev) => ({
-      ...prev,
-      [name]: setFieldMessage(name, nextValue),
-      ...(name === "phone" ? { code: "" } : {}),
-    }));
   };
 
-  const handleSignInChange = (e) => {
-    const { name, value } = e.target;
-    setSignInData((prev) => ({ ...prev, [name]: value }));
-  };
-
-  const handleSignInSubmit = async (e) => {
+  const handlePasswordLoginSubmit = async (e) => {
     e.preventDefault();
     if (isSubmitting) return;
+
+    const identifier = passwordLoginData.identifier.trim();
+    if (!identifier || !passwordLoginData.password) {
+      toast.error("نام کاربری/شماره موبایل و رمز عبور را وارد کنید");
+      return;
+    }
+
     setIsSubmitting(true);
 
     try {
-      await apiClient.post(backApis.login.url, signInData);
+      await apiClient.post(backApis.login.url, {
+        identifier,
+        phoneOrEmail: identifier,
+        password: passwordLoginData.password,
+      });
       await fetchUserDetails({ silent: true });
       toast.success("ورود با موفقیت انجام شد");
       router.push("/");
     } catch (error) {
       const errorMsg = error.response?.data?.message || "مشکلی در ورود به وجود آمد";
+      toast.error(errorMsg);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const requestLoginCode = async (e) => {
+    e.preventDefault();
+    if (isSubmitting) return;
+
+    if (!phonePattern.test(otpLoginData.phone)) {
+      toast.error("شماره موبایل را به‌درستی وارد کنید");
+      return;
+    }
+
+    if (loginCooldownLeft > 0) {
+      toast.info(`ارسال مجدد کد تا ${loginCooldownLeft} ثانیه دیگر امکان‌پذیر است`);
+      return;
+    }
+
+    setIsSubmitting(true);
+
+    try {
+      const response = await apiClient.post(backApis.loginRequestCode.url, {
+        phone: otpLoginData.phone.trim(),
+      });
+
+      const expiresInSeconds = Number(response.data?.data?.expiresInSeconds) || RESEND_COOLDOWN_SECONDS;
+      setLoginCooldownEndsAt(Date.now() + expiresInSeconds * 1000);
+      setOtpLoginData((prev) => ({ ...prev, code: "" }));
+      setOtpLoginStep("verify");
+      toast.success(response.data?.message || "کد ورود ارسال شد");
+    } catch (error) {
+      const errorMsg = error.response?.data?.message || "مشکلی در ارسال کد ورود به وجود آمد";
+      toast.error(errorMsg);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const verifyLoginCode = async (e) => {
+    e.preventDefault();
+    if (isSubmitting) return;
+
+    if (!phonePattern.test(otpLoginData.phone) || !codePattern.test(otpLoginData.code)) {
+      toast.error("شماره موبایل یا کد ورود نامعتبر است");
+      return;
+    }
+
+    if (loginCooldownEndsAt > 0 && Date.now() >= loginCooldownEndsAt) {
+      toast.error("کد ورود منقضی شده است. دوباره کد دریافت کنید");
+      return;
+    }
+
+    setIsSubmitting(true);
+
+    try {
+      await apiClient.post(backApis.loginVerifyCode.url, {
+        phone: otpLoginData.phone.trim(),
+        code: otpLoginData.code.trim(),
+      });
+      await fetchUserDetails({ silent: true });
+      toast.success("ورود با موفقیت انجام شد");
+      router.push("/");
+    } catch (error) {
+      const errorMsg = error.response?.data?.message || "مشکلی در تایید کد ورود به وجود آمد";
       toast.error(errorMsg);
     } finally {
       setIsSubmitting(false);
@@ -255,8 +405,8 @@ const AuthPage = () => {
       return;
     }
 
-    if (cooldownLeft > 0) {
-      toast.info(`ارسال مجدد کد تا ${cooldownLeft} ثانیه دیگر امکان‌پذیر است`);
+    if (signupCooldownLeft > 0) {
+      toast.info(`ارسال مجدد کد تا ${signupCooldownLeft} ثانیه دیگر امکان‌پذیر است`);
       return;
     }
 
@@ -270,10 +420,9 @@ const AuthPage = () => {
       });
 
       const expiresInSeconds = Number(response.data?.data?.expiresInSeconds) || RESEND_COOLDOWN_SECONDS;
-      const nextCooldownEndsAt = Date.now() + expiresInSeconds * 1000;
-      setCooldownEndsAt(nextCooldownEndsAt);
-      setFormData((prev) => ({ ...prev, code: "" }));
-      setRegexMsg((prev) => ({ ...prev, code: "" }));
+      setSignupCooldownEndsAt(Date.now() + expiresInSeconds * 1000);
+      setFormData((prev) => ({ ...prev, code: "", password: "", confirmPassword: "", registrationToken: "" }));
+      setRegexMsg((prev) => ({ ...prev, code: "", password: "", confirmPassword: "" }));
       setSignupStep("verify");
       setShowPhoneConfirm(false);
       toast.success(response.data?.message || "کد تایید ارسال شد");
@@ -285,7 +434,7 @@ const AuthPage = () => {
     } finally {
       setIsSubmitting(false);
     }
-  }, [cooldownLeft, formData.firstName, formData.lastName, formData.phone, identityIsValid, isSubmitting]);
+  }, [formData.firstName, formData.lastName, formData.phone, identityIsValid, isSubmitting, signupCooldownLeft]);
 
   const handleRequestCode = (e) => {
     e.preventDefault();
@@ -307,7 +456,7 @@ const AuthPage = () => {
       return;
     }
 
-    if (cooldownEndsAt > 0 && Date.now() >= cooldownEndsAt) {
+    if (signupCooldownEndsAt > 0 && Date.now() >= signupCooldownEndsAt) {
       toast.error("کد تایید منقضی شده است. دوباره کد دریافت کنید");
       return;
     }
@@ -315,20 +464,22 @@ const AuthPage = () => {
     setIsSubmitting(true);
 
     try {
-      await apiClient.post(backApis.registerVerifyCode.url, {
+      const response = await apiClient.post(backApis.registerVerifyCode.url, {
         firstName: formData.firstName.trim(),
         lastName: formData.lastName.trim(),
         phone: formData.phone.trim(),
         code: formData.code.trim(),
       });
-      await fetchUserDetails({ silent: true });
-      clearSignupProgress();
-      setMode("signin");
-      setFormData(getInitialFormData());
-      setSignupStep("identity");
-      setCooldownEndsAt(0);
-      toast.success("ثبت‌نام با موفقیت تکمیل شد");
-      router.push("/");
+
+      const registrationToken = response.data?.data?.registrationToken;
+      if (!registrationToken) {
+        throw new Error("registration token is missing");
+      }
+
+      setFormData((prev) => ({ ...prev, registrationToken, password: "", confirmPassword: "" }));
+      setRegexMsg((prev) => ({ ...prev, password: "", confirmPassword: "" }));
+      setSignupStep("password");
+      toast.success(response.data?.message || "شماره موبایل تایید شد");
     } catch (error) {
       const errorMsg = error.response?.data?.message || "مشکلی در تایید کد به وجود آمد";
       toast.error(errorMsg);
@@ -337,13 +488,48 @@ const AuthPage = () => {
     }
   };
 
+  const handleSetPassword = async (e) => {
+    e.preventDefault();
+    if (isSubmitting) return;
+
+    if (!signupPasswordIsValid) {
+      toast.error("رمز عبور باید حداقل ۸ کاراکتر، شامل حرف و عدد، و با تکرار آن یکسان باشد");
+      return;
+    }
+
+    setIsSubmitting(true);
+
+    try {
+      await apiClient.post(backApis.registerSetPassword.url, {
+        registrationToken: formData.registrationToken,
+        password: formData.password,
+        confirmPassword: formData.confirmPassword,
+      });
+      await fetchUserDetails({ silent: true });
+      clearSignupProgress();
+      setMode("signin");
+      setFormData(getInitialSignupData());
+      setSignupStep("identity");
+      setSignupCooldownEndsAt(0);
+      toast.success("ثبت‌نام با موفقیت تکمیل شد");
+      router.push("/");
+    } catch (error) {
+      const errorMsg = error.response?.data?.message || "مشکلی در تنظیم رمز عبور به وجود آمد";
+      toast.error(errorMsg);
+      if (error.response?.status === 400 && /منقضی/.test(errorMsg)) {
+        setSignupStep("identity");
+        setFormData((prev) => ({ ...prev, code: "", registrationToken: "", password: "", confirmPassword: "" }));
+      }
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   const handleEditIdentity = () => {
     setShowPhoneConfirm(false);
     setSignupStep("identity");
+    setFormData((prev) => ({ ...prev, code: "", registrationToken: "", password: "", confirmPassword: "" }));
   };
-
-  const helperClass = (message) =>
-    message.includes("نامعتبر") || message.includes("باید") ? "text-red-400" : "text-green-700";
 
   return (
     <div className="min-h-[calc(100vh-7rem)] flex items-center justify-center bg-gradient-to-br from-blue-100 via-white to-blue-200 px-4">
@@ -359,57 +545,38 @@ const AuthPage = () => {
               initial={{ opacity: 0, y: 20, scale: 0.96 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: 20, scale: 0.96 }}
-              transition={{ duration: 0.2 }}
-              className="w-full max-w-md rounded-3xl border border-white/50 bg-white p-6 shadow-2xl"
+              className="w-full max-w-md rounded-3xl bg-white p-6 shadow-2xl"
             >
               <h2 className="text-xl font-extrabold text-slate-900">تایید شماره موبایل</h2>
-              <p className="mt-3 leading-8 text-slate-600">
-                کد تایید به شماره زیر ارسال می‌شود. لطفاً مطمئن شوید شماره موبایل درست است.
+              <p className="mt-3 text-sm leading-7 text-slate-600">
+                کد تایید برای شماره <span className="font-bold dir-ltr inline-block text-blue-700">{formData.phone}</span> ارسال می‌شود.
+                از درست بودن شماره مطمئن هستید؟
               </p>
-              <div className="mt-4 rounded-2xl border border-blue-100 bg-blue-50 px-4 py-3 text-center text-lg font-bold text-blue-800 dir-ltr">
-                {formData.phone}
-              </div>
-              <div className="mt-6 grid grid-cols-1 gap-3 sm:grid-cols-2">
+              <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <Btn1
                   type="button"
-                  disabled={isSubmitting || cooldownLeft > 0}
+                  disabled={isSubmitting || signupCooldownLeft > 0}
                   onClick={requestRegistrationCode}
-                  btnClassName="hover:scale-[1.02] active:scale-95 cursor-pointer"
                   text={
                     isSubmitting
                       ? "در حال ارسال..."
-                      : cooldownLeft > 0
-                        ? `${cooldownLeft} ثانیه دیگر`
-                        : "بله، ارسال کد"
+                      : signupCooldownLeft > 0
+                        ? `${signupCooldownLeft} ثانیه دیگر`
+                        : "ارسال کد"
                   }
                 />
-                <Btn1
-                  type="button"
-                  variant="gray"
-                  disabled={isSubmitting}
-                  onClick={handleEditIdentity}
-                  btnClassName="hover:scale-[1.02] active:scale-95 cursor-pointer"
-                  text="ویرایش اطلاعات"
-                />
+                <Btn1 type="button" variant="gray" disabled={isSubmitting} onClick={() => setShowPhoneConfirm(false)} text="ویرایش شماره" />
               </div>
-              <button
-                type="button"
-                disabled={isSubmitting}
-                onClick={() => setShowPhoneConfirm(false)}
-                className="mt-4 w-full cursor-pointer rounded-xl px-4 py-2 text-sm font-semibold text-slate-500 transition hover:bg-slate-100 hover:text-slate-700 disabled:cursor-not-allowed disabled:opacity-50"
-              >
-                انصراف
-              </button>
             </motion.div>
           </motion.div>
         )}
       </AnimatePresence>
 
       <motion.div
-        initial={{ opacity: 0, scale: 0.9 }}
-        animate={{ opacity: 1, scale: 1 }}
-        transition={{ duration: 0.6, ease: "easeOut" }}
-        className="w-full max-w-5xl my-5 bg-white/30 backdrop-blur-xl shadow-[0_8px_30px_rgb(0,0,0,0.12)] rounded-3xl overflow-hidden flex flex-col sm:flex-row border border-white/40"
+        initial={{ opacity: 0, y: 30 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.7 }}
+        className="flex flex-col sm:flex-row w-full max-w-5xl min-h-[600px] bg-white rounded-2xl shadow-2xl overflow-hidden"
       >
         {mode === "signin" ? (
           <>
@@ -418,14 +585,14 @@ const AuthPage = () => {
                 src={Logo}
                 alt="Logo"
                 placeholder="blur"
-                className="w-3/4 md:w-4/5 lg:w-3/4 max-w-xs md:max-w-sm md:mb-6 drop-shadow-lg"
+                className="w-full md:w-4/5 lg:w-3/4 max-w-xs md:max-w-sm md:mb-6 drop-shadow-lg"
               />
-              <div className="text-3xl md:text-2xl lg:text-3xl font-extrabold text-yellow-600 flex items-center justify-center gap-1">
-                <span>خوش آمدید </span>
-                <StarsIcon className="text-yellow-600" />
+              <div className="text-3xl md:text-2xl lg:text-3xl font-extrabold text-blue-600 flex items-center justify-center gap-1">
+                <span>خوش برگشتید</span>
+                <StarsIcon className="text-yellow-500" />
               </div>
               <p className="text-lg md:text-sm lg:text-base text-gray-600 mt-2 text-center">
-                دوباره دیدنتون باعث افتخاره
+                با رمز عبور یا رمز یکبار مصرف وارد شوید
               </p>
             </div>
 
@@ -453,36 +620,53 @@ const AuthPage = () => {
                 </button>
               </div>
 
+              <div className="mb-5 grid grid-cols-2 gap-2 rounded-2xl bg-slate-100 p-1 text-sm font-semibold text-slate-600">
+                <button
+                  type="button"
+                  onClick={() => handleLoginMethodChange("password")}
+                  className={`rounded-xl px-3 py-2 transition ${loginMethod === "password" ? "bg-white text-blue-700 shadow" : "hover:text-blue-700"}`}
+                >
+                  رمز عبور
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleLoginMethodChange("otp")}
+                  className={`rounded-xl px-3 py-2 transition ${loginMethod === "otp" ? "bg-white text-blue-700 shadow" : "hover:text-blue-700"}`}
+                >
+                  رمز یکبار مصرف
+                </button>
+              </div>
+
               <AnimatePresence mode="wait">
-                {mode === "signin" && (
+                {loginMethod === "password" && (
                   <motion.form
-                    key="signin"
+                    key="signin-password"
                     initial={{ opacity: 0, x: 60 }}
                     animate={{ opacity: 1, x: 0 }}
                     exit={{ opacity: 0, x: -60 }}
-                    transition={{ duration: 0.4 }}
-                    onSubmit={handleSignInSubmit}
+                    transition={{ duration: 0.3 }}
+                    onSubmit={handlePasswordLoginSubmit}
                     className="flex flex-col gap-4 md:gap-5"
                   >
                     <InputField
-                      label="ایمیل یا شماره موبایل"
+                      label="نام کاربری یا شماره موبایل"
                       type="text"
-                      name="phoneOrEmail"
-                      value={signInData.phoneOrEmail}
-                      onChange={handleSignInChange}
+                      name="identifier"
+                      value={passwordLoginData.identifier}
+                      onChange={handlePasswordLoginChange}
                     />
 
                     <InputField
                       label="رمز عبور"
                       type="password"
                       name="password"
-                      value={signInData.password}
-                      onChange={handleSignInChange}
+                      value={passwordLoginData.password}
+                      onChange={handlePasswordLoginChange}
                     />
 
                     <Btn1
                       type="submit"
-                      disabled={isSubmitting || !signInData.phoneOrEmail || !signInData.password}
+                      disabled={isSubmitting || !passwordLoginData.identifier || !passwordLoginData.password}
                       btnClassName="hover:scale-[1.02] active:scale-95 cursor-pointer"
                       text={isSubmitting ? "در حال ارسال..." : "ورود"}
                     />
@@ -492,6 +676,92 @@ const AuthPage = () => {
                     >
                       رمز عبور خود را فراموش کرده اید؟
                     </Link>
+                  </motion.form>
+                )}
+
+                {loginMethod === "otp" && otpLoginStep === "phone" && (
+                  <motion.form
+                    key="signin-otp-phone"
+                    initial={{ opacity: 0, x: 60 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0, x: -60 }}
+                    transition={{ duration: 0.3 }}
+                    onSubmit={requestLoginCode}
+                    className="flex flex-col gap-4 md:gap-5"
+                  >
+                    <InputField
+                      label="شماره موبایل"
+                      type="tel"
+                      name="phone"
+                      value={otpLoginData.phone}
+                      onChange={handleOtpLoginChange}
+                    />
+                    <Btn1
+                      type="submit"
+                      disabled={isSubmitting || !phonePattern.test(otpLoginData.phone) || loginCooldownLeft > 0}
+                      btnClassName="hover:scale-[1.02] active:scale-95 cursor-pointer"
+                      text={
+                        isSubmitting
+                          ? "در حال ارسال..."
+                          : loginCooldownLeft > 0
+                            ? `ارسال مجدد تا ${loginCooldownLeft} ثانیه دیگر`
+                            : "ارسال کد ورود"
+                      }
+                    />
+                  </motion.form>
+                )}
+
+                {loginMethod === "otp" && otpLoginStep === "verify" && (
+                  <motion.form
+                    key="signin-otp-verify"
+                    initial={{ opacity: 0, x: 60 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0, x: -60 }}
+                    transition={{ duration: 0.3 }}
+                    onSubmit={verifyLoginCode}
+                    className="flex flex-col gap-4 md:gap-5"
+                  >
+                    <div className="rounded-2xl border border-blue-100 bg-blue-50/80 p-4 text-sm text-blue-800 leading-7">
+                      کد ورود برای شماره <span className="font-bold dir-ltr inline-block">{otpLoginData.phone}</span> ارسال شد.
+                    </div>
+
+                    {loginCodeIsExpired && (
+                      <div className="rounded-2xl border border-red-100 bg-red-50/80 p-4 text-sm font-semibold text-red-700 leading-7">
+                        کد ورود منقضی شده است. برای ادامه، دوباره کد دریافت کنید.
+                      </div>
+                    )}
+
+                    <InputField label="کد ورود ۶ رقمی" type="tel" name="code" value={otpLoginData.code} onChange={handleOtpLoginChange} />
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <Btn1
+                        type="submit"
+                        disabled={!codePattern.test(otpLoginData.code) || isSubmitting || loginCodeIsExpired}
+                        btnClassName="hover:scale-[1.02] active:scale-95 cursor-pointer"
+                        text={isSubmitting ? "در حال تایید..." : "تایید و ورود"}
+                      />
+                      <Btn1
+                        type="button"
+                        variant="gray"
+                        disabled={isSubmitting}
+                        onClick={() => setOtpLoginStep("phone")}
+                        btnClassName="hover:scale-[1.02] active:scale-95 cursor-pointer"
+                        text="ویرایش شماره"
+                      />
+                    </div>
+
+                    <button
+                      type="button"
+                      disabled={isSubmitting || loginCooldownLeft > 0}
+                      onClick={requestLoginCode}
+                      className="cursor-pointer text-sm font-semibold text-blue-700 transition hover:text-blue-900 disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                      {loginCooldownLeft > 0
+                        ? `ارسال مجدد کد تا ${loginCooldownLeft} ثانیه دیگر`
+                        : loginCodeIsExpired
+                          ? "کد منقضی شد؛ ارسال کد جدید"
+                          : "ارسال مجدد کد"}
+                    </button>
                   </motion.form>
                 )}
               </AnimatePresence>
@@ -511,7 +781,7 @@ const AuthPage = () => {
                 <StarsIcon className="text-yellow-600" />
               </div>
               <p className="text-lg md:text-sm lg:text-base text-gray-600 mt-2 text-center">
-                فقط با شماره موبایل ثبت‌نام کنید
+                شماره موبایل را تایید کنید و رمز عبور بسازید
               </p>
             </div>
 
@@ -539,29 +809,35 @@ const AuthPage = () => {
                 </button>
               </div>
 
+              <div className="mb-6 grid grid-cols-3 gap-2 text-xs font-bold text-center text-slate-500">
+                <span className={signupStep === "identity" ? "text-blue-700" : "text-green-700"}>۱. اطلاعات</span>
+                <span className={signupStep === "verify" ? "text-blue-700" : signupStep === "password" ? "text-green-700" : ""}>۲. تایید کد</span>
+                <span className={signupStep === "password" ? "text-blue-700" : ""}>۳. رمز عبور</span>
+              </div>
+
               <AnimatePresence mode="wait">
-                {mode === "signup" && signupStep === "identity" && (
+                {signupStep === "identity" && (
                   <motion.form
                     key="signup-identity"
                     initial={{ opacity: 0, x: -60 }}
                     animate={{ opacity: 1, x: 0 }}
                     exit={{ opacity: 0, x: 60 }}
-                    transition={{ duration: 0.4 }}
+                    transition={{ duration: 0.3 }}
                     onSubmit={handleRequestCode}
                     className="flex flex-col gap-4 md:gap-5"
                   >
                     <div className="flex flex-col justify-center gap-2">
-                      <InputField label="نام" type="text" name="firstName" value={formData.firstName} onChange={handleChange} />
+                      <InputField label="نام" type="text" name="firstName" value={formData.firstName} onChange={handleSignupChange} />
                       <span className={`text-sm pr-3 ${helperClass(regexMsg.firstName)}`}>{regexMsg.firstName}</span>
                     </div>
 
                     <div className="flex flex-col justify-center gap-2">
-                      <InputField label="نام خانوادگی" type="text" name="lastName" value={formData.lastName} onChange={handleChange} />
+                      <InputField label="نام خانوادگی" type="text" name="lastName" value={formData.lastName} onChange={handleSignupChange} />
                       <span className={`text-sm pr-3 ${helperClass(regexMsg.lastName)}`}>{regexMsg.lastName}</span>
                     </div>
 
                     <div className="flex flex-col justify-center gap-2">
-                      <InputField label="شماره موبایل" type="tel" name="phone" value={formData.phone} onChange={handleChange} />
+                      <InputField label="شماره موبایل" type="tel" name="phone" value={formData.phone} onChange={handleSignupChange} />
                       <span className={`text-sm pr-3 ${helperClass(regexMsg.phone)}`}>{regexMsg.phone}</span>
                     </div>
 
@@ -574,13 +850,13 @@ const AuthPage = () => {
                   </motion.form>
                 )}
 
-                {mode === "signup" && signupStep === "verify" && (
+                {signupStep === "verify" && (
                   <motion.form
                     key="signup-verify"
                     initial={{ opacity: 0, x: -60 }}
                     animate={{ opacity: 1, x: 0 }}
                     exit={{ opacity: 0, x: 60 }}
-                    transition={{ duration: 0.4 }}
+                    transition={{ duration: 0.3 }}
                     onSubmit={handleVerifyCode}
                     className="flex flex-col gap-4 md:gap-5"
                   >
@@ -595,7 +871,7 @@ const AuthPage = () => {
                     )}
 
                     <div className="flex flex-col justify-center gap-2">
-                      <InputField label="کد تایید ۶ رقمی" type="tel" name="code" value={formData.code} onChange={handleChange} />
+                      <InputField label="کد تایید ۶ رقمی" type="tel" name="code" value={formData.code} onChange={handleSignupChange} />
                       <span className={`text-sm pr-3 ${helperClass(regexMsg.code)}`}>{regexMsg.code}</span>
                     </div>
 
@@ -604,7 +880,7 @@ const AuthPage = () => {
                         type="submit"
                         disabled={!codePattern.test(formData.code) || isSubmitting || codeIsExpired}
                         btnClassName="hover:scale-[1.02] active:scale-95 cursor-pointer"
-                        text={isSubmitting ? "در حال تایید..." : "تایید و ثبت‌نام"}
+                        text={isSubmitting ? "در حال تایید..." : "تایید کد"}
                       />
                       <Btn1
                         type="button"
@@ -618,16 +894,65 @@ const AuthPage = () => {
 
                     <button
                       type="button"
-                      disabled={isSubmitting || cooldownLeft > 0}
+                      disabled={isSubmitting || signupCooldownLeft > 0}
                       onClick={() => setShowPhoneConfirm(true)}
                       className="cursor-pointer text-sm font-semibold text-blue-700 transition hover:text-blue-900 disabled:cursor-not-allowed disabled:opacity-50"
                     >
-                      {cooldownLeft > 0
-                        ? `ارسال مجدد کد تا ${cooldownLeft} ثانیه دیگر`
+                      {signupCooldownLeft > 0
+                        ? `ارسال مجدد کد تا ${signupCooldownLeft} ثانیه دیگر`
                         : codeIsExpired
                           ? "کد منقضی شد؛ ارسال کد جدید"
                           : "ارسال مجدد کد"}
                     </button>
+                  </motion.form>
+                )}
+
+                {signupStep === "password" && (
+                  <motion.form
+                    key="signup-password"
+                    initial={{ opacity: 0, x: -60 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0, x: 60 }}
+                    transition={{ duration: 0.3 }}
+                    onSubmit={handleSetPassword}
+                    className="flex flex-col gap-4 md:gap-5"
+                  >
+                    <div className="rounded-2xl border border-green-100 bg-green-50/80 p-4 text-sm text-green-800 leading-7">
+                      شماره موبایل تایید شد. برای تکمیل ثبت‌نام، رمز عبور حساب خود را تنظیم کنید.
+                    </div>
+
+                    <div className="flex flex-col justify-center gap-2">
+                      <InputField label="رمز عبور" type="password" name="password" value={formData.password} onChange={handleSignupChange} />
+                      <span className={`text-sm pr-3 ${helperClass(regexMsg.password)}`}>{regexMsg.password}</span>
+                    </div>
+
+                    <div className="flex flex-col justify-center gap-2">
+                      <InputField
+                        label="تکرار رمز عبور"
+                        type="password"
+                        name="confirmPassword"
+                        value={formData.confirmPassword}
+                        onChange={handleSignupChange}
+                      />
+                      <span className={`text-sm pr-3 ${helperClass(regexMsg.confirmPassword)}`}>{regexMsg.confirmPassword}</span>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <Btn1
+                        type="submit"
+                        disabled={!signupPasswordIsValid || isSubmitting}
+                        btnClassName="hover:scale-[1.02] active:scale-95 cursor-pointer"
+                        text={isSubmitting ? "در حال تکمیل..." : "تکمیل ثبت‌نام"}
+                      />
+                      <Btn1
+                        type="button"
+                        variant="gray"
+                        disabled={isSubmitting}
+                        onClick={handleEditIdentity}
+                        btnClassName="hover:scale-[1.02] active:scale-95 cursor-pointer"
+                        text="شروع دوباره"
+                      />
+                    </div>
                   </motion.form>
                 )}
               </AnimatePresence>

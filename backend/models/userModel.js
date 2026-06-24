@@ -13,6 +13,17 @@ const userSchema = mongoose.Schema(
     firstName: { type: String, trim: true },
     lastName: { type: String, trim: true },
     name: { type: String, trim: true },
+    username: {
+      type: String,
+      unique: true,
+      sparse: true,
+      lowercase: true,
+      trim: true,
+      set: (value) => {
+        const username = String(value || "").trim().toLowerCase();
+        return username || undefined;
+      },
+    },
     phone: {
       type: String,
       required: true,

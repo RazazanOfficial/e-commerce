@@ -7,6 +7,7 @@ const EDITABLE_USER_FIELDS = new Set([
   "firstName",
   "lastName",
   "name",
+  "username",
   "phone",
   "phoneVerifiedAt",
   "phoneVerified",
@@ -22,7 +23,7 @@ const EDITABLE_USER_FIELDS = new Set([
 ]);
 
 const USER_PUBLIC_FIELDS =
-  "_id firstName lastName name phone phoneVerifiedAt email emailVerifiedAt role address postalCode province city createdAt updatedAt";
+  "_id firstName lastName name username phone phoneVerifiedAt email emailVerifiedAt role address postalCode province city createdAt updatedAt";
 
 const normalizePhone = (phone) => String(phone || "").replace(/\D/g, "");
 const normalizeEmail = (email) => String(email || "").trim().toLowerCase();

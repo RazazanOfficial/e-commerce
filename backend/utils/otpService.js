@@ -30,7 +30,7 @@ const verifyOtpCode = (phone, code, codeHash) => {
 };
 
 const getOtpExpirySeconds = () => {
-  const seconds = Number.parseInt(process.env.REGISTER_OTP_EXPIRES_SECONDS, 10);
+  const seconds = Number.parseInt(process.env.AUTH_OTP_EXPIRES_SECONDS || process.env.REGISTER_OTP_EXPIRES_SECONDS, 10);
   return Number.isFinite(seconds) && seconds > 0 ? seconds : 60;
 };
 
@@ -47,12 +47,21 @@ const sendRegistrationOtp = async ({ phone, code }) => {
   return { provider: "console" };
 };
 
+const sendLoginOtp = async ({ phone, code }) => {
+  if (process.env.NODE_ENV !== "production") {
+    console.info(`[LOGIN_OTP] ${phone}: ${code}`);
+  }
+
+  return { provider: "console" };
+};
+
 //? 🔵 Export Helpers
 module.exports = {
   generateNumericOtp,
   getOtpExpiryMinutes,
   getOtpExpirySeconds,
   hashOtpCode,
+  sendLoginOtp,
   sendRegistrationOtp,
   shouldExposeDevCode,
   verifyOtpCode,
