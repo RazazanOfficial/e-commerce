@@ -38,7 +38,7 @@ const emptyProduct = () => ({
   status: "DRAFT",
   visible: true,
   price: "",
-  currency: "IRT",
+  currency: "",
   compareAt: "",
   cost: "",
   inventoryManage: true,
@@ -69,6 +69,24 @@ const slugify = (value) => {
     .replace(/-+/g, "-")
     .replace(/^-|-$/g, "");
   return s;
+};
+
+const getCurrencyItems = (payload) => {
+  if (Array.isArray(payload)) return payload;
+  if (Array.isArray(payload?.items)) return payload.items;
+  if (Array.isArray(payload?.data)) return payload.data;
+  if (Array.isArray(payload?.data?.items)) return payload.data.items;
+  return [];
+};
+
+const normalizeCurrencyCode = (value) => String(value || "").trim().toUpperCase();
+
+const formatCurrencyOption = (currency) => {
+  const code = normalizeCurrencyCode(currency?.code);
+  const name = String(currency?.nameFa || "").trim();
+  const symbol = String(currency?.symbol || "").trim();
+
+  return [name, code, symbol ? `(${symbol})` : ""].filter(Boolean).join(" - ");
 };
 
 //* 🟢 Tab Button
@@ -107,6 +125,11 @@ export default function ProductEditorModal({
   const [form, setForm] = useState(emptyProduct);
   const [errors, setErrors] = useState({});
 
+  //* 🟢 Currency Catalog State
+  const [currencyOptions, setCurrencyOptions] = useState([]);
+  const [currencyLoading, setCurrencyLoading] = useState(false);
+  const [currencyError, setCurrencyError] = useState("");
+
 
   //* 🟢 Media State
   const [imgUrl, setImgUrl] = useState("");
@@ -121,6 +144,91 @@ export default function ProductEditorModal({
     const list = Array.isArray(categories) ? categories : [];
     return [...list].sort((a, b) => String(a?.name || "").localeCompare(String(b?.name || ""), "fa"));
   }, [categories]);
+
+  const currenciesSorted = useMemo(() => {
+    const unique = new Map();
+
+    for (const item of Array.isArray(currencyOptions) ? currencyOptions : []) {
+      const code = normalizeCurrencyCode(item?.code);
+      if (!code) continue;
+      unique.set(code, {
+        ...item,
+        code,
+      });
+    }
+
+    const selectedCode = normalizeCurrencyCode(form.currency);
+    if (selectedCode && !unique.has(selectedCode)) {
+      unique.set(selectedCode, {
+        code: selectedCode,
+        nameFa: "واحد پول فعلی محصول",
+        symbol: "",
+        isCurrentOnly: true,
+      });
+    }
+
+    return Array.from(unique.values()).sort((a, b) => {
+      const sortA = Number.isFinite(Number(a?.sortOrder)) ? Number(a.sortOrder) : 0;
+      const sortB = Number.isFinite(Number(b?.sortOrder)) ? Number(b.sortOrder) : 0;
+      if (sortA !== sortB) return sortA - sortB;
+      return String(a?.nameFa || a?.code || "").localeCompare(String(b?.nameFa || b?.code || ""), "fa");
+    });
+  }, [currencyOptions, form.currency]);
+
+  //* 🟢 Currency Catalog Fetch
+  useEffect(() => {
+    if (!open) return;
+
+    let ignore = false;
+
+    (async () => {
+      try {
+        setCurrencyLoading(true);
+        setCurrencyError("");
+
+        const { url, method } = backApis.getCurrencyCatalogs;
+        const res = await apiClient({
+          url,
+          method,
+          params: { isActive: "true" },
+        });
+
+        if (ignore) return;
+
+        const items = getCurrencyItems(res?.data)
+          .map((item) => ({
+            ...item,
+            code: normalizeCurrencyCode(item?.code),
+          }))
+          .filter((item) => item.code && item?.isActive !== false);
+
+        setCurrencyOptions(items);
+      } catch (err) {
+        if (ignore) return;
+        console.error(err);
+        setCurrencyOptions([]);
+        setCurrencyError("دریافت واحدهای پول از کاتالوگ ناموفق بود");
+      } finally {
+        if (!ignore) setCurrencyLoading(false);
+      }
+    })();
+
+    return () => {
+      ignore = true;
+    };
+  }, [open]);
+
+  //* 🟢 Currency Default Sync
+  useEffect(() => {
+    if (!open || isEdit) return;
+    if (form.currency) return;
+
+    const firstCurrency = currenciesSorted.find((item) => !item?.isCurrentOnly)?.code;
+    if (firstCurrency) {
+      setForm((prev) => ({ ...prev, currency: firstCurrency }));
+      setErrors((prev) => ({ ...prev, currency: undefined }));
+    }
+  }, [open, isEdit, form.currency, currenciesSorted]);
 
   //* 🟢 Product Hydration
   useEffect(() => {
@@ -162,7 +270,7 @@ export default function ProductEditorModal({
           status: p?.status || "DRAFT",
           visible: typeof p?.visible === "boolean" ? p.visible : true,
           price: p?.price ?? "",
-          currency: p?.currency || "IRT",
+          currency: normalizeCurrencyCode(p?.currency),
           compareAt: p?.compareAt ?? "",
           cost: p?.cost ?? "",
           inventoryManage: invManage,
@@ -229,7 +337,11 @@ export default function ProductEditorModal({
       if (!Number.isInteger(n) || n < 0) e.price = "قیمت باید عدد صحیح و >= 0 باشد";
     }
 
-    if (!String(form.currency || "").trim()) e.currency = "واحد پول الزامی است";
+    const selectedCurrency = normalizeCurrencyCode(form.currency);
+    if (!selectedCurrency) e.currency = "واحد پول الزامی است";
+    else if (!currenciesSorted.some((item) => normalizeCurrencyCode(item?.code) === selectedCurrency && !item?.isCurrentOnly)) {
+      e.currency = "واحد پول انتخاب‌شده در کاتالوگ فعال نیست";
+    }
 
     if (!Array.isArray(form.images) || !form.images.length) {
       e.images = "حداقل یک تصویر لازم است";
@@ -638,15 +750,35 @@ export default function ProductEditorModal({
                 />
               </AdminField>
 
-              <AdminField label="واحد پول" required error={errors.currency}>
+              <AdminField
+                label="واحد پول"
+                required
+                hint={currencyLoading ? "در حال دریافت از کاتالوگ…" : "از کاتالوگ واحد پول"}
+                error={errors.currency || currencyError}
+              >
                 <AdminSelect
                   value={form.currency}
+                  disabled={currencyLoading || (!currenciesSorted.length && !form.currency)}
                   onChange={(e) => setField("currency", e.target.value)}
                 >
-                  <option value="IRT">IRT</option>
-                  <option value="IRR">IRR</option>
-                  <option value="USD">USD</option>
+                  <option value="">انتخاب واحد پول…</option>
+                  {currenciesSorted.map((currency) => (
+                    <option
+                      key={currency.code}
+                      value={currency.code}
+                      disabled={!!currency?.isCurrentOnly}
+                    >
+                      {formatCurrencyOption(currency)}
+                      {currency?.isCurrentOnly ? " - غیرفعال یا حذف‌شده از کاتالوگ" : ""}
+                    </option>
+                  ))}
                 </AdminSelect>
+
+                {!currencyLoading && !currencyError && !currenciesSorted.length ? (
+                  <p className="text-xs text-[var(--adm-warning)]">
+                    هیچ واحد پول فعالی در کاتالوگ پیدا نشد. ابتدا از بخش پیکربندی محصول، واحد پول فعال تعریف کنید.
+                  </p>
+                ) : null}
               </AdminField>
 
               <AdminField label="قیمت قبل" hint="(اختیاری)" error={errors.compareAt}>
