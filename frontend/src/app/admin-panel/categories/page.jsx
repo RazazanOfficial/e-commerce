@@ -7,10 +7,35 @@ import apiClient from "@/common/apiClient";
 import backApis from "@/common";
 import { toast } from "react-toastify";
 import Spinner from "@/components/Spinner";
-import { MoreVertical, Plus, Search } from "lucide-react";
+import {
+  ChevronDown,
+  ChevronUp,
+  FolderTree,
+  Layers3,
+  Plus,
+  Search,
+  ShieldCheck,
+  SlidersHorizontal,
+} from "lucide-react";
 
-import { AdminButton, AdminInput } from "@/components/admin-ui";
-import { buildTree, CategoryFormModal, ConfirmDeleteModal, Row } from "@/components/Admin-Panel/Categories/CategoryTree";
+import { AdminBadge, AdminButton, AdminModal } from "@/components/admin-ui";
+import { cn } from "@/lib/utils";
+import {
+  buildTree,
+  CategoryFormPanel,
+  ConfirmDeleteModal,
+  Row,
+} from "@/components/Admin-Panel/Categories/CategoryTree";
+
+//* 🟢 Tree Stats Utilities
+const getMaxDepth = (nodes, depth = 1) => {
+  if (!nodes?.length) return 0;
+  return Math.max(
+    ...nodes.map((node) =>
+      node.children?.length ? getMaxDepth(node.children, depth + 1) : depth,
+    ),
+  );
+};
 
 //* 🟢 Categories Page
 export default function CategoriesPage() {
@@ -20,25 +45,26 @@ export default function CategoriesPage() {
   const [expanded, setExpanded] = useState(new Set());
   const [qInput, setQInput] = useState("");
   const [q, setQ] = useState("");
-  const [createOpen, setCreateOpen] = useState(false);
   const [editCat, setEditCat] = useState(null);
-  const [editLoading, setEditLoading] = useState(false);
+  const [draftParent, setDraftParent] = useState(null);
   const [deleteCat, setDeleteCat] = useState(null);
+  const [formOpen, setFormOpen] = useState(false);
 
   //* 🟢 Persisted Tree State
   useEffect(() => {
     try {
       const saved = JSON.parse(
-        localStorage.getItem("cat_expanded_ids") || "[]"
+        localStorage.getItem("cat_expanded_ids") || "[]",
       );
       setExpanded(new Set(saved));
     } catch {}
   }, []);
+
   useEffect(() => {
     try {
       localStorage.setItem(
         "cat_expanded_ids",
-        JSON.stringify(Array.from(expanded))
+        JSON.stringify(Array.from(expanded)),
       );
     } catch {}
   }, [expanded]);
@@ -50,7 +76,7 @@ export default function CategoriesPage() {
       const { data } = await apiClient.get(backApis.getAllCategories.url);
       setRaw(data?.data || []);
     } catch {
-      toast.error("خطا در دریافت دسته‌ها");
+      toast.error("خطا در دریافت دسته‌بندی‌ها");
     } finally {
       setLoading(false);
     }
@@ -74,6 +100,19 @@ export default function CategoriesPage() {
     return map;
   }, [raw]);
 
+  const stats = useMemo(() => {
+    const list = raw || [];
+    const active = list.filter((c) => c.isActive).length;
+    const rootCount = list.filter((c) => !(c.parent?._id || c.parent)).length;
+    return {
+      total: list.length,
+      active,
+      inactive: list.length - active,
+      roots: rootCount,
+      depth: getMaxDepth(tree),
+    };
+  }, [raw, tree]);
+
   const openPathAncestorIds = useMemo(() => {
     const set = new Set();
     expanded.forEach((id) => {
@@ -88,29 +127,30 @@ export default function CategoriesPage() {
   }, [expanded, idToNode]);
 
   //* 🟢 Search Highlight
-  const highlight = (text, q) => {
-    if (!q) return text;
-    const i = text?.toLowerCase?.().indexOf(q.toLowerCase());
+  const highlight = (text, query) => {
+    if (!query) return text;
+    const source = text || "";
+    const i = source.toLowerCase().indexOf(query.toLowerCase());
     if (i === -1) return text;
     return (
       <>
-        {text.slice(0, i)}
-        <mark
-          className="rounded px-0.5"
-          style={{ background: "var(--adm-warning-soft)" }}
-        >
-          {text.slice(i, i + q.length)}
+        {source.slice(0, i)}
+        <mark className="rounded px-0.5 bg-[var(--adm-warning-soft)] text-[var(--adm-text)]">
+          {source.slice(i, i + query.length)}
         </mark>
-        {text.slice(i + q.length)}
+        {source.slice(i + query.length)}
       </>
     );
   };
 
   const filteredTree = useMemo(() => {
     if (!q) return tree;
+    const normalizedQ = q.toLowerCase();
     const match = (n) =>
-      n.name?.toLowerCase().includes(q.toLowerCase()) ||
-      n.slug?.toLowerCase().includes(q.toLowerCase());
+      n.name?.toLowerCase().includes(normalizedQ) ||
+      n.slug?.toLowerCase().includes(normalizedQ) ||
+      n.metaTitle?.toLowerCase().includes(normalizedQ);
+
     const dfs = (nodes) =>
       nodes
         .map((n) => {
@@ -151,12 +191,31 @@ export default function CategoriesPage() {
 
   const closeAll = () => setExpanded(new Set());
 
+  const closeForm = () => {
+    setFormOpen(false);
+    setEditCat(null);
+    setDraftParent(null);
+  };
+
+  const startCreate = (parent = null) => {
+    setEditCat(null);
+    setDraftParent(parent);
+    setFormOpen(true);
+  };
+
+  const startEdit = (node) => {
+    setDraftParent(null);
+    setEditCat(node);
+    setFormOpen(true);
+  };
+
   //* 🟢 Mutation Actions
-  const handleCreate = async (payload) => {
+  const handleCreate = async (payload, helpers) => {
     try {
       await apiClient.post(backApis.createCategory.url, payload);
       toast.success("دسته‌بندی ایجاد شد");
-      setCreateOpen(false);
+      helpers?.resetCreateForm?.();
+      closeForm();
       fetchAll();
     } catch (e) {
       toast.error(e?.response?.data?.message || "ایجاد ناموفق بود");
@@ -182,8 +241,7 @@ export default function CategoriesPage() {
 
       const data = allowed.reduce((acc, k) => {
         const v = rest[k];
-        if (v === undefined || v === null) return acc;
-        if (typeof v === "string" && v.trim() === "") return acc;
+        if (v === undefined) return acc;
         acc[k] = v;
         return acc;
       }, {});
@@ -191,25 +249,11 @@ export default function CategoriesPage() {
       const { url, method } = backApis.updateCategory(id);
       await apiClient({ url, method, data });
 
-      toast.success("تغییرات ذخیره شد");
-      setEditCat(null);
+      toast.success("تغییرات دسته‌بندی ذخیره شد");
+      closeForm();
       fetchAll();
     } catch (e) {
       toast.error(e?.response?.data?.message || "ویرایش ناموفق بود");
-    }
-  };
-
-  const openEdit = async (node) => {
-    setEditCat({ ...node, _loading: true });
-    setEditLoading(true);
-    try {
-      const { url } = backApis.updateCategory(node._id);
-      const { data } = await apiClient.get(url);
-      setEditCat(data?.data || node);
-    } catch (e) {
-      toast.error(e?.response?.data?.message || "خطا در دریافت جزییات دسته");
-    } finally {
-      setEditLoading(false);
     }
   };
 
@@ -217,8 +261,9 @@ export default function CategoriesPage() {
     try {
       const { url, method } = backApis.deleteCategory(deleteCat._id);
       await apiClient({ url, method });
-      toast.success("دسته حذف شد");
+      toast.success("دسته‌بندی حذف شد");
       setDeleteCat(null);
+      if (editCat?._id === deleteCat._id) closeForm();
       fetchAll();
     } catch (e) {
       toast.error(e?.response?.data?.message || "حذف ناموفق بود");
@@ -235,8 +280,8 @@ export default function CategoriesPage() {
       });
       setRaw((prev) =>
         prev.map((c) =>
-          c._id === node._id ? { ...c, isActive: !node.isActive } : c
-        )
+          c._id === node._id ? { ...c, isActive: !node.isActive } : c,
+        ),
       );
     } catch {
       toast.error("تغییر وضعیت ناموفق بود");
@@ -248,7 +293,7 @@ export default function CategoriesPage() {
       .filter(
         (c) =>
           (c.parent?._id || c.parent || null) ===
-          (node.parent?._id || node.parent || null)
+          (node.parent?._id || node.parent || null),
       )
       .sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0));
     const idx = siblings.findIndex((s) => s._id === node._id);
@@ -276,8 +321,8 @@ export default function CategoriesPage() {
           depth={depth}
           expanded={open}
           onToggleExpand={toggleExpand}
-          onAddChild={(node) => setCreateOpen({ parent: node })}
-          onEdit={(node) => setEditCat(node)}
+          onAddChild={startCreate}
+          onEdit={startEdit}
           onDelete={(node) => setDeleteCat(node)}
           onToggleActive={handleToggleActive}
           onMoveUp={(node) => move(node, "up")}
@@ -290,148 +335,139 @@ export default function CategoriesPage() {
   };
 
   return (
-    <div className="py-8" role="tree" aria-label="مدیریت دسته‌ها">
-      <div className="mb-6 flex flex-col lg:flex-row items-center justify-between gap-4 md:w-full w-[95vw] mx-auto">
-        <div className="w-full">
-          <div
-            className="rounded-2xl overflow-hidden"
-            style={{
-              background: "var(--adm-surface)",
-              border: "1px solid var(--adm-border)",
-              boxShadow: "0 20px 60px var(--adm-shadow)",
-            }}
-          >
-            <div
-              className="p-5"
-              style={{
-                background: "var(--adm-surface-2)",
-                borderBottom: "1px solid var(--adm-border)",
-              }}
-            >
-              <h1 className="text-2xl font-bold" style={{ color: "var(--adm-text)" }}>
-                مدیریت دسته‌بندی‌ها
+    <div
+      className="mx-auto w-full max-w-[1500px] px-4 py-8"
+      role="tree"
+      aria-label="دسته‌ بندی‌ ها"
+    >
+      <div className="mb-6 overflow-hidden rounded-3xl border border-[color:var(--adm-border)] bg-[var(--adm-surface)] shadow-[0_20px_60px_var(--adm-shadow)]">
+        <div className="bg-[var(--adm-surface-2)] p-6">
+          <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
+            <div>
+              <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-[color:var(--adm-border)] bg-[var(--adm-surface)] px-3 py-1 text-xs font-semibold text-[var(--adm-text-muted)]">
+                <FolderTree className="h-4 w-4" />
+                مدیریت دسته‌ بندی‌ ها فروشگاه
+              </div>
+              <h1 className="text-2xl font-black text-[var(--adm-text)] md:text-3xl">
+                دسته‌ بندی‌ ها
               </h1>
-              <p className="mt-1" style={{ color: "var(--adm-text-muted)" }}>
-                ایجاد، ویرایش و سازمان‌دهی دسته‌ها به‌صورت درختی
-              </p>
             </div>
 
-            <div className="p-4 flex flex-col md:flex-row items-stretch md:items-center gap-3 md:gap-4">
-              <div className="relative flex-1">
-                <input
-                  value={qInput}
-                  onChange={(e) => setQInput(e.target.value)}
-                  placeholder="جستجو بر اساس نام/اسلاگ..."
-                  className="w-full pl-10 pr-3 py-2 rounded-xl border focus:outline-none focus:ring-2"
-                  style={{
-                    background: "var(--adm-surface-2)",
-                    borderColor: "var(--adm-border)",
-                    color: "var(--adm-text)",
-                    boxShadow: "none",
-                  }}
-                  onFocus={(e) => (e.currentTarget.style.boxShadow = "0 0 0 3px var(--adm-ring)")}
-                  onBlur={(e) => (e.currentTarget.style.boxShadow = "none")}
-                />
-                <Search
-                  className="w-4 h-4 absolute left-2.5 top-2.5"
-                  style={{ color: "var(--adm-text-muted)" }}
-                />
-              </div>
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={openAll}
-                  className="px-2 py-1 sm:px-3 sm:py-2 rounded-xl text-xs sm:text-sm transition"
-                  style={{ background: "var(--adm-surface-2)", color: "var(--adm-text)", border: "1px solid var(--adm-border)" }}
-                  onMouseEnter={(e) => (e.currentTarget.style.background = "var(--adm-surface)")}
-                  onMouseLeave={(e) => (e.currentTarget.style.background = "var(--adm-surface-2)")}
-                >
-                  باز کردن همه
-                </button>
-
-                <button
-                  onClick={closeAll}
-                  className="px-2 py-1 sm:px-3 sm:py-2 rounded-xl text-xs sm:text-sm transition"
-                  style={{ background: "var(--adm-surface-2)", color: "var(--adm-text)", border: "1px solid var(--adm-border)" }}
-                  onMouseEnter={(e) => (e.currentTarget.style.background = "var(--adm-surface)")}
-                  onMouseLeave={(e) => (e.currentTarget.style.background = "var(--adm-surface-2)")}
-                >
-                  بستن همه
-                </button>
-
-                <button
-                  onClick={() => setCreateOpen(true)}
-                  className="px-2 py-1 sm:px-3 sm:py-2 rounded-xl flex items-center gap-1 text-xs sm:text-sm transition"
-                  style={{ background: "var(--adm-primary)", color: "var(--adm-on-primary)" }}
-                  onMouseEnter={(e) => (e.currentTarget.style.background = "var(--adm-primary-hover)")}
-                  onMouseLeave={(e) => (e.currentTarget.style.background = "var(--adm-primary)")}
-                >
-                  <Plus className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-                  دسته جدید
-                </button>
-              </div>
-            </div>
-            <div
-              className="border-t"
-              style={{ borderColor: "var(--adm-border)" }}
-            >
-              {loading ? (
-                <div className="p-8 flex items-center justify-center">
-                  <Spinner inline />
-                </div>
-              ) : (
-                <div>
-                  <div
-                    className="grid grid-cols-[1fr_auto_auto_auto] gap-2 ps-4 py-3 sticky top-0 z-10 backdrop-blur"
-                    style={{
-                      background: "var(--adm-surface-2)",
-                      borderBottom: "1px solid var(--adm-border)",
-                      color: "var(--adm-text-muted)",
-                    }}
-                  >
-                    <div>نام / اسلاگ</div>
-                    <div className="flex lg:gap-10 gap-2">
-                      <div className="justify-self-end">ترتیب</div>
-                      <div className="justify-self-end">وضعیت</div>
-                      <div className="justify-self-end">
-                        <span className="hidden lg:inline">عملیات</span>
-                        <MoreVertical className="inline lg:hidden w-4 h-4 align-[-2px]" />
-                      </div>
-                    </div>
-                  </div>
-
-                  <div style={{ background: "var(--adm-surface)" }}>
-                    {filteredTree.length === 0 && (
-                      <div className="p-6 text-center" style={{ color: "var(--adm-text-muted)" }}>
-                        دسته‌ای یافت نشد
-                      </div>
-                    )}
-
-                    {filteredTree.map((root) => renderNode(root, 0))}
-                  </div>
-                </div>
-              )}
+            <div className="flex flex-wrap items-center gap-2">
+              <AdminButton
+                variant="primary"
+                onClick={() => startCreate(null)}
+                leftIcon={Plus}
+              >
+                دسته جدید
+              </AdminButton>
             </div>
           </div>
         </div>
+
+        <div className="grid grid-cols-2 gap-px bg-[var(--adm-border)] md:grid-cols-5">
+          <StatCard icon={Layers3} label="کل دسته‌ها" value={stats.total} />
+          <StatCard
+            icon={ShieldCheck}
+            label="فعال"
+            value={stats.active}
+            variant="success"
+          />
+          <StatCard
+            icon={SlidersHorizontal}
+            label="غیرفعال"
+            value={stats.inactive}
+            variant="warning"
+          />
+          <StatCard icon={FolderTree} label="دسته سطح ۱" value={stats.roots} />
+          <StatCard icon={ChevronDown} label="عمق درخت" value={stats.depth} />
+        </div>
       </div>
 
-      <CategoryFormModal
-        open={Boolean(createOpen)}
-        onClose={() => setCreateOpen(false)}
-        onSubmit={(payload) => {
-          if (createOpen?.parent) payload.parent = createOpen.parent._id;
-          handleCreate(payload);
-        }}
-        allCategoriesTree={tree}
-      />
+      <section className="min-w-0 overflow-hidden rounded-2xl border border-[color:var(--adm-border)] bg-[var(--adm-surface)] shadow-[0_20px_60px_var(--adm-shadow)]">
+        <div className="border-b border-[color:var(--adm-border)] bg-[var(--adm-surface-2)] p-4">
+          <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+            <div>
+              <h2 className="text-lg font-bold text-[var(--adm-text)]">
+                لیست درختی دسته‌ها
+              </h2>
+              <p className="mt-1 text-sm text-[var(--adm-text-muted)]">
+                برای ساخت زیر‌دسته از دکمه + کنار هر ردیف استفاده کن.
+              </p>
+            </div>
 
-      <CategoryFormModal
-        open={Boolean(editCat)}
-        onClose={() => setEditCat(null)}
-        onSubmit={handleEdit}
-        initial={editCat || undefined}
-        allCategoriesTree={tree}
-      />
+            <div className="relative w-full lg:max-w-sm">
+              <input
+                value={qInput}
+                onChange={(e) => setQInput(e.target.value)}
+                placeholder="جستجو در نام، اسلاگ یا عنوان متا..."
+                className="h-11 w-full rounded-2xl border border-[color:var(--adm-border)] bg-[var(--adm-surface)] py-2 pl-10 pr-4 text-right text-sm text-[var(--adm-text)] placeholder:text-[var(--adm-text-muted)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--adm-ring)]"
+              />
+              <Search className="absolute left-3 top-3.5 h-4 w-4 text-[var(--adm-text-muted)]" />
+            </div>
+          </div>
+        </div>
+
+        <div className="flex justify-between border-b border-[color:var(--adm-border)] bg-[var(--adm-surface)] px-4 py-3">
+          <div className="flex flex-wrap items-center gap-2 text-xs text-[var(--adm-text-muted)]">
+            {q ? <AdminBadge variant="info">نتیجه برای: {q}</AdminBadge> : null}
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <AdminButton
+              variant="secondary"
+              onClick={closeAll}
+              leftIcon={ChevronUp}
+            >
+              بستن همه
+            </AdminButton>
+            <AdminButton
+              variant="secondary"
+              onClick={openAll}
+              leftIcon={ChevronDown}
+            >
+              باز کردن همه
+            </AdminButton>
+          </div>
+        </div>
+
+        {loading ? (
+          <div className="flex items-center justify-center p-12">
+            <Spinner inline />
+          </div>
+        ) : (
+          <div>
+            <div className="hidden grid-cols-[minmax(0,1fr)_auto_auto_auto] gap-3 border-b border-[color:var(--adm-border)] bg-[var(--adm-surface-2)] px-4 py-3 text-xs font-bold text-[var(--adm-text-muted)] xl:grid">
+              <div>دسته‌بندی</div>
+              <div>ترتیب</div>
+              <div>وضعیت</div>
+              <div>عملیات</div>
+            </div>
+
+            <div
+              className={cn(
+                "min-h-72",
+                filteredTree.length === 0 && "flex items-center justify-center",
+              )}
+            >
+              {filteredTree.length === 0 ? (
+                <div className="p-8 text-center">
+                  <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-[var(--adm-surface-2)] text-[var(--adm-text-muted)]">
+                    <Search className="h-6 w-6" />
+                  </div>
+                  <p className="mt-3 text-sm font-semibold text-[var(--adm-text)]">
+                    دسته‌ای یافت نشد
+                  </p>
+                  <p className="mt-1 text-xs text-[var(--adm-text-muted)]">
+                    عبارت جستجو را تغییر بده یا یک دسته جدید بساز.
+                  </p>
+                </div>
+              ) : (
+                filteredTree.map((root) => renderNode(root, 0))
+              )}
+            </div>
+          </div>
+        )}
+      </section>
 
       <ConfirmDeleteModal
         open={Boolean(deleteCat)}
@@ -439,6 +475,58 @@ export default function CategoriesPage() {
         onConfirm={handleDelete}
         category={deleteCat}
       />
+
+      <AdminModal
+        open={formOpen}
+        onClose={closeForm}
+        title={
+          editCat
+            ? "ویرایش دسته‌بندی"
+            : draftParent
+              ? "افزودن زیر‌دسته"
+              : "افزودن دسته‌بندی"
+        }
+        description={
+          editCat
+            ? "اطلاعات دسته، تصویر و داده‌های SEO را ویرایش کن."
+            : draftParent
+              ? `زیر‌دسته جدید برای «${draftParent.name}» ایجاد می‌شود.`
+              : "یک دسته جدید برای فروشگاه ایجاد کنید."
+        }
+        size="xl"
+      >
+        <CategoryFormPanel
+          mode={editCat ? "edit" : "create"}
+          variant="modal"
+          initial={editCat || undefined}
+          parentDraft={draftParent || undefined}
+          allCategoriesTree={tree}
+          onSubmit={editCat ? handleEdit : handleCreate}
+          onCancelEdit={closeForm}
+        />
+      </AdminModal>
+    </div>
+  );
+}
+
+function StatCard({ icon: Icon, label, value, variant = "neutral" }) {
+  const tone = {
+    neutral: "text-[var(--adm-text)]",
+    success: "text-[var(--adm-success)]",
+    warning: "text-[var(--adm-warning)]",
+  }[variant];
+
+  return (
+    <div className="bg-[var(--adm-surface)] p-4">
+      <div className="flex items-center gap-3">
+        <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-[var(--adm-surface-2)] text-[var(--adm-text-muted)]">
+          <Icon className="h-5 w-5" />
+        </div>
+        <div>
+          <p className="text-xs text-[var(--adm-text-muted)]">{label}</p>
+          <p className={cn("mt-1 text-2xl font-black", tone)}>{value}</p>
+        </div>
+      </div>
     </div>
   );
 }

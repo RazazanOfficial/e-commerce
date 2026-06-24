@@ -30,7 +30,7 @@ const normalizeKeywords = (keywords) => {
     return keywords.map((k) => String(k).trim()).filter(Boolean);
   if (typeof keywords === "string")
     return keywords
-      .split(",")
+      .split(/[،,]/)
       .map((k) => k.trim())
       .filter(Boolean);
   return [];

@@ -47,6 +47,35 @@ function inferKind(mimeType) {
   return "other";
 }
 
+function normalizeUploadFolder(folder) {
+  if (folder === undefined || folder === null || folder === "") return "";
+  const cleaned = String(folder)
+    .trim()
+    .toLowerCase()
+    .replace(/^\/+|\/+$/g, "");
+
+  if (!cleaned) return "";
+  const safeFolderRegex = /^[a-z0-9][a-z0-9/_-]*[a-z0-9]$|^[a-z0-9]$/;
+  if (
+    !safeFolderRegex.test(cleaned) ||
+    cleaned.includes("..") ||
+    cleaned.includes("\\") ||
+    cleaned.includes("%2e")
+  ) {
+    const err = new Error("folder نامعتبر است");
+    err.statusCode = 400;
+    throw err;
+  }
+
+  return cleaned;
+}
+
+function composeUploadPrefix(basePrefix, folder) {
+  const cleanBase = String(basePrefix || "").replace(/^\/+|\/+$/g, "");
+  const cleanFolder = normalizeUploadFolder(folder);
+  return [cleanBase, cleanFolder].filter(Boolean).join("/");
+}
+
 function assertKeyLoose(key) {
   if (!key || typeof key !== "string" || !key.trim()) {
     const err = new Error("key is required");
@@ -98,16 +127,20 @@ function assertKeyStrict(key) {
 //* 🟢 Presign Upload Controller
 const presignPut = async (req, res, next) => {
   try {
-    const { mimeType, expiresInSec } = req.body || {};
+    const { mimeType, expiresInSec, folder } = req.body || {};
     const mt = assertMime(mimeType);
 
 
     const expRaw = Number(expiresInSec);
     const exp = Number.isFinite(expRaw) ? Math.max(60, Math.min(3600, expRaw)) : 300;
+    const uploadPrefix = composeUploadPrefix(
+      process.env.CLOUD_SPACE_KEY_PREFIX || "",
+      folder
+    );
 
     const key = generateObjectKey({
       mimeType: mt,
-      prefix: process.env.CLOUD_SPACE_KEY_PREFIX || "",
+      prefix: uploadPrefix,
     });
 
     const cacheControl = "public, max-age=31536000, immutable";

@@ -51,8 +51,8 @@ const ROLE_META = {
 const SORT_OPTIONS = [
   { value: "latest", label: "آخرین ثبت‌نام" },
   { value: "oldest", label: "اولین ثبت‌نام" },
-  { value: "admins_first", label: "مدیران ابتدا" },
-  { value: "completed_profile", label: "پروفایل‌های تکمیل‌تر" },
+  { value: "admins_first", label: "اولویت مدیران" },
+  { value: "completed_profile", label: "پروفایل‌ های تکمیل‌" },
 ];
 
 const JALALI_DATE_FORMATTER = new Intl.DateTimeFormat("fa-IR-u-ca-persian", {
@@ -581,7 +581,7 @@ export default function AllUsersPage() {
       <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <StatCard icon={Users} label={activeSearch ? "نتایج جستجو" : "کل کاربران"} value={stats.total} hint={activeSearch || "بر اساس اطلاعات سرور"} />
         <StatCard icon={UserCheck} label="نمایش فعلی" value={stats.pageUsers} hint={activeSearch ? "در نتیجه جستجو" : `صفحه ${page} از ${totalPages || 1}`} variant="info" />
-        <StatCard icon={ShieldCheck} label="مدیران" value={stats.admins} hint="در لیست فعلی" variant="warning" />
+        <StatCard icon={ShieldCheck} label="مدیران" value={stats.admins} hint="براساس اطلاعات سرور" variant="warning" />
         <StatCard icon={CheckCircle2} label="پروفایل تکمیل" value={stats.completedProfiles} hint="نام، تماس و آدرس کامل" variant="success" />
       </section>
 

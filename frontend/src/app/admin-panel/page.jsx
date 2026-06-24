@@ -2,7 +2,7 @@
 
 import { useContext, useEffect } from "react";
 import { UserContext } from "@/context/UserContext";
-import { notFound, useRouter } from "next/navigation";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Users, Tags, Package, Settings } from "lucide-react";
 import {
@@ -12,21 +12,27 @@ import {
   AdminCardTitle,
 } from "@/components/admin-ui";
 
+const ADMIN_ROLES = new Set(["admin", "developer"]);
+
 export default function AdminPanelHome() {
-  const { user } = useContext(UserContext);
+  const { user, isAuthResolved } = useContext(UserContext);
   const router = useRouter();
+  const isAdmin = ADMIN_ROLES.has(user?.role);
 
   useEffect(() => {
-    if (user === null) return;
+    if (!isAuthResolved) return;
 
     if (!user) {
-      router.push("/auth");
-    } else if (user.role !== "admin") {
-      notFound();
+      router.replace("/auth");
+      return;
     }
-  }, [user, router]);
 
-  if (!user || user.role !== "admin") return null;
+    if (!isAdmin) {
+      router.replace("/");
+    }
+  }, [isAuthResolved, isAdmin, router, user]);
+
+  if (!isAuthResolved || !user || !isAdmin) return null;
 
   const cards = [
     {
