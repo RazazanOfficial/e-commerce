@@ -108,14 +108,38 @@ const buildSiblingOrderOps = (
     };
   });
 
+//* 🟢 Category Slug Utilities
+const CATEGORY_SLUG_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
+
+const normalizeSlugInput = (slug = "") =>
+  String(slug)
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, "-")
+    .replace(/[^a-z0-9-]+/g, "")
+    .replace(/--+/g, "-")
+    .replace(/^-+/g, "");
+
 //* 🟢 validateAndNormalizeSlug Utility
 const validateAndNormalizeSlug = async (slug, currentId = null) => {
   if (typeof slug === "undefined") return null;
-  const cleaned = String(slug).trim().toLowerCase();
-  const slugRegex = /^[a-z0-9-]+$/;
-  if (!cleaned || !slugRegex.test(cleaned)) {
-    throw new Error("اسلاگ نامعتبر است (فقط حروف انگلیسی، ارقام و -)");
+
+  const cleaned = normalizeSlugInput(slug);
+
+  if (!cleaned) {
+    throw new Error("اسلاگ الزامی است");
   }
+
+  if (cleaned.endsWith("-")) {
+    throw new Error("آخرین کاراکتر اسلاگ نباید خط تیره باشد");
+  }
+
+  if (!CATEGORY_SLUG_PATTERN.test(cleaned)) {
+    throw new Error(
+      "اسلاگ باید فقط شامل حروف انگلیسی کوچک، عدد و خط تیره بین کلمات باشد"
+    );
+  }
+
   const exists = await CategoryModel.exists({
     slug: cleaned,
     ...(currentId ? { _id: { $ne: currentId } } : {}),

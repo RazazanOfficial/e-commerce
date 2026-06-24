@@ -40,6 +40,8 @@ import {
 import { cn } from "@/lib/utils";
 
 //* 🟢 Category Utilities
+const CATEGORY_SLUG_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
+
 const normalizeSlugInput = (str = "") =>
   str
     .toString()
@@ -50,6 +52,23 @@ const normalizeSlugInput = (str = "") =>
     .replace(/^-+/g, "");
 
 const slugify = (str = "") => normalizeSlugInput(str).replace(/-+$/g, "");
+
+const validateCategorySlug = (slug = "") => {
+  const value = normalizeSlugInput(String(slug).trim());
+
+  if (!value) return { value, error: "اسلاگ را وارد کنید" };
+  if (value.endsWith("-")) {
+    return { value, error: "آخرین کاراکتر اسلاگ نباید خط تیره باشد" };
+  }
+  if (!CATEGORY_SLUG_PATTERN.test(value)) {
+    return {
+      value,
+      error: "اسلاگ باید فقط شامل حروف انگلیسی کوچک، عدد و خط تیره بین کلمات باشد",
+    };
+  }
+
+  return { value, error: null };
+};
 
 const KEYWORD_SEPARATOR = "، ";
 const KEYWORD_SPLIT_RE = /[،,]/;
@@ -465,11 +484,10 @@ function CategoryFormPanel({
 
   const handleSubmit = () => {
     const finalName = name.trim();
-    const finalSlug = normalizeSlugInput(slug).trim();
+    const { value: finalSlug, error: slugError } = validateCategorySlug(slug);
 
     if (!finalName) return toast.error("نام دسته‌بندی را وارد کنید");
-    if (!finalSlug) return toast.error("اسلاگ را وارد کنید");
-    if (finalSlug.endsWith("-")) return toast.error("آخرین کاراکتر اسلاگ نباید خط تیره باشد");
+    if (slugError) return toast.error(slugError);
 
     if (image && !String(image).trim().startsWith("/")) {
       try {
