@@ -65,6 +65,49 @@ const willCreateCycle = async (categoryId, targetParentId) => {
   return false;
 };
 
+//* 🟢 Category Order Utilities
+const normalizeParentId = (value) => {
+  if (!value) return null;
+  if (value?._id) return value._id;
+  return value;
+};
+
+const sameId = (a, b) => String(a || "") === String(b || "");
+
+const getParentFilter = (parentId) => ({ parent: parentId || null });
+
+const getStableSiblingSort = () => ({ sortOrder: 1, createdAt: 1, _id: 1 });
+
+const normalizeSortPosition = (value, fallback) => {
+  if (value === undefined || value === null || value === "") return fallback;
+  const position = Number(value);
+  if (!Number.isFinite(position)) return null;
+  return Math.trunc(position);
+};
+
+const buildSiblingOrderOps = (
+  siblings,
+  targetParentId,
+  targetCategoryId,
+  extraTargetSets = {}
+) =>
+  siblings.map((doc, idx) => {
+    const isTarget = sameId(doc._id, targetCategoryId);
+    const $set = {
+      sortOrder: idx + 1,
+      ...(isTarget
+        ? { parent: targetParentId || null, ...extraTargetSets }
+        : {}),
+    };
+
+    return {
+      updateOne: {
+        filter: { _id: doc._id },
+        update: { $set },
+      },
+    };
+  });
+
 //* 🟢 validateAndNormalizeSlug Utility
 const validateAndNormalizeSlug = async (slug, currentId = null) => {
   if (typeof slug === "undefined") return null;
@@ -112,6 +155,33 @@ const getAllCategories = async (_req, res) => {
       success: false,
       error: true,
       message: "خطا در دریافت دسته‌بندی‌ها",
+    });
+  }
+};
+
+//* 🟢 Get Single Category Controller
+const getSingleCategory = async (req, res) => {
+  try {
+    const { id } = req.params;
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res
+        .status(400)
+        .json({ success: false, error: true, message: "شناسه نامعتبر است" });
+    }
+
+    const category = await CategoryModel.findById(id).lean();
+    if (!category) {
+      return res
+        .status(404)
+        .json({ success: false, error: true, message: "دسته‌بندی پیدا نشد" });
+    }
+
+    return res.status(200).json({ success: true, error: false, data: category });
+  } catch (err) {
+    return res.status(500).json({
+      success: false,
+      error: true,
+      message: "خطا در دریافت جزئیات دسته‌بندی",
     });
   }
 };
@@ -316,58 +386,55 @@ const updateCategory = async (req, res) => {
       });
     }
 
-    const siblings = await CategoryModel.find({
-      parent: parentChanged ? targetParentId : cat.parent,
-    })
-      .sort({ sortOrder: 1, _id: 1 })
+    const oldParentId = normalizeParentId(cat.parent);
+    const requestedPosition = normalizeSortPosition(
+      sortOrder,
+      parentChanged ? Number.MAX_SAFE_INTEGER : cat.sortOrder || 1
+    );
+
+    if (requestedPosition === null) {
+      return res.status(400).json({
+        success: false,
+        error: true,
+        message: "ترتیب دسته‌بندی نامعتبر است",
+      });
+    }
+
+    const targetSiblings = await CategoryModel.find(getParentFilter(targetParentId))
+      .sort(getStableSiblingSort())
       .lean();
 
-    const withoutTarget = siblings.filter(
-      (s) => String(s._id) !== String(cat._id)
-    );
-
-    const requested = Number(sortOrder);
-    const newPosOneBased =
-      requested > 0
-        ? requested
-        : !parentChanged && cat.sortOrder
-        ? cat.sortOrder
-        : withoutTarget.length + 1;
-
-    const clamped = Math.min(
-      Math.max(newPosOneBased, 1),
+    const withoutTarget = targetSiblings.filter((s) => !sameId(s._id, cat._id));
+    const clampedPosition = Math.min(
+      Math.max(requestedPosition, 1),
       withoutTarget.length + 1
     );
-    const newIndex = clamped - 1;
+    const reorderedTargetSiblings = [...withoutTarget];
 
-    const reordered = [...withoutTarget];
-    reordered.splice(newIndex, 0, { ...cat.toObject(), _id: cat._id });
+    reorderedTargetSiblings.splice(clampedPosition - 1, 0, {
+      ...cat.toObject(),
+      _id: cat._id,
+    });
 
-    const allIds = reordered.map((d) => d._id);
-    await CategoryModel.updateMany(
-      { _id: { $in: allIds } },
-      { $inc: { sortOrder: 100000 } }
+    const ops = buildSiblingOrderOps(
+      reorderedTargetSiblings,
+      targetParentId,
+      cat._id,
+      optionalSets
     );
 
-    const ops = reordered.map((doc, idx) => ({
-      updateOne: {
-        filter: { _id: doc._id },
-        update: {
-          $set: {
-            sortOrder: idx + 1,
-            parent: parentChanged ? targetParentId ?? null : cat.parent ?? null,
-          },
-        },
-      },
-    }));
+    if (parentChanged) {
+      const oldSiblings = await CategoryModel.find(getParentFilter(oldParentId))
+        .sort(getStableSiblingSort())
+        .lean();
 
-    if (Object.keys(optionalSets).length) {
-      ops.push({
-        updateOne: {
-          filter: { _id: cat._id },
-          update: { $set: optionalSets },
-        },
-      });
+      const normalizedOldSiblings = oldSiblings.filter(
+        (s) => !sameId(s._id, cat._id)
+      );
+
+      ops.unshift(
+        ...buildSiblingOrderOps(normalizedOldSiblings, oldParentId, cat._id)
+      );
     }
 
     await CategoryModel.bulkWrite(ops, { ordered: true });
@@ -452,6 +519,7 @@ const deleteCategory = async (req, res) => {
 module.exports = {
   createCategory,
   getAllCategories,
+  getSingleCategory,
   updateCategory,
   deleteCategory,
 };

@@ -6,12 +6,14 @@ const adminOnlyMid = require("../../../middlewares/adminOnlyMid");
 const {
   createCategory,
   getAllCategories,
+  getSingleCategory,
   updateCategory,
   deleteCategory,
 } = require("../../../controllers/Admin-Panel/Products/categoryController");
 
 router.post("/", authTokenMid, adminOnlyMid, createCategory);
 router.get("/", authTokenMid, adminOnlyMid, getAllCategories);
+router.get("/:id", authTokenMid, adminOnlyMid, getSingleCategory);
 router.put("/:id", authTokenMid, adminOnlyMid, updateCategory);
 router.delete("/:id", authTokenMid, adminOnlyMid, deleteCategory);
 

@@ -48,6 +48,11 @@ const backApis = {
     method: "GET",
   },
 
+  getSingleCategory: (id) => ({
+    url: `${backDomin}/api/admin/categories/${id}`,
+    method: "GET",
+  }),
+
 
   createCategory: {
     url: `${backDomin}/api/admin/categories`,

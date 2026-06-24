@@ -27,6 +27,14 @@ import {
   Row,
 } from "@/components/Admin-Panel/Categories/CategoryTree";
 
+//* 🟢 Category Order Utilities
+const getParentId = (category) => category?.parent?._id || category?.parent || null;
+
+const compareCategoryOrder = (a, b) =>
+  (a.sortOrder ?? 0) - (b.sortOrder ?? 0) ||
+  String(a.createdAt || "").localeCompare(String(b.createdAt || "")) ||
+  String(a._id || "").localeCompare(String(b._id || ""));
+
 //* 🟢 Tree Stats Utilities
 const getMaxDepth = (nodes, depth = 1) => {
   if (!nodes?.length) return 0;
@@ -203,10 +211,18 @@ export default function CategoriesPage() {
     setFormOpen(true);
   };
 
-  const startEdit = (node) => {
+  const startEdit = async (node) => {
     setDraftParent(null);
     setEditCat(node);
     setFormOpen(true);
+
+    try {
+      const { url, method } = backApis.getSingleCategory(node._id);
+      const { data } = await apiClient({ url, method });
+      if (data?.data) setEditCat(data.data);
+    } catch {
+      toast.error("خطا در دریافت جزئیات دسته‌بندی");
+    }
   };
 
   //* 🟢 Mutation Actions
@@ -290,25 +306,29 @@ export default function CategoriesPage() {
 
   const move = async (node, dir) => {
     const siblings = (raw || [])
-      .filter(
-        (c) =>
-          (c.parent?._id || c.parent || null) ===
-          (node.parent?._id || node.parent || null),
-      )
-      .sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0));
+      .filter((c) => getParentId(c) === getParentId(node))
+      .sort(compareCategoryOrder);
+
     const idx = siblings.findIndex((s) => s._id === node._id);
-    const target = dir === "up" ? siblings[idx - 1] : siblings[idx + 1];
-    if (!target) return;
+    if (idx === -1) return;
+
+    const requestedPosition = dir === "up" ? idx : idx + 2;
+    const canMove =
+      (dir === "up" && idx > 0) ||
+      (dir === "down" && idx < siblings.length - 1);
+
+    if (!canMove) return;
+
     try {
       const { url, method } = backApis.updateCategory(node._id);
       await apiClient({
         url,
         method,
-        data: { sortOrder: target.sortOrder },
+        data: { sortOrder: requestedPosition },
       });
       fetchAll();
-    } catch {
-      toast.error("جابجایی ترتیب ناموفق بود");
+    } catch (e) {
+      toast.error(e?.response?.data?.message || "جابجایی ترتیب ناموفق بود");
     }
   };
 

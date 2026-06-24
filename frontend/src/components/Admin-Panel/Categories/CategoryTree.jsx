@@ -72,6 +72,11 @@ const uniqueKeywords = (items) => {
   });
 };
 
+const compareCategoryOrder = (a, b) =>
+  (a.sortOrder ?? 0) - (b.sortOrder ?? 0) ||
+  String(a.createdAt || "").localeCompare(String(b.createdAt || "")) ||
+  String(a._id || "").localeCompare(String(b._id || ""));
+
 const buildTree = (flat) => {
   const map = new Map();
   flat.forEach((c) => map.set(c._id, { ...c, children: [] }));
@@ -82,7 +87,7 @@ const buildTree = (flat) => {
     else roots.push(map.get(c._id));
   });
   const sortRec = (nodes) => {
-    nodes.sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0));
+    nodes.sort(compareCategoryOrder);
     nodes.forEach((n) => sortRec(n.children));
   };
   sortRec(roots);
