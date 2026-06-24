@@ -8,6 +8,7 @@ const USER_SORTS = Object.freeze({
   COMPLETED_PROFILE: "completed_profile",
 });
 
+const SYSTEM_USER_ROLES = Object.freeze(["developer"]);
 const PROFILE_FIELDS = ["firstName", "lastName", "phone", "province", "city", "address", "postalCode"];
 
 const normalizeUserSort = (sort) => {
@@ -20,6 +21,20 @@ const buildPublicProjection = () =>
     if (field) projection[field] = 1;
     return projection;
   }, {});
+
+const compactFilters = (filters = []) =>
+  filters.filter((filter) => filter && typeof filter === "object" && Object.keys(filter).length);
+
+const combineUserFilters = (...filters) => {
+  const validFilters = compactFilters(filters);
+  if (!validFilters.length) return {};
+  if (validFilters.length === 1) return validFilters[0];
+  return { $and: validFilters };
+};
+
+const buildManageableUsersFilter = () => ({
+  role: { $nin: SYSTEM_USER_ROLES },
+});
 
 const buildSearchFilter = (query) => {
   const value = String(query || "").trim();
@@ -80,8 +95,11 @@ const buildUserListPipeline = ({ filter = {}, sort, skip = 0, limit = 10 }) => [
 ];
 
 module.exports = {
+  SYSTEM_USER_ROLES,
   USER_SORTS,
+  buildManageableUsersFilter,
   buildSearchFilter,
   buildUserListPipeline,
+  combineUserFilters,
   normalizeUserSort,
 };

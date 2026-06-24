@@ -1,6 +1,6 @@
 //? 🔵 Required Modules
 const UserModel = require("../../../models/userModel");
-const { buildSearchFilter, buildUserListPipeline, normalizeUserSort } = require("../../../utils/userListQuery");
+const { buildManageableUsersFilter, buildSearchFilter, buildUserListPipeline, combineUserFilters, normalizeUserSort } = require("../../../utils/userListQuery");
 
 //* 🟢 Search Users Controller
 const searchUsersController = async (req, res) => {
@@ -19,7 +19,7 @@ const searchUsersController = async (req, res) => {
     const limit = Math.max(1, Math.min(100, parseInt(req.query.limit, 10) || 20));
     const skip = (page - 1) * limit;
     const sort = normalizeUserSort(req.query.sort);
-    const filter = buildSearchFilter(q);
+    const filter = combineUserFilters(buildManageableUsersFilter(), buildSearchFilter(q));
 
     const [users, totalCount] = await Promise.all([
       UserModel.aggregate(buildUserListPipeline({ filter, sort, skip, limit })),

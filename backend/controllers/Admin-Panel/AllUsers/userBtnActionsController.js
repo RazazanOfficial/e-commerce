@@ -4,12 +4,15 @@ const {
   buildSafeUserUpdates,
   USER_PUBLIC_FIELDS,
 } = require("../../../utils/userSecurity");
+const { buildManageableUsersFilter, SYSTEM_USER_ROLES } = require("../../../utils/userListQuery");
 
 //* 🟢 Get One User Info Controller
 const getSingleUserController = async (req, res) => {
   try {
     const { id } = req.params;
-    const user = await UserModel.findById(id).select(USER_PUBLIC_FIELDS).lean();
+    const user = await UserModel.findOne({ _id: id, ...buildManageableUsersFilter() })
+      .select(USER_PUBLIC_FIELDS)
+      .lean();
     if (!user) {
       return res.status(404).json({
         success: false,
@@ -38,6 +41,15 @@ const updateUserController = async (req, res) => {
     const { id } = req.params;
     const updates = await buildSafeUserUpdates(req.body);
 
+    if (updates.role && SYSTEM_USER_ROLES.includes(updates.role)) {
+      return res.status(403).json({
+        data: null,
+        success: false,
+        error: true,
+        message: "امکان اختصاص نقش سیستمی از این بخش وجود ندارد",
+      });
+    }
+
     if (!Object.keys(updates).length) {
       return res.status(400).json({
         data: null,
@@ -47,7 +59,7 @@ const updateUserController = async (req, res) => {
       });
     }
 
-    const updatedUser = await UserModel.findByIdAndUpdate(id, updates, {
+    const updatedUser = await UserModel.findOneAndUpdate({ _id: id, ...buildManageableUsersFilter() }, updates, {
       new: true,
       runValidators: true,
     })
@@ -97,7 +109,7 @@ const deleteUserController = async (req, res) => {
       });
     }
 
-    const deletedUser = await UserModel.findByIdAndDelete(id)
+    const deletedUser = await UserModel.findOneAndDelete({ _id: id, ...buildManageableUsersFilter() })
       .select("_id")
       .lean();
     if (!deletedUser) {

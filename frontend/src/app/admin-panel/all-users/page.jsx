@@ -40,8 +40,6 @@ import {
   AdminTR,
 } from "@/components/admin-ui";
 
-const HIDDEN_ROLES = new Set(["developer"]);
-
 const ROLE_META = {
   admin: { label: "مدیر", className: "bg-[var(--adm-error-soft)] text-[var(--adm-error)] ring-[var(--adm-border)]" },
   seller: { label: "فروشنده", className: "bg-[var(--adm-warning-soft)] text-[var(--adm-warning)] ring-[var(--adm-border)]" },
@@ -117,10 +115,6 @@ function getProfileStatus(user) {
   }
 
   return { label: "ناقص", variant: "error" };
-}
-
-function filterVisibleUsers(list = []) {
-  return list.filter((user) => !HIDDEN_ROLES.has(String(user?.role || "").toLowerCase()));
 }
 
 function buildPagination(currentPage, totalPages) {
@@ -428,29 +422,36 @@ export default function AllUsersPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [activeSearch, setActiveSearch] = useState("");
   const [searchResults, setSearchResults] = useState([]);
+  const [searchPage, setSearchPage] = useState(1);
+  const [searchTotalPages, setSearchTotalPages] = useState(1);
+  const [searchTotalCount, setSearchTotalCount] = useState(0);
   const [isSearching, setIsSearching] = useState(false);
   const [selectedUser, setSelectedUser] = useState(null);
   const [userModalOpen, setUserModalOpen] = useState(false);
   const [modalMode, setModalMode] = useState("view");
 
-  const visibleUsers = useMemo(() => filterVisibleUsers(users || []), [users]);
-  const visibleSearchResults = useMemo(() => filterVisibleUsers(searchResults || []), [searchResults]);
-  const displayedUsers = activeSearch ? visibleSearchResults : visibleUsers;
+  const displayedUsers = activeSearch ? searchResults : users || [];
+  const currentPage = activeSearch ? searchPage : page;
+  const currentTotalPages = activeSearch ? searchTotalPages : totalPages;
+  const currentTotalCount = activeSearch ? searchTotalCount : totalCount;
 
   const stats = useMemo(() => {
-    const currentList = activeSearch ? visibleSearchResults : visibleUsers;
+    const currentList = activeSearch ? searchResults : users || [];
     const admins = currentList.filter((user) => String(user.role || "").toLowerCase() === "admin").length;
     const completedProfiles = currentList.filter((user) => getProfileStatus(user).variant === "success").length;
 
     return {
-      total: activeSearch ? visibleSearchResults.length : totalCount || visibleUsers.length,
+      total: currentTotalCount || currentList.length,
       pageUsers: currentList.length,
       admins,
       completedProfiles,
     };
-  }, [activeSearch, totalCount, visibleSearchResults, visibleUsers]);
+  }, [activeSearch, currentTotalCount, searchResults, users]);
 
-  const paginationPages = useMemo(() => buildPagination(page, totalPages), [page, totalPages]);
+  const paginationPages = useMemo(
+    () => buildPagination(currentPage, currentTotalPages),
+    [currentPage, currentTotalPages]
+  );
   const isBusy = isLoading || isSearching;
 
   const handleOpenModal = (user, mode) => {
@@ -459,23 +460,30 @@ export default function AllUsersPage() {
     setUserModalOpen(true);
   };
 
-  const runSearch = async (query, selectedSort = sortMode) => {
+  const runSearch = async (query, selectedSort = sortMode, selectedPage = 1) => {
     const normalizedQuery = String(query || "").trim();
+    const nextPage = Math.max(Number(selectedPage || 1), 1);
 
     if (!normalizedQuery) {
       setActiveSearch("");
       setSearchResults([]);
+      setSearchPage(1);
+      setSearchTotalPages(1);
+      setSearchTotalCount(0);
       return;
     }
 
     setIsSearching(true);
     try {
       const { data } = await apiClient.get(backApis.searchUsers.url, {
-        params: { q: normalizedQuery, sort: selectedSort },
+        params: { q: normalizedQuery, sort: selectedSort, page: nextPage, limit: 10 },
       });
 
       setSearchResults(Array.isArray(data?.data) ? data.data : []);
       setActiveSearch(normalizedQuery);
+      setSearchPage(data?.page || nextPage);
+      setSearchTotalPages(data?.totalPages || 1);
+      setSearchTotalCount(data?.totalCount || 0);
     } catch (error) {
       toast.error(error?.response?.data?.message || "جستجو با خطا مواجه شد");
     } finally {
@@ -485,7 +493,8 @@ export default function AllUsersPage() {
 
   const handleSearch = async (event) => {
     event?.preventDefault();
-    await runSearch(searchTerm, sortMode);
+    setSearchPage(1);
+    await runSearch(searchTerm, sortMode, 1);
   };
 
   const handleSortChange = async (event) => {
@@ -494,7 +503,8 @@ export default function AllUsersPage() {
     setPage(1);
 
     if (activeSearch) {
-      await runSearch(activeSearch, nextSort);
+      setSearchPage(1);
+      await runSearch(activeSearch, nextSort, 1);
     }
   };
 
@@ -502,12 +512,15 @@ export default function AllUsersPage() {
     setSearchTerm("");
     setActiveSearch("");
     setSearchResults([]);
+    setSearchPage(1);
+    setSearchTotalPages(1);
+    setSearchTotalCount(0);
   };
 
   const handleRefresh = async () => {
     try {
       await refreshData();
-      if (activeSearch) await runSearch(activeSearch, sortMode);
+      if (activeSearch) await runSearch(activeSearch, sortMode, searchPage);
       toast.success("لیست کاربران بروزرسانی شد");
     } catch (error) {
       toast.error("بروزرسانی لیست کاربران انجام نشد");
@@ -524,6 +537,7 @@ export default function AllUsersPage() {
         prev.map((user) => (user._id === nextUser._id ? nextUser : user))
       );
       await refreshData();
+      if (activeSearch) await runSearch(activeSearch, sortMode, searchPage);
       setUserModalOpen(false);
       toast.success("اطلاعات کاربر ذخیره شد");
     } catch (error) {
@@ -539,12 +553,28 @@ export default function AllUsersPage() {
 
       setSearchResults((prev) => prev.filter((user) => user._id !== userId));
       await refreshData();
+      if (activeSearch && searchResults.length === 1 && searchPage > 1) {
+        await runSearch(activeSearch, sortMode, searchPage - 1);
+      } else if (activeSearch) {
+        await runSearch(activeSearch, sortMode, searchPage);
+      }
       setUserModalOpen(false);
       toast.success("کاربر حذف شد");
     } catch (error) {
       toast.error(error?.response?.data?.message || "حذف کاربر انجام نشد");
       throw error;
     }
+  };
+
+  const handlePageChange = async (nextPage) => {
+    const safePage = Math.min(Math.max(Number(nextPage || 1), 1), currentTotalPages || 1);
+
+    if (activeSearch) {
+      await runSearch(activeSearch, sortMode, safePage);
+      return;
+    }
+
+    setPage(safePage);
   };
 
   return (
@@ -580,7 +610,7 @@ export default function AllUsersPage() {
 
       <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <StatCard icon={Users} label={activeSearch ? "نتایج جستجو" : "کل کاربران"} value={stats.total} hint={activeSearch || "بر اساس اطلاعات سرور"} />
-        <StatCard icon={UserCheck} label="نمایش فعلی" value={stats.pageUsers} hint={activeSearch ? "در نتیجه جستجو" : `صفحه ${page} از ${totalPages || 1}`} variant="info" />
+        <StatCard icon={UserCheck} label="نمایش فعلی" value={stats.pageUsers} hint={`صفحه ${currentPage} از ${currentTotalPages || 1}`} variant="info" />
         <StatCard icon={ShieldCheck} label="مدیران" value={stats.admins} hint="براساس اطلاعات سرور" variant="warning" />
         <StatCard icon={CheckCircle2} label="پروفایل تکمیل" value={stats.completedProfiles} hint="نام، تماس و آدرس کامل" variant="success" />
       </section>
@@ -667,19 +697,19 @@ export default function AllUsersPage() {
           )}
         </div>
 
-        {!activeSearch && displayedUsers.length ? (
+        {displayedUsers.length && (currentTotalPages || 1) > 0 ? (
           <div className="flex flex-col items-center justify-between gap-4 border-t border-[color:var(--adm-border)] bg-[var(--adm-surface)] p-4 sm:flex-row">
             <p className="text-sm text-[var(--adm-text-muted)]">
               نمایش <span className="font-bold text-[var(--adm-text)]">{displayedUsers.length}</span> کاربر در این صفحه از مجموع{" "}
-              <span className="font-bold text-[var(--adm-text)]">{totalCount || displayedUsers.length}</span>
+              <span className="font-bold text-[var(--adm-text)]">{currentTotalCount || displayedUsers.length}</span>
             </p>
 
             <div className="flex items-center gap-2">
               <AdminIconButton
                 className="cursor-pointer"
                 label="صفحه قبل"
-                onClick={() => setPage((prev) => Math.max(prev - 1, 1))}
-                disabled={page === 1}
+                onClick={() => handlePageChange(currentPage - 1)}
+                disabled={currentPage === 1}
               >
                 <ArrowRight className="h-5 w-5" />
               </AdminIconButton>
@@ -694,9 +724,9 @@ export default function AllUsersPage() {
                     <button
                       key={item}
                       type="button"
-                      onClick={() => setPage(item)}
+                      onClick={() => handlePageChange(item)}
                       className={
-                        page === item
+                        currentPage === item
                           ? "h-10 min-w-10 cursor-pointer rounded-xl bg-[var(--adm-primary)] px-3 text-sm font-black text-[var(--adm-on-primary)]"
                           : "h-10 min-w-10 cursor-pointer rounded-xl px-3 text-sm font-bold text-[var(--adm-text-muted)] hover:bg-[var(--adm-surface-2)] hover:text-[var(--adm-text)]"
                       }
@@ -711,8 +741,8 @@ export default function AllUsersPage() {
                 className="cursor-pointer"
                 intent="primary"
                 label="صفحه بعد"
-                onClick={() => setPage((prev) => Math.min(prev + 1, totalPages || 1))}
-                disabled={page === (totalPages || 1)}
+                onClick={() => handlePageChange(currentPage + 1)}
+                disabled={currentPage === (currentTotalPages || 1)}
               >
                 <ArrowLeft className="h-5 w-5" />
               </AdminIconButton>
