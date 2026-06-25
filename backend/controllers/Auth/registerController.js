@@ -3,7 +3,7 @@ const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const UserModel = require("../../models/userModel");
 const AuthOtpModel = require("../../models/authOtpModel");
-const { cookieOptions } = require("../../config/coockieOptions");
+const { cookieOptions } = require("../../config/cookieOptions");
 const { normalizePhone, toPublicUser } = require("../../utils/userSecurity");
 const {
   generateNumericOtp,

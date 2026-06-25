@@ -1,5 +1,5 @@
 //? 🔵 Required Modules
-const { cookieOptions } = require("../../config/coockieOptions");
+const { cookieOptions } = require("../../config/cookieOptions");
 
 //* 🟢 User Logout Controller
 const logoutController = async (req, res) => {
