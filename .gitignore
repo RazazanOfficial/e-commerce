@@ -1,11 +1,4 @@
-########################
-# custom
-########################
-/gpts/
-
-########################
 # dependencies
-########################
 node_modules/
 .pnp
 .pnp.*
@@ -15,26 +8,17 @@ node_modules/
 !.yarn/releases
 !.yarn/versions
 
-########################
 # Next.js (frontend)
-########################
 frontend/.next/
 frontend/out/
 frontend/build/
 frontend/.vercel/
 
-########################
 # Express (backend)
-########################
 backend/build/
 backend/dist/
-########################
-# Logs
-########################
-logs/
-*.log
-backend/logs/
-*.audit.json
+
+/backend/logs/*
 
 ########################
 # Env files
